@@ -4,11 +4,6 @@
     Art Gallery Management System - DW/BI Module
   -->
   <div class="reports-page">
-    <header class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900">BI Reports & Analytics</h1>
-      <p class="text-gray-500 mt-1">Business Intelligence dashboards and data visualizations</p>
-    </header>
-
     <!-- Reports Dashboard Component -->
     <reports-dashboard
       :kpi-data="kpiData"
