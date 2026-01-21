@@ -1,0 +1,194 @@
+<template>
+  <!--
+    VisitorManagement.vue - Visitor Management Page
+    Art Gallery Management System
+  -->
+  <div class="visitor-management-page">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Visitor Management</h1>
+        <p class="text-gray-500 mt-1">Manage gallery visitors and memberships</p>
+      </div>
+      <router-link
+        to="/visitors/new"
+        class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
+      >
+        <span class="mr-2">➕</span>
+        Add Visitor
+      </router-link>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-sm text-gray-500">Total Visitors</p>
+        <p class="text-2xl font-bold text-gray-900">{{ stats.total.toLocaleString() }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-sm text-gray-500">Members</p>
+        <p class="text-2xl font-bold text-primary-600">{{ stats.members.toLocaleString() }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-sm text-gray-500">Today's Visits</p>
+        <p class="text-2xl font-bold text-green-600">{{ stats.today.toLocaleString() }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-sm text-gray-500">This Month</p>
+        <p class="text-2xl font-bold text-blue-600">{{ stats.month.toLocaleString() }}</p>
+      </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1 relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search visitors..."
+            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+        </div>
+        <select
+          v-model="membershipFilter"
+          class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="">All Types</option>
+          <option value="member">Members Only</option>
+          <option value="guest">Guests Only</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="isLoading" class="space-y-4">
+      <div v-for="n in 5" :key="n" class="bg-white rounded-xl p-4 animate-pulse">
+        <div class="h-4 bg-gray-200 rounded w-1/3"></div>
+      </div>
+    </div>
+
+    <!-- Visitor List -->
+    <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Visitor</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Membership</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Visits</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Last Visit</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr v-for="visitor in filteredVisitors" :key="visitor.id" class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-medium">
+                  {{ visitor.name.charAt(0) }}
+                </div>
+                <span class="font-medium text-gray-900">{{ visitor.name }}</span>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-gray-600">{{ visitor.email }}</td>
+            <td class="px-6 py-4">
+              <span 
+                class="px-2 py-1 text-xs font-medium rounded-full"
+                :class="visitor.isMember ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'"
+              >
+                {{ visitor.isMember ? visitor.membershipType : 'Guest' }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-gray-600">{{ visitor.visitCount }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ formatDate(visitor.lastVisit) }}</td>
+            <td class="px-6 py-4 text-right">
+              <button @click="editVisitor(visitor)" class="p-1 hover:text-primary-600">✏️</button>
+              <button @click="deleteVisitor(visitor)" class="p-1 hover:text-red-600">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script>
+/**
+ * VisitorManagement Page
+ */
+export default {
+  name: 'VisitorManagementPage',
+
+  data() {
+    return {
+      isLoading: true,
+      searchQuery: '',
+      membershipFilter: '',
+      stats: { total: 15420, members: 2340, today: 245, month: 4520 },
+      visitors: []
+    };
+  },
+
+  computed: {
+    filteredVisitors() {
+      let result = [...this.visitors];
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        result = result.filter(v => 
+          v.name.toLowerCase().includes(query) || 
+          v.email.toLowerCase().includes(query)
+        );
+      }
+      
+      if (this.membershipFilter === 'member') {
+        result = result.filter(v => v.isMember);
+      } else if (this.membershipFilter === 'guest') {
+        result = result.filter(v => !v.isMember);
+      }
+      
+      return result;
+    }
+  },
+
+  created() {
+    this.loadVisitors();
+  },
+
+  methods: {
+    async loadVisitors() {
+      this.isLoading = true;
+      await new Promise(resolve => setTimeout(resolve, 500));
+      this.visitors = [
+        { id: 1, name: 'John Smith', email: 'john@email.com', isMember: true, membershipType: 'Premium', visitCount: 45, lastVisit: '2024-01-20' },
+        { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', isMember: true, membershipType: 'Standard', visitCount: 28, lastVisit: '2024-01-19' },
+        { id: 3, name: 'Mike Brown', email: 'mike@email.com', isMember: false, membershipType: null, visitCount: 3, lastVisit: '2024-01-18' },
+        { id: 4, name: 'Emily Davis', email: 'emily@email.com', isMember: true, membershipType: 'Premium', visitCount: 67, lastVisit: '2024-01-20' },
+        { id: 5, name: 'Robert Wilson', email: 'robert@email.com', isMember: false, membershipType: null, visitCount: 1, lastVisit: '2024-01-15' }
+      ];
+      this.isLoading = false;
+    },
+
+    editVisitor(visitor) {
+      this.$router.push({ name: 'EditVisitor', params: { id: visitor.id } });
+    },
+
+    deleteVisitor(visitor) {
+      this.visitors = this.visitors.filter(v => v.id !== visitor.id);
+    },
+
+    formatDate(date) {
+      return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  }
+};
+</script>
+
+<style scoped>
+.visitor-management-page {
+  padding: 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+</style>

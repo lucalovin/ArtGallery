@@ -1,0 +1,50 @@
+{
+  "name": "art-gallery-dw-bi-app",
+  "version": "1.0.0",
+  "description": "Art Gallery Management System - Vue.js 3 Frontend for DW/BI and Vue.js Master's Projects",
+  "author": "Art Gallery Team",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "json-server": "json-server --watch db.json --port 3000"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "chart.js": "^4.4.1",
+    "vue": "^3.4.15",
+    "vue-chartjs": "^5.3.0",
+    "vue-router": "^4.2.5",
+    "vuex": "^4.1.0",
+    "@vee-validate/yup": "^4.12.5",
+    "vee-validate": "^4.12.5",
+    "yup": "^1.3.3",
+    "@heroicons/vue": "^2.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.3",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.20.1",
+    "json-server": "^0.17.4",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.0.12"
+  },
+  "keywords": [
+    "vue3",
+    "vuex",
+    "vue-router",
+    "art-gallery",
+    "dw-bi",
+    "tailwindcss",
+    "options-api"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
