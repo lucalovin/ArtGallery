@@ -128,6 +128,8 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
+
 /**
  * AddEditExhibition Page
  */
@@ -170,25 +172,46 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      createExhibition: 'exhibition/createExhibition',
+      updateExhibition: 'exhibition/updateExhibition',
+      fetchExhibitionById: 'exhibition/fetchExhibitionById'
+    }),
+
     async loadExhibition() {
-      // Mock load
-      this.form = {
-        title: 'Modern Masters',
-        description: 'Exploring 20th century art',
-        startDate: '2024-01-15',
-        endDate: '2024-04-30',
-        curator: 'Dr. Sarah Mitchell',
-        location: 'Gallery Wing A',
-        ticketPrice: 25,
-        status: 'current'
-      };
+      try {
+        const exhibition = await this.fetchExhibitionById(this.id);
+        this.form = {
+          title: exhibition.title || '',
+          description: exhibition.description || '',
+          startDate: exhibition.startDate || '',
+          endDate: exhibition.endDate || '',
+          curator: exhibition.curator || '',
+          location: exhibition.location || '',
+          ticketPrice: exhibition.ticketPrice || null,
+          status: exhibition.status || 'upcoming'
+        };
+      } catch (error) {
+        console.error('Failed to load exhibition:', error);
+        this.$router.push('/exhibitions');
+      }
     },
 
     async handleSubmit() {
       this.isSubmitting = true;
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (this.isEditMode) {
+          await this.updateExhibition({
+            id: this.id,
+            ...this.form
+          });
+        } else {
+          await this.createExhibition(this.form);
+        }
         this.$router.push('/exhibitions');
+      } catch (error) {
+        console.error('Failed to save exhibition:', error);
+        alert('Failed to save exhibition. Please try again.');
       } finally {
         this.isSubmitting = false;
       }

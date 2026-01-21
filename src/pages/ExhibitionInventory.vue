@@ -194,25 +194,30 @@ export default {
     }
   },
 
+  watch: {
+    storeExhibitions(newVal) {
+      this.exhibitions = newVal;
+    }
+  },
+
   created() {
     this.loadExhibitions();
   },
 
   methods: {
     ...mapActions({
-      fetchExhibitions: 'exhibition/fetchExhibitions'
+      fetchExhibitions: 'exhibition/fetchExhibitions',
+      deleteExhibitionAction: 'exhibition/deleteExhibition'
     }),
 
     async loadExhibitions() {
       this.isLoading = true;
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        this.exhibitions = [
-          { id: 1, title: 'Modern Masters', description: 'Exploring 20th century art', startDate: '2024-01-15', endDate: '2024-04-30', status: 'current', artworkCount: 45, imageUrl: '' },
-          { id: 2, title: 'Renaissance Revival', description: 'Classical art from the Renaissance period', startDate: '2024-05-01', endDate: '2024-08-15', status: 'upcoming', artworkCount: 32, imageUrl: '' },
-          { id: 3, title: 'Contemporary Visions', description: 'Modern artists and their perspectives', startDate: '2024-06-01', endDate: '2024-09-30', status: 'upcoming', artworkCount: 28, imageUrl: '' },
-          { id: 4, title: 'Impressionism Era', description: 'Light and color in motion', startDate: '2023-09-01', endDate: '2023-12-31', status: 'past', artworkCount: 50, imageUrl: '' }
-        ];
+        await this.fetchExhibitions();
+        this.exhibitions = this.storeExhibitions;
+      } catch (error) {
+        console.error('Failed to load exhibitions:', error);
+        this.exhibitions = [];
       } finally {
         this.isLoading = false;
       }
@@ -236,10 +241,16 @@ export default {
       this.showDeleteModal = true;
     },
 
-    deleteExhibition() {
-      this.exhibitions = this.exhibitions.filter(e => e.id !== this.exhibitionToDelete.id);
-      this.showDeleteModal = false;
-      this.exhibitionToDelete = null;
+    async deleteExhibition() {
+      try {
+        await this.deleteExhibitionAction(this.exhibitionToDelete.id);
+        this.exhibitions = this.storeExhibitions;
+        this.showDeleteModal = false;
+        this.exhibitionToDelete = null;
+      } catch (error) {
+        console.error('Failed to delete exhibition:', error);
+        alert('Failed to delete exhibition. Please try again.');
+      }
     }
   }
 };
