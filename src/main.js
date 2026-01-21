@@ -120,6 +120,16 @@ app.directive('currency', {
  */
 app.mount('#app');
 
+/**
+ * Initialize the application store
+ * Load data from localStorage for all modules
+ */
+store.dispatch('initializeApp').then(() => {
+  if (import.meta.env.DEV) {
+    console.log('📦 Store initialized from localStorage');
+  }
+});
+
 // Log application start in development mode
 if (import.meta.env.DEV) {
   console.log('🎨 Art Gallery Management System started');

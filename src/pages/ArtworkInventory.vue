@@ -346,15 +346,13 @@ export default {
       showDeleteModal: false,
       artworkToDelete: null,
       categories: ['Painting', 'Sculpture', 'Photography', 'Drawing', 'Print', 'Mixed Media', 'Digital Art'],
-      statuses: ['On Display', 'In Storage', 'On Loan', 'Under Restoration'],
-      // Mock data - replace with Vuex store
-      artworks: []
+      statuses: ['On Display', 'In Storage', 'On Loan', 'Under Restoration']
     };
   },
 
   computed: {
     ...mapState({
-      storeArtworks: state => state.artwork?.artworks || []
+      artworks: state => state.artwork?.artworks || []
     }),
 
     filteredArtworks() {
@@ -446,22 +444,8 @@ export default {
 
     async loadArtworks() {
       this.isLoading = true;
-      
       try {
-        // Simulate API call - replace with actual Vuex action
-        await new Promise(resolve => setTimeout(resolve, 600));
-        
-        // Mock data
-        this.artworks = [
-          { id: 1, title: 'Starry Night', artist: 'Vincent van Gogh', year: 1889, category: 'Painting', status: 'On Display', imageUrl: '' },
-          { id: 2, title: 'The Persistence of Memory', artist: 'Salvador Dalí', year: 1931, category: 'Painting', status: 'In Storage', imageUrl: '' },
-          { id: 3, title: 'Girl with a Pearl Earring', artist: 'Johannes Vermeer', year: 1665, category: 'Painting', status: 'On Loan', imageUrl: '' },
-          { id: 4, title: 'The Birth of Venus', artist: 'Sandro Botticelli', year: 1485, category: 'Painting', status: 'On Display', imageUrl: '' },
-          { id: 5, title: 'The Thinker', artist: 'Auguste Rodin', year: 1904, category: 'Sculpture', status: 'On Display', imageUrl: '' },
-          { id: 6, title: 'David', artist: 'Michelangelo', year: 1504, category: 'Sculpture', status: 'On Loan', imageUrl: '' },
-          { id: 7, title: 'Migrant Mother', artist: 'Dorothea Lange', year: 1936, category: 'Photography', status: 'In Storage', imageUrl: '' },
-          { id: 8, title: 'Water Lilies', artist: 'Claude Monet', year: 1906, category: 'Painting', status: 'Under Restoration', imageUrl: '' }
-        ];
+        await this.fetchArtworks();
       } catch (error) {
         console.error('Error loading artworks:', error);
       } finally {
@@ -494,15 +478,12 @@ export default {
 
     async deleteArtwork() {
       try {
-        // Call Vuex action to delete
-        // await this.removeArtwork(this.artworkToDelete.id);
-        
-        // For now, remove from local array
-        this.artworks = this.artworks.filter(a => a.id !== this.artworkToDelete.id);
+        await this.removeArtwork(this.artworkToDelete.id);
         this.showDeleteModal = false;
         this.artworkToDelete = null;
       } catch (error) {
         console.error('Error deleting artwork:', error);
+        alert('Failed to delete artwork. Please try again.');
       }
     },
 

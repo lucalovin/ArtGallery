@@ -163,14 +163,13 @@ export default {
         { label: 'Current', value: 'current' },
         { label: 'Upcoming', value: 'upcoming' },
         { label: 'Past', value: 'past' }
-      ],
-      exhibitions: []
+      ]
     };
   },
 
   computed: {
     ...mapState({
-      storeExhibitions: state => state.exhibition?.exhibitions || []
+      exhibitions: state => state.exhibition?.exhibitions || []
     }),
 
     filteredExhibitions() {
@@ -194,12 +193,6 @@ export default {
     }
   },
 
-  watch: {
-    storeExhibitions(newVal) {
-      this.exhibitions = newVal;
-    }
-  },
-
   created() {
     this.loadExhibitions();
   },
@@ -214,10 +207,8 @@ export default {
       this.isLoading = true;
       try {
         await this.fetchExhibitions();
-        this.exhibitions = this.storeExhibitions;
       } catch (error) {
         console.error('Failed to load exhibitions:', error);
-        this.exhibitions = [];
       } finally {
         this.isLoading = false;
       }
@@ -244,7 +235,6 @@ export default {
     async deleteExhibition() {
       try {
         await this.deleteExhibitionAction(this.exhibitionToDelete.id);
-        this.exhibitions = this.storeExhibitions;
         this.showDeleteModal = false;
         this.exhibitionToDelete = null;
       } catch (error) {

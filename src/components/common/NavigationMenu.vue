@@ -96,9 +96,9 @@
           </button>
 
           <!-- Quick actions dropdown -->
-          <div class="relative">
+          <div class="relative" ref="quickActionsRef">
             <button
-              @click="toggleQuickActions"
+              @click.stop="toggleQuickActions"
               class="btn-primary text-sm flex items-center space-x-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,6 +111,7 @@
               <div
                 v-if="showQuickActions"
                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1"
+                @click.stop
               >
                 <router-link 
                   to="/artworks/new" 
@@ -125,6 +126,20 @@
                   @click="showQuickActions = false"
                 >
                   New Exhibition
+                </router-link>
+                <router-link 
+                  to="/visitors/new" 
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  @click="showQuickActions = false"
+                >
+                  New Visitor
+                </router-link>
+                <router-link 
+                  to="/loans/new" 
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  @click="showQuickActions = false"
+                >
+                  New Loan
                 </router-link>
               </div>
             </transition>

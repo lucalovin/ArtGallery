@@ -124,6 +124,8 @@
 </template>
 
 <script>
+import { mapState, mapActions } from 'vuex';
+
 /**
  * AddEditVisitor Page
  */
@@ -147,12 +149,18 @@ export default {
         dateOfBirth: '',
         isMember: false,
         membershipType: 'Standard',
-        membershipExpiry: ''
+        membershipExpiry: '',
+        visitCount: 0,
+        lastVisit: new Date().toISOString().split('T')[0]
       }
     };
   },
 
   computed: {
+    ...mapState({
+      visitors: state => state.visitor?.visitors || []
+    }),
+
     isEditMode() {
       return !!this.id;
     }
@@ -165,22 +173,33 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      createVisitor: 'visitor/createVisitor',
+      updateVisitor: 'visitor/updateVisitor'
+    }),
+
     async loadVisitor() {
-      this.form = {
-        name: 'John Smith',
-        email: 'john@email.com',
-        phone: '+1 555-0123',
-        dateOfBirth: '1985-06-15',
-        isMember: true,
-        membershipType: 'Premium',
-        membershipExpiry: '2025-01-01'
-      };
+      const visitor = this.visitors.find(v => v.id === parseInt(this.id));
+      if (visitor) {
+        this.form = { ...visitor };
+      }
     },
 
     async handleSubmit() {
       this.isSubmitting = true;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      this.$router.push('/visitors');
+      try {
+        if (this.isEditMode) {
+          await this.updateVisitor({ id: parseInt(this.id), ...this.form });
+        } else {
+          await this.createVisitor(this.form);
+        }
+        this.$router.push('/visitors');
+      } catch (error) {
+        console.error('Error saving visitor:', error);
+        alert('Failed to save visitor. Please try again.');
+      } finally {
+        this.isSubmitting = false;
+      }
     },
 
     goBack() {

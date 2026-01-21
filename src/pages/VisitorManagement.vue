@@ -114,6 +114,8 @@
 </template>
 
 <script>
+import { mapState, mapActions } from 'vuex';
+
 /**
  * VisitorManagement Page
  */
@@ -124,13 +126,24 @@ export default {
     return {
       isLoading: true,
       searchQuery: '',
-      membershipFilter: '',
-      stats: { total: 15420, members: 2340, today: 245, month: 4520 },
-      visitors: []
+      membershipFilter: ''
     };
   },
 
   computed: {
+    ...mapState({
+      visitors: state => state.visitor?.visitors || []
+    }),
+
+    stats() {
+      return {
+        total: this.visitors.length,
+        members: this.visitors.filter(v => v.isMember).length,
+        today: this.visitors.filter(v => v.lastVisit === new Date().toISOString().split('T')[0]).length,
+        month: this.visitors.length
+      };
+    },
+
     filteredVisitors() {
       let result = [...this.visitors];
       
@@ -157,25 +170,34 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      fetchVisitors: 'visitor/fetchVisitors',
+      deleteVisitorAction: 'visitor/deleteVisitor'
+    }),
+
     async loadVisitors() {
       this.isLoading = true;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      this.visitors = [
-        { id: 1, name: 'John Smith', email: 'john@email.com', isMember: true, membershipType: 'Premium', visitCount: 45, lastVisit: '2024-01-20' },
-        { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', isMember: true, membershipType: 'Standard', visitCount: 28, lastVisit: '2024-01-19' },
-        { id: 3, name: 'Mike Brown', email: 'mike@email.com', isMember: false, membershipType: null, visitCount: 3, lastVisit: '2024-01-18' },
-        { id: 4, name: 'Emily Davis', email: 'emily@email.com', isMember: true, membershipType: 'Premium', visitCount: 67, lastVisit: '2024-01-20' },
-        { id: 5, name: 'Robert Wilson', email: 'robert@email.com', isMember: false, membershipType: null, visitCount: 1, lastVisit: '2024-01-15' }
-      ];
-      this.isLoading = false;
+      try {
+        await this.fetchVisitors();
+      } catch (error) {
+        console.error('Error loading visitors:', error);
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     editVisitor(visitor) {
       this.$router.push({ name: 'EditVisitor', params: { id: visitor.id } });
     },
 
-    deleteVisitor(visitor) {
-      this.visitors = this.visitors.filter(v => v.id !== visitor.id);
+    async deleteVisitor(visitor) {
+      if (confirm(`Are you sure you want to delete "${visitor.name}"?`)) {
+        try {
+          await this.deleteVisitorAction(visitor.id);
+        } catch (error) {
+          console.error('Error deleting visitor:', error);
+        }
+      }
     },
 
     formatDate(date) {

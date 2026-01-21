@@ -124,6 +124,8 @@
 </template>
 
 <script>
+import { mapState, mapActions } from 'vuex';
+
 /**
  * LoanManagement Page
  */
@@ -139,13 +141,24 @@ export default {
         { label: 'Active', value: 'Active' },
         { label: 'Pending', value: 'Pending' },
         { label: 'Returned', value: 'Returned' }
-      ],
-      stats: { active: 12, pending: 3, returningSoon: 4, totalValue: 8500000 },
-      loans: []
+      ]
     };
   },
 
   computed: {
+    ...mapState({
+      loans: state => state.loans?.loans || []
+    }),
+
+    stats() {
+      return {
+        active: this.loans.filter(l => l.status === 'Active').length,
+        pending: this.loans.filter(l => l.status === 'Pending').length,
+        returningSoon: this.loans.filter(l => l.status === 'Active' && l.daysRemaining < 30).length,
+        totalValue: this.loans.reduce((sum, l) => sum + (l.insuredValue || 0), 0)
+      };
+    },
+
     filteredLoans() {
       if (this.activeStatus === 'all') return this.loans;
       return this.loans.filter(l => l.status === this.activeStatus);
@@ -157,24 +170,34 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      fetchLoans: 'loans/fetchLoans',
+      deleteLoanAction: 'loans/deleteLoan'
+    }),
+
     async loadLoans() {
       this.isLoading = true;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      this.loans = [
-        { id: 1, artworkTitle: 'Water Lilies', artist: 'Claude Monet', borrowerName: 'Metropolitan Museum', startDate: '2024-01-15', endDate: '2024-06-15', status: 'Active', insuredValue: 2500000, insuranceProvider: 'ArtGuard', loanFee: 50000, daysRemaining: 145 },
-        { id: 2, artworkTitle: 'The Thinker', artist: 'Auguste Rodin', borrowerName: 'Louvre Museum', startDate: '2024-02-01', endDate: '2024-08-01', status: 'Active', insuredValue: 3000000, insuranceProvider: 'MasterArt Insurance', loanFee: 75000, daysRemaining: 192 },
-        { id: 3, artworkTitle: 'Girl with Pearl Earring', artist: 'Johannes Vermeer', borrowerName: 'National Gallery', startDate: '2024-03-01', endDate: '2024-05-01', status: 'Pending', insuredValue: 1500000, insuranceProvider: 'Heritage Protect', loanFee: 35000, daysRemaining: 100 },
-        { id: 4, artworkTitle: 'Starry Night', artist: 'Vincent van Gogh', borrowerName: 'MoMA', startDate: '2023-06-01', endDate: '2023-12-01', status: 'Returned', insuredValue: 2000000, insuranceProvider: 'ArtGuard', loanFee: 45000, daysRemaining: 0 }
-      ];
-      this.isLoading = false;
+      try {
+        await this.fetchLoans();
+      } catch (error) {
+        console.error('Error loading loans:', error);
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     editLoan(loan) {
       this.$router.push({ name: 'EditLoan', params: { id: loan.id } });
     },
 
-    deleteLoan(loan) {
-      this.loans = this.loans.filter(l => l.id !== loan.id);
+    async deleteLoan(loan) {
+      if (confirm(`Are you sure you want to delete this loan for "${loan.artworkTitle}"?`)) {
+        try {
+          await this.deleteLoanAction(loan.id);
+        } catch (error) {
+          console.error('Error deleting loan:', error);
+        }
+      }
     },
 
     formatCurrency(value) {

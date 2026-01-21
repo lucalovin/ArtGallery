@@ -106,7 +106,7 @@ export default {
   },
 
   actions: {
-    async fetchVisitors({ commit }) {
+    async fetchVisitors({ commit, dispatch }) {
       try {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
@@ -118,8 +118,9 @@ export default {
         
         return response.data;
       } catch (error) {
-        commit('SET_ERROR', error.message);
-        throw error;
+        console.warn('API unavailable, loading from localStorage:', error.message);
+        dispatch('loadFromLocalStorage');
+        return [];
       } finally {
         commit('SET_LOADING', false);
       }
@@ -130,11 +131,51 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        const response = await visitorAPI.create(visitor);
-        commit('ADD_VISITOR', response.data);
+        let newVisitor;
+        try {
+          const response = await visitorAPI.create(visitor);
+          newVisitor = response.data;
+        } catch (apiError) {
+          console.warn('API unavailable, creating visitor locally');
+          newVisitor = { ...visitor };
+        }
+        
+        commit('ADD_VISITOR', newVisitor);
         dispatch('saveToLocalStorage');
         
-        return response.data;
+        return newVisitor;
+      } catch (error) {
+        commit('SET_ERROR', error.message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+
+    async updateVisitor({ commit, dispatch }, visitor) {
+      try {
+        commit('SET_LOADING', true);
+        commit('CLEAR_ERROR');
+        commit('UPDATE_VISITOR', visitor);
+        dispatch('saveToLocalStorage');
+        
+        return visitor;
+      } catch (error) {
+        commit('SET_ERROR', error.message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+
+    async deleteVisitor({ commit, dispatch }, id) {
+      try {
+        commit('SET_LOADING', true);
+        commit('CLEAR_ERROR');
+        commit('DELETE_VISITOR', id);
+        dispatch('saveToLocalStorage');
+        
+        return { success: true };
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;
@@ -148,11 +189,19 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        const response = await visitorAPI.createReview(review);
-        commit('ADD_REVIEW', response.data);
+        let newReview;
+        try {
+          const response = await visitorAPI.createReview(review);
+          newReview = response.data;
+        } catch (apiError) {
+          console.warn('API unavailable, creating review locally');
+          newReview = { ...review };
+        }
+        
+        commit('ADD_REVIEW', newReview);
         dispatch('saveReviewsToLocalStorage');
         
-        return response.data;
+        return newReview;
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;
@@ -161,11 +210,25 @@ export default {
       }
     },
 
-    loadFromLocalStorage({ commit }) {
+    loadFromLocalStorage({ commit, dispatch }) {
       try {
         const storedVisitors = localStorage.getItem(STORAGE_KEY);
         if (storedVisitors) {
           commit('SET_VISITORS', JSON.parse(storedVisitors));
+        } else {
+          // Seed initial visitors data
+          const initialVisitors = [
+            { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 555-0123', isMember: true, membershipType: 'Premium', visitCount: 45, lastVisit: '2024-01-20', createdAt: new Date().toISOString() },
+            { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 555-0456', isMember: true, membershipType: 'Standard', visitCount: 28, lastVisit: '2024-01-19', createdAt: new Date().toISOString() },
+            { id: 3, name: 'Mike Brown', email: 'mike@email.com', phone: '+1 555-0789', isMember: false, membershipType: null, visitCount: 3, lastVisit: '2024-01-18', createdAt: new Date().toISOString() },
+            { id: 4, name: 'Emily Davis', email: 'emily@email.com', phone: '+1 555-0321', isMember: true, membershipType: 'Premium', visitCount: 67, lastVisit: '2024-01-20', createdAt: new Date().toISOString() },
+            { id: 5, name: 'Robert Wilson', email: 'robert@email.com', phone: '+1 555-0654', isMember: false, membershipType: null, visitCount: 1, lastVisit: '2024-01-15', createdAt: new Date().toISOString() }
+          ];
+          commit('SET_VISITORS', initialVisitors);
+          dispatch('saveToLocalStorage');
+          if (import.meta.env.DEV) {
+            console.log(`📦 Seeded ${initialVisitors.length} initial visitors`);
+          }
         }
 
         const storedReviews = localStorage.getItem(REVIEWS_KEY);

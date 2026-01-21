@@ -116,6 +116,8 @@
 </template>
 
 <script>
+import { mapState, mapActions } from 'vuex';
+
 /**
  * ExhibitionDetail Page
  */
@@ -132,33 +134,52 @@ export default {
   data() {
     return {
       isLoading: true,
-      showDeleteModal: false,
-      exhibition: {}
+      showDeleteModal: false
     };
   },
 
-  created() {
-    this.loadExhibition();
+  computed: {
+    ...mapState({
+      exhibitions: state => state.exhibition?.exhibitions || []
+    }),
+
+    exhibition() {
+      const found = this.exhibitions.find(e => e.id === parseInt(this.id));
+      return found || {
+        id: null,
+        title: '',
+        description: '',
+        startDate: null,
+        endDate: null,
+        status: '',
+        artworkCount: 0,
+        curator: '',
+        location: '',
+        ticketPrice: 0,
+        visitorCount: 0
+      };
+    }
+  },
+
+  watch: {
+    id: {
+      immediate: true,
+      handler: 'loadExhibition'
+    }
   },
 
   methods: {
+    ...mapActions({
+      fetchExhibitions: 'exhibition/fetchExhibitions',
+      removeExhibition: 'exhibition/deleteExhibition'
+    }),
+
     async loadExhibition() {
       this.isLoading = true;
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        this.exhibition = {
-          id: this.id,
-          title: 'Modern Masters',
-          description: 'Exploring the works of 20th century masters including Picasso, Kandinsky, and Mondrian. This exhibition showcases the evolution of modern art through groundbreaking pieces.',
-          startDate: '2024-01-15',
-          endDate: '2024-04-30',
-          status: 'current',
-          artworkCount: 45,
-          curator: 'Dr. Sarah Mitchell',
-          location: 'Gallery Wing A',
-          ticketPrice: 25,
-          visitorCount: 12450
-        };
+        if (this.exhibitions.length === 0) {
+          await this.fetchExhibitions();
+        }
       } finally {
         this.isLoading = false;
       }
@@ -172,8 +193,15 @@ export default {
       this.$router.push({ name: 'EditExhibition', params: { id: this.id } });
     },
 
-    deleteExhibition() {
-      this.$router.push('/exhibitions');
+    async deleteExhibition() {
+      try {
+        await this.removeExhibition(parseInt(this.id));
+        this.showDeleteModal = false;
+        this.$router.push('/exhibitions');
+      } catch (error) {
+        console.error('Error deleting exhibition:', error);
+        alert('Failed to delete exhibition. Please try again.');
+      }
     },
 
     formatDateRange(start, end) {

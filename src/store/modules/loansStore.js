@@ -154,6 +154,36 @@ export default {
       }
     },
 
+    async updateLoan({ commit, dispatch }, loan) {
+      try {
+        commit('SET_LOADING', true);
+        commit('UPDATE_LOAN', loan);
+        dispatch('saveLoansToLocalStorage');
+        
+        return loan;
+      } catch (error) {
+        commit('SET_ERROR', error.message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+
+    async deleteLoan({ commit, dispatch }, id) {
+      try {
+        commit('SET_LOADING', true);
+        commit('DELETE_LOAN', id);
+        dispatch('saveLoansToLocalStorage');
+        
+        return { success: true };
+      } catch (error) {
+        commit('SET_ERROR', error.message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+
     async createRestoration({ commit, dispatch }, restoration) {
       try {
         commit('SET_LOADING', true);
@@ -184,11 +214,24 @@ export default {
       }
     },
 
-    loadFromLocalStorage({ commit }) {
+    loadFromLocalStorage({ commit, dispatch }) {
       try {
         const storedLoans = localStorage.getItem(LOANS_KEY);
         if (storedLoans) {
           commit('SET_LOANS', JSON.parse(storedLoans));
+        } else {
+          // Seed initial loans data
+          const initialLoans = [
+            { id: 1, artworkId: 8, artworkTitle: 'Water Lilies', artist: 'Claude Monet', borrowerName: 'Metropolitan Museum', contactPerson: 'Dr. Jane Wilson', contactEmail: 'jane@metmuseum.org', startDate: '2024-01-15', endDate: '2024-06-15', status: 'Active', insuredValue: 2500000, insuranceProvider: 'ArtGuard', loanFee: 50000, daysRemaining: 145, createdAt: new Date().toISOString() },
+            { id: 2, artworkId: 5, artworkTitle: 'The Thinker', artist: 'Auguste Rodin', borrowerName: 'Louvre Museum', contactPerson: 'Pierre Dubois', contactEmail: 'pierre@louvre.fr', startDate: '2024-02-01', endDate: '2024-08-01', status: 'Active', insuredValue: 3000000, insuranceProvider: 'MasterArt Insurance', loanFee: 75000, daysRemaining: 192, createdAt: new Date().toISOString() },
+            { id: 3, artworkId: 3, artworkTitle: 'Girl with Pearl Earring', artist: 'Johannes Vermeer', borrowerName: 'National Gallery', contactPerson: 'Emma Thompson', contactEmail: 'emma@nationalgallery.uk', startDate: '2024-03-01', endDate: '2024-05-01', status: 'Pending', insuredValue: 1500000, insuranceProvider: 'Heritage Protect', loanFee: 35000, daysRemaining: 100, createdAt: new Date().toISOString() },
+            { id: 4, artworkId: 1, artworkTitle: 'Starry Night', artist: 'Vincent van Gogh', borrowerName: 'MoMA', contactPerson: 'John Davis', contactEmail: 'john@moma.org', startDate: '2023-06-01', endDate: '2023-12-01', status: 'Returned', insuredValue: 2000000, insuranceProvider: 'ArtGuard', loanFee: 45000, daysRemaining: 0, createdAt: new Date().toISOString() }
+          ];
+          commit('SET_LOANS', initialLoans);
+          dispatch('saveLoansToLocalStorage');
+          if (import.meta.env.DEV) {
+            console.log(`📦 Seeded ${initialLoans.length} initial loans`);
+          }
         }
 
         const storedRestorations = localStorage.getItem(RESTORATIONS_KEY);

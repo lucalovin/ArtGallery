@@ -214,7 +214,7 @@ export default {
     /**
      * Fetch all artworks from API
      */
-    async fetchArtworks({ commit }) {
+    async fetchArtworks({ commit, dispatch }) {
       try {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
@@ -227,10 +227,10 @@ export default {
         
         return response.data;
       } catch (error) {
-        const message = error.response?.data?.message || 'Failed to fetch artworks';
-        commit('SET_ERROR', message);
-        console.error('Fetch artworks error:', error);
-        throw error;
+        console.warn('API unavailable, loading from localStorage:', error.message);
+        // Fallback to localStorage when API fails
+        dispatch('loadFromLocalStorage');
+        return [];
       } finally {
         commit('SET_LOADING', false);
       }
@@ -274,17 +274,23 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        const response = await artworkAPI.create(artwork);
-        commit('ADD_ARTWORK', response.data);
+        let newArtwork;
+        try {
+          const response = await artworkAPI.create(artwork);
+          newArtwork = response.data;
+        } catch (apiError) {
+          // API unavailable, create locally
+          console.warn('API unavailable, creating artwork locally');
+          newArtwork = { ...artwork };
+        }
         
-        // Update LocalStorage
+        commit('ADD_ARTWORK', newArtwork);
         dispatch('saveToLocalStorage');
         
-        return response.data;
+        return newArtwork;
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to create artwork';
         commit('SET_ERROR', message);
-        console.error('Create artwork error:', error);
         throw error;
       } finally {
         commit('SET_LOADING', false);
@@ -299,17 +305,23 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        const response = await artworkAPI.update(artwork.id, artwork);
-        commit('UPDATE_ARTWORK', response.data);
+        let updatedArtwork;
+        try {
+          const response = await artworkAPI.update(artwork.id, artwork);
+          updatedArtwork = response.data;
+        } catch (apiError) {
+          // API unavailable, update locally
+          console.warn('API unavailable, updating artwork locally');
+          updatedArtwork = { ...artwork };
+        }
         
-        // Update LocalStorage
+        commit('UPDATE_ARTWORK', updatedArtwork);
         dispatch('saveToLocalStorage');
         
-        return response.data;
+        return updatedArtwork;
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to update artwork';
         commit('SET_ERROR', message);
-        console.error('Update artwork error:', error);
         throw error;
       } finally {
         commit('SET_LOADING', false);
@@ -324,17 +336,20 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        await artworkAPI.delete(id);
-        commit('DELETE_ARTWORK', id);
+        try {
+          await artworkAPI.delete(id);
+        } catch (apiError) {
+          // API unavailable, delete locally
+          console.warn('API unavailable, deleting artwork locally');
+        }
         
-        // Update LocalStorage
+        commit('DELETE_ARTWORK', id);
         dispatch('saveToLocalStorage');
         
         return { success: true };
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to delete artwork';
         commit('SET_ERROR', message);
-        console.error('Delete artwork error:', error);
         throw error;
       } finally {
         commit('SET_LOADING', false);
@@ -345,7 +360,7 @@ export default {
      * Load artworks from LocalStorage
      * Called during app initialization
      */
-    loadFromLocalStorage({ commit }) {
+    loadFromLocalStorage({ commit, dispatch }) {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -354,6 +369,24 @@ export default {
           
           if (import.meta.env.DEV) {
             console.log(`📦 Loaded ${artworks.length} artworks from LocalStorage`);
+          }
+        } else {
+          // Seed with initial data if localStorage is empty
+          const initialArtworks = [
+            { id: 1, title: 'Starry Night', artist: 'Vincent van Gogh', year: 1889, category: 'Painting', status: 'On Display', medium: 'Oil on canvas', dimensions: '73.7 cm × 92.1 cm', location: 'Gallery A, Room 3', imageUrl: '', tags: ['Post-Impressionism', 'Night Scene'], createdAt: new Date().toISOString() },
+            { id: 2, title: 'The Persistence of Memory', artist: 'Salvador Dalí', year: 1931, category: 'Painting', status: 'In Storage', medium: 'Oil on canvas', dimensions: '24 cm × 33 cm', location: 'Storage Unit B-12', imageUrl: '', tags: ['Surrealism'], createdAt: new Date().toISOString() },
+            { id: 3, title: 'Girl with a Pearl Earring', artist: 'Johannes Vermeer', year: 1665, category: 'Painting', status: 'On Loan', medium: 'Oil on canvas', dimensions: '44.5 cm × 39 cm', location: 'Metropolitan Museum, New York', imageUrl: '', tags: ['Dutch Golden Age', 'Portrait'], createdAt: new Date().toISOString() },
+            { id: 4, title: 'The Birth of Venus', artist: 'Sandro Botticelli', year: 1485, category: 'Painting', status: 'On Display', medium: 'Tempera on canvas', dimensions: '172.5 cm × 278.9 cm', location: 'Gallery B, Room 1', imageUrl: '', tags: ['Renaissance', 'Mythology'], createdAt: new Date().toISOString() },
+            { id: 5, title: 'The Thinker', artist: 'Auguste Rodin', year: 1904, category: 'Sculpture', status: 'On Display', medium: 'Bronze', dimensions: '189 cm × 98 cm × 140 cm', location: 'Sculpture Garden', imageUrl: '', tags: ['Sculpture', 'Bronze'], createdAt: new Date().toISOString() },
+            { id: 6, title: 'David', artist: 'Michelangelo', year: 1504, category: 'Sculpture', status: 'On Loan', medium: 'Marble', dimensions: '517 cm × 199 cm', location: 'Galleria dell\'Accademia, Florence', imageUrl: '', tags: ['Renaissance', 'Marble'], createdAt: new Date().toISOString() },
+            { id: 7, title: 'Migrant Mother', artist: 'Dorothea Lange', year: 1936, category: 'Photography', status: 'In Storage', medium: 'Gelatin silver print', dimensions: '28.3 cm × 21.8 cm', location: 'Archive Room 2', imageUrl: '', tags: ['Documentary', 'Great Depression'], createdAt: new Date().toISOString() },
+            { id: 8, title: 'Water Lilies', artist: 'Claude Monet', year: 1906, category: 'Painting', status: 'Under Restoration', medium: 'Oil on canvas', dimensions: '89.9 cm × 94.1 cm', location: 'Restoration Lab', imageUrl: '', tags: ['Impressionism', 'Nature'], createdAt: new Date().toISOString() }
+          ];
+          commit('SET_ARTWORKS', initialArtworks);
+          dispatch('saveToLocalStorage');
+          
+          if (import.meta.env.DEV) {
+            console.log(`📦 Seeded ${initialArtworks.length} initial artworks`);
           }
         }
       } catch (error) {

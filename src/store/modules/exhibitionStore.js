@@ -227,7 +227,7 @@ export default {
     /**
      * Fetch all exhibitions from API
      */
-    async fetchExhibitions({ commit }) {
+    async fetchExhibitions({ commit, dispatch }) {
       try {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
@@ -239,10 +239,10 @@ export default {
         
         return response.data;
       } catch (error) {
-        const message = error.response?.data?.message || 'Failed to fetch exhibitions';
-        commit('SET_ERROR', message);
-        console.error('Fetch exhibitions error:', error);
-        throw error;
+        console.warn('API unavailable, loading from localStorage:', error.message);
+        // Fallback to localStorage when API fails
+        dispatch('loadFromLocalStorage');
+        return [];
       } finally {
         commit('SET_LOADING', false);
       }
@@ -283,12 +283,20 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        const response = await exhibitionAPI.create(exhibition);
-        commit('ADD_EXHIBITION', response.data);
+        let newExhibition;
+        try {
+          const response = await exhibitionAPI.create(exhibition);
+          newExhibition = response.data;
+        } catch (apiError) {
+          // API unavailable, create locally
+          console.warn('API unavailable, creating exhibition locally');
+          newExhibition = { ...exhibition };
+        }
         
+        commit('ADD_EXHIBITION', newExhibition);
         dispatch('saveToLocalStorage');
         
-        return response.data;
+        return newExhibition;
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to create exhibition';
         commit('SET_ERROR', message);
@@ -306,12 +314,20 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        const response = await exhibitionAPI.update(exhibition.id, exhibition);
-        commit('UPDATE_EXHIBITION', response.data);
+        let updatedExhibition;
+        try {
+          const response = await exhibitionAPI.update(exhibition.id, exhibition);
+          updatedExhibition = response.data;
+        } catch (apiError) {
+          // API unavailable, update locally
+          console.warn('API unavailable, updating exhibition locally');
+          updatedExhibition = { ...exhibition };
+        }
         
+        commit('UPDATE_EXHIBITION', updatedExhibition);
         dispatch('saveToLocalStorage');
         
-        return response.data;
+        return updatedExhibition;
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to update exhibition';
         commit('SET_ERROR', message);
@@ -329,9 +345,14 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        await exhibitionAPI.delete(id);
-        commit('DELETE_EXHIBITION', id);
+        try {
+          await exhibitionAPI.delete(id);
+        } catch (apiError) {
+          // API unavailable, delete locally
+          console.warn('API unavailable, deleting exhibition locally');
+        }
         
+        commit('DELETE_EXHIBITION', id);
         dispatch('saveToLocalStorage');
         
         return { success: true };
@@ -347,7 +368,7 @@ export default {
     /**
      * Load exhibitions from LocalStorage
      */
-    loadFromLocalStorage({ commit }) {
+    loadFromLocalStorage({ commit, dispatch }) {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -356,6 +377,20 @@ export default {
           
           if (import.meta.env.DEV) {
             console.log(`📦 Loaded ${exhibitions.length} exhibitions from LocalStorage`);
+          }
+        } else {
+          // Seed with initial data if localStorage is empty
+          const initialExhibitions = [
+            { id: 1, title: 'Modern Masters', description: 'Exploring the works of 20th century masters', startDate: '2024-01-15', endDate: '2024-04-30', status: 'current', curator: 'Dr. Sarah Mitchell', location: 'Gallery Wing A', ticketPrice: 25, artworkCount: 45, createdAt: new Date().toISOString() },
+            { id: 2, title: 'Renaissance Revival', description: 'Classical art from the Renaissance period', startDate: '2024-05-01', endDate: '2024-08-15', status: 'upcoming', curator: 'Prof. Marco Rossi', location: 'Gallery Wing B', ticketPrice: 30, artworkCount: 32, createdAt: new Date().toISOString() },
+            { id: 3, title: 'Contemporary Visions', description: 'Modern artists and their perspectives', startDate: '2024-06-01', endDate: '2024-09-30', status: 'upcoming', curator: 'Emily Chen', location: 'Contemporary Wing', ticketPrice: 20, artworkCount: 28, createdAt: new Date().toISOString() },
+            { id: 4, title: 'Impressionism Era', description: 'Light and color in motion', startDate: '2023-09-01', endDate: '2023-12-31', status: 'past', curator: 'Dr. Sarah Mitchell', location: 'Gallery Wing A', ticketPrice: 25, artworkCount: 50, createdAt: new Date().toISOString() }
+          ];
+          commit('SET_EXHIBITIONS', initialExhibitions);
+          dispatch('saveToLocalStorage');
+          
+          if (import.meta.env.DEV) {
+            console.log(`📦 Seeded ${initialExhibitions.length} initial exhibitions`);
           }
         }
       } catch (error) {

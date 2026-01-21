@@ -199,6 +199,8 @@
 </template>
 
 <script>
+import { mapState, mapActions } from 'vuex';
+
 /**
  * AddEditLoan Page - OPTIONS API
  */
@@ -215,14 +217,10 @@ export default {
   data() {
     return {
       isSubmitting: false,
-      availableArtworks: [
-        { id: 1, title: 'Starry Night', artist: 'Vincent van Gogh' },
-        { id: 2, title: 'Water Lilies', artist: 'Claude Monet' },
-        { id: 3, title: 'The Thinker', artist: 'Auguste Rodin' },
-        { id: 4, title: 'Girl with Pearl Earring', artist: 'Johannes Vermeer' }
-      ],
       form: {
         artworkId: '',
+        artworkTitle: '',
+        artist: '',
         status: 'Pending',
         borrowerName: '',
         contactPerson: '',
@@ -234,12 +232,22 @@ export default {
         insuredValue: null,
         insuranceProvider: '',
         policyNumber: '',
-        notes: ''
+        notes: '',
+        daysRemaining: 0
       }
     };
   },
 
   computed: {
+    ...mapState({
+      artworks: state => state.artwork?.artworks || [],
+      loans: state => state.loans?.loans || []
+    }),
+
+    availableArtworks() {
+      return this.artworks.map(a => ({ id: a.id, title: a.title, artist: a.artist }));
+    },
+
     isEditMode() {
       return !!this.id;
     }
@@ -252,28 +260,48 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      createLoan: 'loans/createLoan',
+      updateLoan: 'loans/updateLoan',
+      fetchLoans: 'loans/fetchLoans'
+    }),
+
     async loadLoan() {
-      this.form = {
-        artworkId: 2,
-        status: 'Active',
-        borrowerName: 'Metropolitan Museum',
-        contactPerson: 'Dr. Jane Wilson',
-        contactEmail: 'jane.wilson@metmuseum.org',
-        contactPhone: '+1 212-555-0123',
-        startDate: '2024-01-15',
-        endDate: '2024-06-15',
-        loanFee: 50000,
-        insuredValue: 2500000,
-        insuranceProvider: 'ArtGuard',
-        policyNumber: 'AG-2024-00456',
-        notes: 'Handle with care. Climate controlled transport required.'
-      };
+      const loan = this.loans.find(l => l.id === parseInt(this.id));
+      if (loan) {
+        this.form = { ...loan };
+      }
     },
 
     async handleSubmit() {
       this.isSubmitting = true;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      this.$router.push('/loans');
+      try {
+        // Get artwork details
+        const artwork = this.artworks.find(a => a.id === parseInt(this.form.artworkId));
+        if (artwork) {
+          this.form.artworkTitle = artwork.title;
+          this.form.artist = artwork.artist;
+        }
+        
+        // Calculate days remaining
+        if (this.form.endDate) {
+          const end = new Date(this.form.endDate);
+          const now = new Date();
+          this.form.daysRemaining = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+        }
+
+        if (this.isEditMode) {
+          await this.updateLoan({ id: parseInt(this.id), ...this.form });
+        } else {
+          await this.createLoan(this.form);
+        }
+        this.$router.push('/loans');
+      } catch (error) {
+        console.error('Error saving loan:', error);
+        alert('Failed to save loan. Please try again.');
+      } finally {
+        this.isSubmitting = false;
+      }
     },
 
     goBack() {

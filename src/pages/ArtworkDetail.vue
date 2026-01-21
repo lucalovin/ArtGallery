@@ -317,7 +317,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapState, mapActions } from 'vuex';
 
 /**
  * ArtworkDetail Page Component
@@ -344,8 +344,18 @@ export default {
         { id: 'exhibitions', label: 'Exhibitions', icon: '🎨' },
         { id: 'insurance', label: 'Insurance', icon: '🛡️' },
         { id: 'restoration', label: 'Restoration', icon: '🔧' }
-      ],
-      artwork: {
+      ]
+    };
+  },
+
+  computed: {
+    ...mapState({
+      artworks: state => state.artwork?.artworks || []
+    }),
+
+    artwork() {
+      const found = this.artworks.find(a => a.id === parseInt(this.id));
+      return found || {
         id: null,
         title: '',
         artist: '',
@@ -364,8 +374,8 @@ export default {
         exhibitions: [],
         insurance: null,
         restorations: []
-      }
-    };
+      };
+    }
   },
 
   watch: {
@@ -377,7 +387,7 @@ export default {
 
   methods: {
     ...mapActions({
-      fetchArtwork: 'artwork/fetchArtwork',
+      fetchArtworks: 'artwork/fetchArtworks',
       removeArtwork: 'artwork/deleteArtwork'
     }),
 
@@ -386,53 +396,15 @@ export default {
       this.error = false;
 
       try {
-        // Simulate API call - replace with actual Vuex action
-        await new Promise(resolve => setTimeout(resolve, 600));
-
-        // Mock data - in real app, fetch from API
-        this.artwork = {
-          id: this.id,
-          title: 'Starry Night',
-          artist: 'Vincent van Gogh',
-          year: 1889,
-          category: 'Painting',
-          medium: 'Oil on canvas',
-          dimensions: '73.7 cm × 92.1 cm',
-          description: 'The Starry Night is an oil-on-canvas painting by the Dutch Post-Impressionist painter Vincent van Gogh. Painted in June 1889, it depicts the view from the east-facing window of his asylum room at Saint-Rémy-de-Provence, just before sunrise, with the addition of an imaginary village.',
-          status: 'On Display',
-          location: 'Gallery A, Room 3',
-          imageUrl: '',
-          acquisitionDate: '2020-03-15',
-          estimatedValue: 1500000,
-          tags: ['Post-Impressionism', 'Night Scene', 'Dutch Master', 'Iconic'],
-          provenance: [
-            { owner: 'Vincent van Gogh', period: '1889', notes: 'Created at Saint-Rémy-de-Provence' },
-            { owner: 'Theo van Gogh', period: '1889-1891', notes: 'Inherited from artist' },
-            { owner: 'Various Private Collections', period: '1891-1941', notes: '' },
-            { owner: 'Art Gallery Collection', period: '1941-Present', notes: 'Acquired through purchase' }
-          ],
-          exhibitions: [
-            { id: 1, title: 'Dutch Masters Exhibition', venue: 'National Gallery', dates: 'Jan 2023 - Mar 2023' },
-            { id: 2, title: 'Impressionism and Beyond', venue: 'Metropolitan Museum', dates: 'Jun 2022 - Sep 2022' }
-          ],
-          insurance: {
-            policyNumber: 'INS-2024-00123',
-            company: 'ArtGuard Insurance Co.',
-            coverage: 2000000,
-            expiryDate: '2025-12-31'
-          },
-          restorations: [
-            { 
-              id: 1, 
-              type: 'Cleaning', 
-              description: 'Surface cleaning and varnish removal', 
-              specialist: 'Dr. Maria Santos', 
-              date: '2021-05-15',
-              status: 'Completed'
-            }
-          ]
-        };
-
+        // Fetch artworks if not already loaded
+        if (this.artworks.length === 0) {
+          await this.fetchArtworks();
+        }
+        
+        // Check if artwork exists
+        if (!this.artwork.id) {
+          this.error = true;
+        }
       } catch (err) {
         console.error('Error loading artwork:', err);
         this.error = true;
@@ -451,10 +423,12 @@ export default {
 
     async deleteArtwork() {
       try {
-        // await this.removeArtwork(this.artwork.id);
+        await this.removeArtwork(parseInt(this.id));
+        this.showDeleteModal = false;
         this.$router.push('/artworks');
       } catch (error) {
         console.error('Error deleting artwork:', error);
+        alert('Failed to delete artwork. Please try again.');
       }
     },
 

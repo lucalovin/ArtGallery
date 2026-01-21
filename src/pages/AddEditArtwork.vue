@@ -373,36 +373,36 @@ export default {
 
   methods: {
     ...mapActions({
-      createArtwork: 'artwork/createArtwork',
-      updateArtwork: 'artwork/updateArtwork',
-      fetchArtwork: 'artwork/fetchArtwork'
+      createArtworkAction: 'artwork/createArtwork',
+      updateArtworkAction: 'artwork/updateArtwork',
+      fetchArtworkById: 'artwork/fetchArtworkById'
     }),
 
     async loadArtwork() {
       this.isLoading = true;
 
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Mock data - in real app, fetch from API
-        this.form = {
-          title: 'Starry Night',
-          artist: 'Vincent van Gogh',
-          year: 1889,
-          category: 'Painting',
-          status: 'On Display',
-          medium: 'Oil on canvas',
-          dimensions: '73.7 cm × 92.1 cm',
-          description: 'The Starry Night is an oil-on-canvas painting by Vincent van Gogh.',
-          location: 'Gallery A, Room 3',
-          acquisitionDate: '2020-03-15',
-          estimatedValue: 1500000,
-          imageUrl: '',
-          tags: ['Post-Impressionism', 'Night Scene']
-        };
+        const artwork = await this.fetchArtworkById(this.id);
+        if (artwork) {
+          this.form = {
+            title: artwork.title || '',
+            artist: artwork.artist || '',
+            year: artwork.year || null,
+            category: artwork.category || '',
+            status: artwork.status || '',
+            medium: artwork.medium || '',
+            dimensions: artwork.dimensions || '',
+            description: artwork.description || '',
+            location: artwork.location || '',
+            acquisitionDate: artwork.acquisitionDate || '',
+            estimatedValue: artwork.estimatedValue || null,
+            imageUrl: artwork.imageUrl || '',
+            tags: artwork.tags || []
+          };
+        }
       } catch (error) {
         console.error('Error loading artwork:', error);
+        this.$router.push('/artworks');
       } finally {
         this.isLoading = false;
       }
@@ -463,21 +463,17 @@ export default {
       this.isSubmitting = true;
 
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-
         if (this.isEditMode) {
-          // await this.updateArtwork({ id: this.id, ...this.form });
-          console.log('Updating artwork:', this.form);
+          await this.updateArtworkAction({ id: this.id, ...this.form });
         } else {
-          // await this.createArtwork(this.form);
-          console.log('Creating artwork:', this.form);
+          await this.createArtworkAction(this.form);
         }
 
         // Navigate back to inventory
         this.$router.push('/artworks');
       } catch (error) {
         console.error('Error saving artwork:', error);
+        alert('Failed to save artwork. Please try again.');
       } finally {
         this.isSubmitting = false;
       }
