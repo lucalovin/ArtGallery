@@ -1,56 +1,45 @@
-﻿using ArtGallery.Domain.Common;
-
-namespace ArtGallery.Domain.Entities;
+﻿﻿namespace ArtGallery.Domain.Entities;
 
 /// <summary>
 /// Represents an artwork in the gallery collection.
+/// Maps to Oracle table: Artwork
 /// </summary>
-public class Artwork : BaseEntity
+public class Artwork
 {
+    /// <summary>
+    /// Gets or sets the artwork ID (maps to artwork_id in Oracle).
+    /// </summary>
+    public int Id { get; set; }
+
     /// <summary>
     /// Gets or sets the title of the artwork.
     /// </summary>
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the artist who created the artwork.
+    /// Gets or sets the artist ID (foreign key to Artist table).
     /// </summary>
-    public string Artist { get; set; } = string.Empty;
+    public int ArtistId { get; set; }
 
     /// <summary>
     /// Gets or sets the year the artwork was created.
     /// </summary>
-    public int Year { get; set; }
+    public int? YearCreated { get; set; }
 
     /// <summary>
-    /// Gets or sets the medium used to create the artwork (e.g., Oil on canvas).
+    /// Gets or sets the medium used to create the artwork.
     /// </summary>
-    public string Medium { get; set; } = string.Empty;
+    public string? Medium { get; set; }
 
     /// <summary>
-    /// Gets or sets the dimensions of the artwork.
+    /// Gets or sets the collection ID (foreign key to Collection table).
     /// </summary>
-    public string Dimensions { get; set; } = string.Empty;
+    public int? CollectionId { get; set; }
 
     /// <summary>
-    /// Gets or sets a description of the artwork.
+    /// Gets or sets the location ID (foreign key to Location table).
     /// </summary>
-    public string? Description { get; set; }
-
-    /// <summary>
-    /// Gets or sets the URL of the artwork's image.
-    /// </summary>
-    public string? ImageUrl { get; set; }
-
-    /// <summary>
-    /// Gets or sets the collection type (e.g., Permanent, Temporary, Loan).
-    /// </summary>
-    public string Collection { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the current status of the artwork.
-    /// </summary>
-    public string Status { get; set; } = "Available";
+    public int? LocationId { get; set; }
 
     /// <summary>
     /// Gets or sets the estimated monetary value of the artwork.
@@ -58,34 +47,19 @@ public class Artwork : BaseEntity
     public decimal? EstimatedValue { get; set; }
 
     /// <summary>
-    /// Gets or sets the current location of the artwork within the gallery.
+    /// Navigation property to the associated Artist.
     /// </summary>
-    public string? Location { get; set; }
+    public virtual Artist? Artist { get; set; }
 
     /// <summary>
-    /// Gets or sets the date when the artwork was acquired.
+    /// Navigation property to the associated Collection.
     /// </summary>
-    public DateTime AcquisitionDate { get; set; }
+    public virtual Collection? Collection { get; set; }
 
     /// <summary>
-    /// Gets or sets the method by which the artwork was acquired (e.g., Purchase, Donation, Bequest).
+    /// Navigation property to the associated Location.
     /// </summary>
-    public string? AcquisitionMethod { get; set; }
-
-    /// <summary>
-    /// Gets or sets the provenance (ownership history) of the artwork.
-    /// </summary>
-    public string? Provenance { get; set; }
-
-    /// <summary>
-    /// Gets or sets the current condition of the artwork.
-    /// </summary>
-    public string? Condition { get; set; }
-
-    /// <summary>
-    /// Gets or sets the tags associated with the artwork for categorization.
-    /// </summary>
-    public List<string> Tags { get; set; } = new();
+    public virtual Location? Location { get; set; }
 
     /// <summary>
     /// Gets or sets the exhibition-artwork relationships.
@@ -98,7 +72,7 @@ public class Artwork : BaseEntity
     public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();
 
     /// <summary>
-    /// Gets or sets the insurance policies for this artwork.
+    /// Gets or sets the insurance records for this artwork.
     /// </summary>
     public virtual ICollection<Insurance> Insurances { get; set; } = new List<Insurance>();
 

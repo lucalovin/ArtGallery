@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ArtGallery.Domain.Entities;
 
@@ -11,58 +11,44 @@ public class LoanConfiguration : IEntityTypeConfiguration<Loan>
 {
     public void Configure(EntityTypeBuilder<Loan> builder)
     {
-        builder.ToTable("Loans");
+        builder.ToTable("LOAN");
 
         builder.HasKey(l => l.Id);
+        builder.Property(l => l.Id)
+            .HasColumnName("LOAN_ID");
 
-        builder.Property(l => l.BorrowerName)
+        builder.Property(l => l.ArtworkId)
             .IsRequired()
-            .HasMaxLength(255);
+            .HasColumnName("ARTWORK_ID");
 
-        builder.Property(l => l.BorrowerType)
-            .HasMaxLength(100);
-
-        builder.Property(l => l.BorrowerContact)
-            .HasMaxLength(255);
-
-        builder.Property(l => l.BorrowerAddress)
-            .HasMaxLength(500);
-
-        builder.Property(l => l.Status)
+        builder.Property(l => l.ExhibitorId)
             .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("Pending");
+            .HasColumnName("EXHIBITOR_ID");
 
-        builder.Property(l => l.InsuranceValue)
-            .HasPrecision(18, 2);
+        builder.Property(l => l.StartDate)
+            .IsRequired()
+            .HasColumnName("START_DATE");
 
-        builder.Property(l => l.InsuranceProvider)
-            .HasMaxLength(255);
+        builder.Property(l => l.EndDate)
+            .HasColumnName("END_DATE");
 
-        builder.Property(l => l.InsurancePolicyNumber)
-            .HasMaxLength(100);
+        builder.Property(l => l.Conditions)
+            .HasMaxLength(512)
+            .HasColumnName("CONDITIONS");
 
-        builder.Property(l => l.LoanFee)
-            .HasPrecision(18, 2);
-
-        builder.Property(l => l.Purpose)
-            .HasMaxLength(500);
-
-        builder.Property(l => l.ConditionOnLoan)
-            .HasMaxLength(500);
-
-        builder.Property(l => l.ConditionOnReturn)
-            .HasMaxLength(500);
-
-        builder.Property(l => l.Notes)
-            .HasMaxLength(1000);
-
+        // Foreign key relationships
         builder.HasOne(l => l.Artwork)
             .WithMany(a => a.Loans)
             .HasForeignKey(l => l.ArtworkId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(l => l.Status);
-        builder.HasIndex(l => l.LoanEndDate);
+        builder.HasOne(l => l.Exhibitor)
+            .WithMany(e => e.Loans)
+            .HasForeignKey(l => l.ExhibitorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(l => l.ArtworkId);
+        builder.HasIndex(l => l.ExhibitorId);
+        builder.HasIndex(l => l.StartDate);
     }
 }

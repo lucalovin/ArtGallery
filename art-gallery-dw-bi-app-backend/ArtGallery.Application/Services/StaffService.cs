@@ -27,17 +27,16 @@ public class StaffService : IStaffService
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var searchTerm = request.Search.ToLower();
-            query = query.Where(s => s.FirstName.ToLower().Contains(searchTerm) ||
-                                     s.LastName.ToLower().Contains(searchTerm) ||
-                                     s.Email.ToLower().Contains(searchTerm));
+            query = query.Where(s => s.Name.ToLower().Contains(searchTerm) ||
+                                     s.Role.ToLower().Contains(searchTerm));
         }
 
         query = request.SortBy?.ToLower() switch
         {
-            "name" => request.IsDescending ? query.OrderByDescending(s => s.LastName) : query.OrderBy(s => s.LastName),
-            "department" => request.IsDescending ? query.OrderByDescending(s => s.Department) : query.OrderBy(s => s.Department),
+            "name" => request.IsDescending ? query.OrderByDescending(s => s.Name) : query.OrderBy(s => s.Name),
+            "role" => request.IsDescending ? query.OrderByDescending(s => s.Role) : query.OrderBy(s => s.Role),
             "hiredate" => request.IsDescending ? query.OrderByDescending(s => s.HireDate) : query.OrderBy(s => s.HireDate),
-            _ => query.OrderBy(s => s.LastName)
+            _ => query.OrderBy(s => s.Name)
         };
 
         var totalCount = await query.CountAsync();
@@ -66,16 +65,10 @@ public class StaffService : IStaffService
         var staff = await _repository.GetByIdAsync(id)
             ?? throw new NotFoundException(nameof(Staff), id);
 
-        if (dto.FirstName != null) staff.FirstName = dto.FirstName;
-        if (dto.LastName != null) staff.LastName = dto.LastName;
-        if (dto.Email != null) staff.Email = dto.Email;
-        if (dto.Phone != null) staff.Phone = dto.Phone;
-        if (dto.Department != null) staff.Department = dto.Department;
-        if (dto.Position != null) staff.Position = dto.Position;
-        if (dto.Salary.HasValue) staff.Salary = dto.Salary;
-        if (dto.Status != null) staff.Status = dto.Status;
-        if (dto.ImageUrl != null) staff.ImageUrl = dto.ImageUrl;
-        if (dto.Bio != null) staff.Bio = dto.Bio;
+        if (dto.Name != null) staff.Name = dto.Name;
+        if (dto.Role != null) staff.Role = dto.Role;
+        if (dto.HireDate.HasValue) staff.HireDate = dto.HireDate.Value;
+        if (dto.CertificationLevel != null) staff.CertificationLevel = dto.CertificationLevel;
 
         _repository.Update(staff);
         await _repository.SaveChangesAsync();
@@ -93,8 +86,9 @@ public class StaffService : IStaffService
 
     public async Task<IEnumerable<StaffResponseDto>> GetByDepartmentAsync(string department)
     {
+        // Note: Department no longer exists, using Role instead
         var staff = await _repository.FindAsync(s => 
-            s.Department.ToLower() == department.ToLower());
+            s.Role.ToLower() == department.ToLower());
         return _mapper.Map<IEnumerable<StaffResponseDto>>(staff);
     }
 
@@ -105,10 +99,11 @@ public class StaffService : IStaffService
         return new StaffStatisticsDto
         {
             TotalStaff = staff.Count,
-            ActiveStaff = staff.Count(s => s.Status == "Active"),
-            ByDepartment = staff.GroupBy(s => s.Department)
+            ByRole = staff.GroupBy(s => s.Role)
                 .ToDictionary(g => g.Key, g => g.Count()),
-            ByStatus = staff.GroupBy(s => s.Status)
+            ByCertificationLevel = staff
+                .Where(s => s.CertificationLevel != null)
+                .GroupBy(s => s.CertificationLevel!)
                 .ToDictionary(g => g.Key, g => g.Count())
         };
     }

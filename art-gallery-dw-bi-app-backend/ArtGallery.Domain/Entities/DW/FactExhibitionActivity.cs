@@ -1,115 +1,92 @@
-﻿namespace ArtGallery.Domain.Entities.DW;
+﻿﻿namespace ArtGallery.Domain.Entities.DW;
 
 /// <summary>
 /// Fact table for Exhibition Activity in the Data Warehouse.
-/// This is a partitioned fact table tracking exhibition activities.
+/// Maps to FACT_EXHIBITION_ACTIVITY table in Oracle DW schema.
 /// </summary>
 public class FactExhibitionActivity
 {
     /// <summary>
-    /// Surrogate key.
+    /// Surrogate key. Maps to FACT_KEY.
     /// </summary>
     public long FactKey { get; set; }
 
     /// <summary>
-    /// Foreign key to DimDate.
+    /// Foreign key to DimDate. Maps to DATE_KEY.
     /// </summary>
     public int DateKey { get; set; }
 
     /// <summary>
-    /// Foreign key to DimExhibition.
+    /// Foreign key to DimExhibition. Maps to EXHIBITION_KEY.
     /// </summary>
     public int ExhibitionKey { get; set; }
 
     /// <summary>
-    /// Foreign key to DimArtwork.
+    /// Foreign key to DimExhibitor. Maps to EXHIBITOR_KEY.
+    /// </summary>
+    public int ExhibitorKey { get; set; }
+
+    /// <summary>
+    /// Foreign key to DimArtwork. Maps to ARTWORK_KEY.
     /// </summary>
     public int ArtworkKey { get; set; }
 
     /// <summary>
-    /// Foreign key to DimArtist.
+    /// Foreign key to DimArtist. Maps to ARTIST_KEY.
     /// </summary>
     public int ArtistKey { get; set; }
 
     /// <summary>
-    /// Foreign key to DimVisitor.
+    /// Foreign key to DimCollection. Maps to COLLECTION_KEY.
     /// </summary>
-    public int? VisitorKey { get; set; }
+    public int? CollectionKey { get; set; }
 
     /// <summary>
-    /// Foreign key to DimStaff (curator).
-    /// </summary>
-    public int? StaffKey { get; set; }
-
-    /// <summary>
-    /// Foreign key to DimLocation.
+    /// Foreign key to DimLocation. Maps to LOCATION_KEY.
     /// </summary>
     public int? LocationKey { get; set; }
 
     /// <summary>
-    /// Foreign key to DimInsurance.
+    /// Foreign key to DimPolicy. Maps to POLICY_KEY.
     /// </summary>
-    public int? InsuranceKey { get; set; }
+    public int? PolicyKey { get; set; }
 
     // Measures
 
     /// <summary>
-    /// Number of visitors for this activity.
+    /// Estimated value of the artwork. Maps to ESTIMATED_VALUE.
     /// </summary>
-    public int VisitorCount { get; set; }
+    public decimal? EstimatedValue { get; set; }
 
     /// <summary>
-    /// Ticket revenue.
+    /// Insured amount. Maps to INSURED_AMOUNT.
     /// </summary>
-    public decimal TicketRevenue { get; set; }
+    public decimal? InsuredAmount { get; set; }
 
     /// <summary>
-    /// Merchandise revenue.
+    /// Loan flag (1=on loan, 0=not on loan). Maps to LOAN_FLAG.
     /// </summary>
-    public decimal MerchandiseRevenue { get; set; }
+    public int? LoanFlag { get; set; }
 
     /// <summary>
-    /// Total revenue.
+    /// Count of restorations. Maps to RESTORATION_COUNT.
     /// </summary>
-    public decimal TotalRevenue { get; set; }
+    public int? RestorationCount { get; set; }
 
     /// <summary>
-    /// Duration of visit in minutes.
+    /// Count of reviews. Maps to REVIEW_COUNT.
     /// </summary>
-    public int? VisitDurationMinutes { get; set; }
+    public int? ReviewCount { get; set; }
 
     /// <summary>
-    /// Insurance value at time of exhibition.
+    /// Average rating. Maps to AVG_RATING.
     /// </summary>
-    public decimal? InsuranceValue { get; set; }
-
-    /// <summary>
-    /// Operating cost for the day.
-    /// </summary>
-    public decimal? OperatingCost { get; set; }
-
-    /// <summary>
-    /// Number of artworks on display.
-    /// </summary>
-    public int ArtworkCount { get; set; }
-
-    /// <summary>
-    /// Partition key for range partitioning (YYYY format).
-    /// </summary>
-    public int PartitionYear { get; set; }
-
-    /// <summary>
-    /// ETL timestamp.
-    /// </summary>
-    public DateTime EtlLoadDate { get; set; }
+    public decimal? AvgRating { get; set; }
 
     // Navigation properties
     public virtual DimDate? Date { get; set; }
     public virtual DimExhibition? Exhibition { get; set; }
     public virtual DimArtwork? Artwork { get; set; }
     public virtual DimArtist? Artist { get; set; }
-    public virtual DimVisitor? Visitor { get; set; }
-    public virtual DimStaff? Staff { get; set; }
     public virtual DimLocation? Location { get; set; }
-    public virtual DimInsurance? Insurance { get; set; }
 }

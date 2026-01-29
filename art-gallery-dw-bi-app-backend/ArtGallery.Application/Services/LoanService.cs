@@ -22,21 +22,23 @@ public class LoanService : ILoanService
 
     public async Task<PaginatedResponse<LoanResponseDto>> GetAllAsync(PagedRequest request)
     {
-        IQueryable<Loan> query = _repository.Query().Include(l => l.Artwork);
+        IQueryable<Loan> query = _repository.Query()
+            .Include(l => l.Artwork)
+            .Include(l => l.Exhibitor);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var searchTerm = request.Search.ToLower();
-            query = query.Where(l => l.BorrowerName.ToLower().Contains(searchTerm) ||
-                                     l.Artwork.Title.ToLower().Contains(searchTerm));
+            query = query.Where(l => (l.Exhibitor != null && l.Exhibitor.Name.ToLower().Contains(searchTerm)) ||
+                                     (l.Artwork != null && l.Artwork.Title.ToLower().Contains(searchTerm)));
         }
 
         query = request.SortBy?.ToLower() switch
         {
-            "borrowername" => request.IsDescending ? query.OrderByDescending(l => l.BorrowerName) : query.OrderBy(l => l.BorrowerName),
-            "startdate" => request.IsDescending ? query.OrderByDescending(l => l.LoanStartDate) : query.OrderBy(l => l.LoanStartDate),
-            "enddate" => request.IsDescending ? query.OrderByDescending(l => l.LoanEndDate) : query.OrderBy(l => l.LoanEndDate),
-            _ => query.OrderByDescending(l => l.LoanStartDate)
+            "exhibitor" => request.IsDescending ? query.OrderByDescending(l => l.Exhibitor!.Name) : query.OrderBy(l => l.Exhibitor!.Name),
+            "startdate" => request.IsDescending ? query.OrderByDescending(l => l.StartDate) : query.OrderBy(l => l.StartDate),
+            "enddate" => request.IsDescending ? query.OrderByDescending(l => l.EndDate) : query.OrderBy(l => l.EndDate),
+            _ => query.OrderByDescending(l => l.StartDate)
         };
 
         var totalCount = await query.CountAsync();
@@ -50,6 +52,7 @@ public class LoanService : ILoanService
     {
         var loan = await _repository.Query()
             .Include(l => l.Artwork)
+            .Include(l => l.Exhibitor)
             .FirstOrDefaultAsync(l => l.Id == id);
         return loan == null ? null : _mapper.Map<LoanResponseDto>(loan);
     }
@@ -62,6 +65,7 @@ public class LoanService : ILoanService
         
         var createdLoan = await _repository.Query()
             .Include(l => l.Artwork)
+            .Include(l => l.Exhibitor)
             .FirstAsync(l => l.Id == loan.Id);
         return _mapper.Map<LoanResponseDto>(createdLoan);
     }
@@ -70,24 +74,15 @@ public class LoanService : ILoanService
     {
         var loan = await _repository.Query()
             .Include(l => l.Artwork)
+            .Include(l => l.Exhibitor)
             .FirstOrDefaultAsync(l => l.Id == id)
             ?? throw new NotFoundException(nameof(Loan), id);
 
-        if (dto.BorrowerName != null) loan.BorrowerName = dto.BorrowerName;
-        if (dto.BorrowerType != null) loan.BorrowerType = dto.BorrowerType;
-        if (dto.BorrowerContact != null) loan.BorrowerContact = dto.BorrowerContact;
-        if (dto.BorrowerAddress != null) loan.BorrowerAddress = dto.BorrowerAddress;
-        if (dto.LoanStartDate.HasValue) loan.LoanStartDate = dto.LoanStartDate.Value;
-        if (dto.LoanEndDate.HasValue) loan.LoanEndDate = dto.LoanEndDate.Value;
-        if (dto.Status != null) loan.Status = dto.Status;
-        if (dto.InsuranceValue.HasValue) loan.InsuranceValue = dto.InsuranceValue;
-        if (dto.InsuranceProvider != null) loan.InsuranceProvider = dto.InsuranceProvider;
-        if (dto.InsurancePolicyNumber != null) loan.InsurancePolicyNumber = dto.InsurancePolicyNumber;
-        if (dto.LoanFee.HasValue) loan.LoanFee = dto.LoanFee;
-        if (dto.Purpose != null) loan.Purpose = dto.Purpose;
-        if (dto.ConditionOnLoan != null) loan.ConditionOnLoan = dto.ConditionOnLoan;
-        if (dto.ConditionOnReturn != null) loan.ConditionOnReturn = dto.ConditionOnReturn;
-        if (dto.Notes != null) loan.Notes = dto.Notes;
+        if (dto.ArtworkId.HasValue) loan.ArtworkId = dto.ArtworkId.Value;
+        if (dto.ExhibitorId.HasValue) loan.ExhibitorId = dto.ExhibitorId.Value;
+        if (dto.StartDate.HasValue) loan.StartDate = dto.StartDate.Value;
+        if (dto.EndDate.HasValue) loan.EndDate = dto.EndDate;
+        if (dto.Conditions != null) loan.Conditions = dto.Conditions;
 
         _repository.Update(loan);
         await _repository.SaveChangesAsync();
@@ -105,9 +100,11 @@ public class LoanService : ILoanService
 
     public async Task<IEnumerable<LoanResponseDto>> GetActiveAsync()
     {
+        var today = DateTime.UtcNow.Date;
         var loans = await _repository.Query()
             .Include(l => l.Artwork)
-            .Where(l => l.Status == "Active")
+            .Include(l => l.Exhibitor)
+            .Where(l => l.EndDate == null || l.EndDate >= today)
             .ToListAsync();
         return _mapper.Map<IEnumerable<LoanResponseDto>>(loans);
     }
@@ -117,24 +114,26 @@ public class LoanService : ILoanService
         var today = DateTime.UtcNow.Date;
         var loans = await _repository.Query()
             .Include(l => l.Artwork)
-            .Where(l => l.LoanEndDate < today && l.Status == "Active")
+            .Include(l => l.Exhibitor)
+            .Where(l => l.EndDate != null && l.EndDate < today)
             .ToListAsync();
         return _mapper.Map<IEnumerable<LoanResponseDto>>(loans);
     }
 
     public async Task<LoanStatisticsDto> GetStatisticsAsync()
     {
-        var loans = await _repository.Query().ToListAsync();
+        var loans = await _repository.Query()
+            .Include(l => l.Exhibitor)
+            .ToListAsync();
         var today = DateTime.UtcNow.Date;
 
         return new LoanStatisticsDto
         {
             TotalLoans = loans.Count,
-            ActiveLoans = loans.Count(l => l.Status == "Active"),
-            OverdueLoans = loans.Count(l => l.LoanEndDate < today && l.Status == "Active"),
-            TotalInsuranceValue = loans.Where(l => l.Status == "Active").Sum(l => l.InsuranceValue ?? 0),
-            TotalLoanFees = loans.Sum(l => l.LoanFee ?? 0),
-            ByStatus = loans.GroupBy(l => l.Status)
+            ActiveLoans = loans.Count(l => l.EndDate == null || l.EndDate >= today),
+            ByExhibitor = loans
+                .Where(l => l.Exhibitor != null)
+                .GroupBy(l => l.Exhibitor!.Name)
                 .ToDictionary(g => g.Key, g => g.Count())
         };
     }

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 using ArtGallery.Application.DTOs.Reports;
@@ -43,37 +43,39 @@ public class DwAnalyticsService : IDwAnalyticsService
 
         _logger.LogInformation("Fetching exhibition summary. Year: {Year}, ArtistId: {ArtistId}", year, artistId);
 
+        // Note: DW schema has START_DATE_KEY/END_DATE_KEY (not START_DATE/END_DATE)
+        // and TITLE (not NAME). No VISITOR_COUNT, REVENUE, DURATION_DAYS, STATUS, IS_CURRENT columns.
         var sql = @"
             SELECT 
                 e.EXHIBITION_KEY as ExhibitionKey,
-                e.NAME as ExhibitionName,
-                e.START_DATE as StartDate,
-                e.END_DATE as EndDate,
-                e.DURATION_DAYS as DurationDays,
-                e.STATUS as Status,
-                COALESCE(SUM(f.VISITOR_COUNT), 0) as TotalVisitors,
-                COALESCE(SUM(f.TOTAL_REVENUE), 0) as TotalRevenue,
-                COALESCE(SUM(f.TICKET_REVENUE), 0) as TicketRevenue,
-                COALESCE(SUM(f.MERCHANDISE_REVENUE), 0) as MerchandiseRevenue,
+                e.TITLE as ExhibitionName,
+                sd.CALENDAR_DATE as StartDate,
+                ed.CALENDAR_DATE as EndDate,
+                0 as DurationDays,
+                'N/A' as Status,
+                0 as TotalVisitors,
+                0 as TotalRevenue,
+                0 as TicketRevenue,
+                0 as MerchandiseRevenue,
                 COUNT(DISTINCT f.ARTWORK_KEY) as ArtworkCount,
-                COALESCE(AVG(f.VISIT_DURATION_MINUTES), 0) as AverageVisitDuration,
-                CASE WHEN SUM(f.VISITOR_COUNT) > 0 
-                     THEN SUM(f.TOTAL_REVENUE) / SUM(f.VISITOR_COUNT) 
-                     ELSE 0 END as RevenuePerVisitor
+                0 as AverageVisitDuration,
+                0 as RevenuePerVisitor
             FROM ART_GALLERY_DW.DIM_EXHIBITION e
+            LEFT JOIN ART_GALLERY_DW.DIM_DATE sd ON e.START_DATE_KEY = sd.DATE_KEY
+            LEFT JOIN ART_GALLERY_DW.DIM_DATE ed ON e.END_DATE_KEY = ed.DATE_KEY
             LEFT JOIN ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f 
                 ON e.EXHIBITION_KEY = f.EXHIBITION_KEY
             LEFT JOIN ART_GALLERY_DW.DIM_DATE d 
                 ON f.DATE_KEY = d.DATE_KEY
-            WHERE e.IS_CURRENT = 1
+            WHERE 1=1
             {0}
-            GROUP BY e.EXHIBITION_KEY, e.NAME, e.START_DATE, e.END_DATE, e.DURATION_DAYS, e.STATUS
-            ORDER BY e.START_DATE DESC
+            GROUP BY e.EXHIBITION_KEY, e.TITLE, sd.CALENDAR_DATE, ed.CALENDAR_DATE
+            ORDER BY sd.CALENDAR_DATE DESC NULLS LAST
             FETCH FIRST :limit ROWS ONLY";
 
         var whereClause = "";
         if (year.HasValue)
-            whereClause += " AND d.YEAR = :year";
+            whereClause += " AND d.CALENDAR_YEAR = :year";
         if (artistId.HasValue)
             whereClause += " AND f.ARTIST_KEY = :artistId";
 
@@ -88,7 +90,11 @@ public class DwAnalyticsService : IDwAnalyticsService
                     new OracleParameter("artistId", artistId ?? (object)DBNull.Value))
                 .ToListAsync();
 
-            _cache.Set(cacheKey, results, _defaultCacheTime);
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(_defaultCacheTime)
+                .SetSize(1); // Set size for cache entry
+            
+            _cache.Set(cacheKey, results, cacheEntryOptions);
             return results;
         }
         catch (Exception ex)
@@ -105,33 +111,52 @@ public class DwAnalyticsService : IDwAnalyticsService
     {
         _logger.LogInformation("Fetching artwork inventory");
 
+        // Note: DW schema has simplified structure - many columns don't exist
+        // Using available columns from DIM_ARTWORK, DIM_ARTIST, FACT_EXHIBITION_ACTIVITY
         var sql = @"
             SELECT 
                 a.ARTWORK_KEY as ArtworkKey,
                 a.TITLE as Title,
-                ar.FULL_NAME as ArtistName,
-                a.CREATION_YEAR as CreationYear,
+                ar.NAME as ArtistName,
+                a.YEAR_CREATED as CreationYear,
                 a.MEDIUM as Medium,
-                a.COLLECTION_TYPE as CollectionType,
-                a.STATUS as Status,
+                'N/A' as CollectionType,
+                'N/A' as Status,
                 a.ESTIMATED_VALUE as EstimatedValue,
-                i.COVERAGE_AMOUNT as InsuranceValue,
+                NVL(MAX(f.INSURED_AMOUNT), 0) as InsuranceValue,
                 COUNT(DISTINCT f.EXHIBITION_KEY) as ExhibitionCount,
-                MAX(d.FULL_DATE) as LastExhibitionDate
+                MAX(d.CALENDAR_DATE) as LastExhibitionDate
             FROM ART_GALLERY_DW.DIM_ARTWORK a
-            LEFT JOIN ART_GALLERY_DW.DIM_ARTIST ar ON a.ARTIST_KEY = ar.ARTIST_KEY AND ar.IS_CURRENT = 1
+            LEFT JOIN ART_GALLERY_DW.DIM_ARTIST ar ON a.ARTIST_KEY = ar.ARTIST_KEY
             LEFT JOIN ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f ON a.ARTWORK_KEY = f.ARTWORK_KEY
             LEFT JOIN ART_GALLERY_DW.DIM_DATE d ON f.DATE_KEY = d.DATE_KEY
-            LEFT JOIN ART_GALLERY_DW.DIM_INSURANCE i ON f.INSURANCE_KEY = i.INSURANCE_KEY AND i.IS_CURRENT = 1
-            WHERE a.IS_CURRENT = 1
-            GROUP BY a.ARTWORK_KEY, a.TITLE, ar.FULL_NAME, a.CREATION_YEAR, 
-                     a.MEDIUM, a.COLLECTION_TYPE, a.STATUS, a.ESTIMATED_VALUE, i.COVERAGE_AMOUNT
+            WHERE 1=1
+            {0}
+            GROUP BY a.ARTWORK_KEY, a.TITLE, ar.NAME, a.YEAR_CREATED, 
+                     a.MEDIUM, a.ESTIMATED_VALUE
             ORDER BY a.ESTIMATED_VALUE DESC NULLS LAST
             FETCH FIRST :limit ROWS ONLY";
 
+        var whereClause = "";
+        if (collectionId.HasValue)
+            whereClause += " AND a.COLLECTION_KEY = :collectionId";
+        if (exhibitionId.HasValue)
+            whereClause += " AND f.EXHIBITION_KEY = :exhibitionId";
+
+        sql = string.Format(sql, whereClause);
+
+        var parameters = new List<OracleParameter>
+        {
+            new OracleParameter("limit", limit)
+        };
+        
+        if (collectionId.HasValue)
+            parameters.Add(new OracleParameter("collectionId", collectionId.Value));
+        if (exhibitionId.HasValue)
+            parameters.Add(new OracleParameter("exhibitionId", exhibitionId.Value));
+
         var results = await _dwContext.Database
-            .SqlQueryRaw<ArtworkInventoryDto>(sql,
-                new OracleParameter("limit", limit))
+            .SqlQueryRaw<ArtworkInventoryDto>(sql, parameters.ToArray())
             .ToListAsync();
 
         return results;
@@ -207,7 +232,11 @@ public class DwAnalyticsService : IDwAnalyticsService
             .OrderByDescending(x => x.PolicyCount)
             .ToListAsync();
 
-        _cache.Set(cacheKey, result, _defaultCacheTime);
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(_defaultCacheTime)
+            .SetSize(1);
+        
+        _cache.Set(cacheKey, result, cacheEntryOptions);
         return result;
     }
 
@@ -263,47 +292,57 @@ public class DwAnalyticsService : IDwAnalyticsService
 
         var result = new VisitorTrendsDto();
 
-        // Overall metrics from fact table
+        // Note: The current DW schema doesn't have visitor count or revenue data in FACT_EXHIBITION_ACTIVITY
+        // This method returns metrics based on available data: review counts and ratings
+        
         var factQuery = _dwContext.FactExhibitionActivities
             .Join(_dwContext.DimDates,
                 f => f.DateKey,
                 d => d.DateKey,
                 (f, d) => new { f, d })
-            .Where(x => x.d.FullDate >= dateFrom && x.d.FullDate <= dateTo);
+            .Where(x => x.d.CalendarDate >= dateFrom && x.d.CalendarDate <= dateTo);
 
         var overallData = await factQuery
             .GroupBy(_ => 1)
             .Select(g => new
             {
-                TotalVisitors = g.Sum(x => x.f.VisitorCount),
-                AvgDuration = g.Average(x => x.f.VisitDurationMinutes ?? 0),
-                TotalRevenue = g.Sum(x => x.f.TotalRevenue)
+                TotalReviews = g.Sum(x => x.f.ReviewCount ?? 0),
+                AvgRating = g.Average(x => x.f.AvgRating ?? 0),
+                TotalArtworks = g.Count()
             })
             .FirstOrDefaultAsync();
 
         if (overallData != null)
         {
-            result.TotalVisitors = overallData.TotalVisitors;
-            result.AverageVisitDuration = (decimal)overallData.AvgDuration;
-            result.AverageSpendPerVisit = overallData.TotalVisitors > 0 
-                ? overallData.TotalRevenue / overallData.TotalVisitors 
-                : 0;
+            // Map review count to visitor count as a proxy
+            result.TotalVisitors = overallData.TotalReviews;
+            result.AverageVisitDuration = (decimal)overallData.AvgRating; // Using rating as a proxy
+            result.AverageSpendPerVisit = 0; // No revenue data available
         }
 
-        // Monthly trend data
-        result.TrendData = await factQuery
-            .GroupBy(x => new { x.d.Year, x.d.MonthNumber })
-            .Select(g => new VisitorTrendDataPoint
+        // Monthly trend data based on review counts
+        // First get the data from DB, then format the period string in C#
+        var monthlyData = await factQuery
+            .GroupBy(x => new { x.d.CalendarYear, x.d.CalendarMonth })
+            .Select(g => new
             {
-                Period = g.Key.Year + "-" + g.Key.MonthNumber.ToString("D2"),
-                VisitorCount = g.Sum(x => x.f.VisitorCount),
-                Revenue = g.Sum(x => x.f.TotalRevenue),
-                AverageSpend = g.Sum(x => x.f.VisitorCount) > 0 
-                    ? g.Sum(x => x.f.TotalRevenue) / g.Sum(x => x.f.VisitorCount) 
-                    : 0
+                Year = g.Key.CalendarYear,
+                Month = g.Key.CalendarMonth,
+                ReviewCount = g.Sum(x => x.f.ReviewCount ?? 0)
+            })
+            .ToListAsync();
+
+        // Format the period string in C# code (not in SQL)
+        result.TrendData = monthlyData
+            .Select(x => new VisitorTrendDataPoint
+            {
+                Period = $"{x.Year}-{x.Month:D2}", // Format in C# not SQL
+                VisitorCount = x.ReviewCount, // Using review count as proxy
+                Revenue = 0, // No revenue data available
+                AverageSpend = 0 // No revenue data available
             })
             .OrderBy(x => x.Period)
-            .ToListAsync();
+            .ToList();
 
         return result;
     }
@@ -325,50 +364,20 @@ public class DwAnalyticsService : IDwAnalyticsService
 
         var result = new RevenueBreakdownDto();
 
-        // Total revenue from fact table
-        var factQuery = _dwContext.FactExhibitionActivities
-            .Where(f => f.PartitionYear == year);
+        // Note: The current DW schema doesn't have revenue or partition year data
+        // This method returns empty/zero values
+        
+        result.TotalRevenue = 0;
+        result.TicketRevenue = 0;
+        result.MerchandiseRevenue = 0;
+        result.OtherRevenue = 0;
+        result.BreakdownByDimension = new List<RevenueDimensionDto>();
 
-        var totals = await factQuery
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                Total = g.Sum(f => f.TotalRevenue),
-                Ticket = g.Sum(f => f.TicketRevenue),
-                Merchandise = g.Sum(f => f.MerchandiseRevenue)
-            })
-            .FirstOrDefaultAsync();
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(_defaultCacheTime)
+            .SetSize(1);
 
-        if (totals != null)
-        {
-            result.TotalRevenue = totals.Total;
-            result.TicketRevenue = totals.Ticket;
-            result.MerchandiseRevenue = totals.Merchandise;
-            result.OtherRevenue = totals.Total - totals.Ticket - totals.Merchandise;
-        }
-
-        // Breakdown by exhibition
-        if (dimension.ToLower() == "exhibition")
-        {
-            result.BreakdownByDimension = await (
-                from f in factQuery
-                join e in _dwContext.DimExhibitions.Where(x => x.IsCurrent)
-                    on f.ExhibitionKey equals e.Id
-                group f by e.Name into g
-                select new RevenueDimensionDto
-                {
-                    DimensionValue = g.Key,
-                    Revenue = g.Sum(x => x.TotalRevenue),
-                    Percentage = result.TotalRevenue > 0 
-                        ? Math.Round(g.Sum(x => x.TotalRevenue) * 100 / result.TotalRevenue, 2)
-                        : 0
-                })
-                .OrderByDescending(x => x.Revenue)
-                .Take(10)
-                .ToListAsync();
-        }
-
-        _cache.Set(cacheKey, result, _defaultCacheTime);
+        _cache.Set(cacheKey, result, cacheEntryOptions);
         return result;
     }
 
@@ -412,43 +421,40 @@ public class DwAnalyticsService : IDwAnalyticsService
         }
 
         // Artist count
-        result.TotalArtists = await _dwContext.DimArtists.CountAsync(a => a.IsCurrent);
+        result.TotalArtists = await _dwContext.DimArtists.CountAsync();
 
         // Exhibition metrics
-        result.TotalExhibitions = await _dwContext.DimExhibitions.CountAsync(e => e.IsCurrent);
-        result.ActiveExhibitions = await _dwContext.DimExhibitions
-            .CountAsync(e => e.IsCurrent && e.Status == "Active");
-        result.UpcomingExhibitions = await _dwContext.DimExhibitions
-            .CountAsync(e => e.IsCurrent && e.Status == "Planning" && e.StartDate > DateTime.Today);
+        result.TotalExhibitions = await _dwContext.DimExhibitions.CountAsync();
+        result.ActiveExhibitions = 0; // No status field in schema
+        result.UpcomingExhibitions = 0; // No status field in schema
 
-        // YTD metrics from fact table
+        // YTD metrics from fact table - using review counts as proxy
         var ytdData = await _dwContext.FactExhibitionActivities
-            .Where(f => f.PartitionYear == currentYear)
             .GroupBy(_ => 1)
             .Select(g => new
             {
-                Visitors = g.Sum(f => f.VisitorCount),
-                Revenue = g.Sum(f => f.TotalRevenue)
+                Reviews = g.Sum(f => f.ReviewCount ?? 0),
+                AvgRating = g.Average(f => f.AvgRating ?? 0)
             })
             .FirstOrDefaultAsync();
 
         if (ytdData != null)
         {
-            result.TotalVisitorsYtd = ytdData.Visitors;
-            result.TotalRevenueYtd = ytdData.Revenue;
+            result.TotalVisitorsYtd = ytdData.Reviews; // Using review count as proxy
+            result.TotalRevenueYtd = 0; // No revenue data in schema
         }
 
-        // Insurance metrics
-        result.TotalInsuranceValue = await _dwContext.DimInsurances
-            .Where(i => i.IsCurrent && i.Status == "Active")
-            .SumAsync(i => i.CoverageAmount ?? 0);
+        // Insurance metrics - simplified since schema is different
+        result.TotalInsuranceValue = await _dwContext.FactExhibitionActivities
+            .SumAsync(f => f.InsuredAmount ?? 0);
 
-        result.ExpiringInsurancePolicies = await _dwContext.DimInsurances
-            .CountAsync(i => i.IsCurrent && 
-                           i.EndDate.HasValue && 
-                           i.EndDate.Value <= DateTime.Today.AddMonths(1));
+        result.ExpiringInsurancePolicies = 0; // Not available in current schema
 
-        _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(10))
+            .SetSize(1);
+        
+        _cache.Set(cacheKey, result, cacheEntryOptions);
         return result;
     }
 

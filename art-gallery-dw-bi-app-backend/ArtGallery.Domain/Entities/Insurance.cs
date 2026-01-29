@@ -1,64 +1,38 @@
-﻿using ArtGallery.Domain.Common;
-
-namespace ArtGallery.Domain.Entities;
+﻿﻿namespace ArtGallery.Domain.Entities;
 
 /// <summary>
-/// Represents an insurance policy for an artwork.
+/// Represents an insurance record for an artwork.
+/// Maps to Oracle table: Insurance
 /// </summary>
-public class Insurance : BaseEntity
+public class Insurance
 {
     /// <summary>
-    /// Gets or sets the ID of the insured artwork.
+    /// Gets or sets the insurance ID (maps to insurance_id in Oracle).
+    /// </summary>
+    public int Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the artwork ID (foreign key to Artwork table).
     /// </summary>
     public int ArtworkId { get; set; }
 
     /// <summary>
-    /// Gets or sets the insured artwork.
+    /// Gets or sets the policy ID (foreign key to Insurance_Policy table).
     /// </summary>
-    public virtual Artwork Artwork { get; set; } = null!;
+    public int PolicyId { get; set; }
 
     /// <summary>
-    /// Gets or sets the insurance provider name.
+    /// Gets or sets the insured amount.
     /// </summary>
-    public string Provider { get; set; } = string.Empty;
+    public decimal InsuredAmount { get; set; }
 
     /// <summary>
-    /// Gets or sets the policy number.
+    /// Navigation property to the insured artwork.
     /// </summary>
-    public string PolicyNumber { get; set; } = string.Empty;
+    public virtual Artwork? Artwork { get; set; }
 
     /// <summary>
-    /// Gets or sets the coverage amount.
+    /// Navigation property to the insurance policy.
     /// </summary>
-    public decimal CoverageAmount { get; set; }
-
-    /// <summary>
-    /// Gets or sets the premium amount.
-    /// </summary>
-    public decimal Premium { get; set; }
-
-    /// <summary>
-    /// Gets or sets the policy start date.
-    /// </summary>
-    public DateTime StartDate { get; set; }
-
-    /// <summary>
-    /// Gets or sets the policy end date.
-    /// </summary>
-    public DateTime EndDate { get; set; }
-
-    /// <summary>
-    /// Gets or sets the policy status.
-    /// </summary>
-    public string Status { get; set; } = "Active";
-
-    /// <summary>
-    /// Gets or sets the type of coverage (e.g., All-Risk, Named Perils).
-    /// </summary>
-    public string? CoverageType { get; set; }
-
-    /// <summary>
-    /// Gets or sets any additional notes about the policy.
-    /// </summary>
-    public string? Notes { get; set; }
+    public virtual InsurancePolicy? Policy { get; set; }
 }

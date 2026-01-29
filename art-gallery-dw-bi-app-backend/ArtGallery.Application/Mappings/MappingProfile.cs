@@ -19,105 +19,91 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         // Artwork mappings
-        CreateMap<Domain.Entities.Artwork, ArtworkResponseDto>();
-        CreateMap<Domain.Entities.Artwork, ArtworkListDto>();
-        CreateMap<CreateArtworkDto, Domain.Entities.Artwork>()
+        CreateMap<Artwork, ArtworkResponseDto>()
+            .ForMember(dest => dest.ArtistName, opt => opt.MapFrom(src => src.Artist != null ? src.Artist.Name : null))
+            .ForMember(dest => dest.CollectionName, opt => opt.MapFrom(src => src.Collection != null ? src.Collection.Name : null))
+            .ForMember(dest => dest.LocationName, opt => opt.MapFrom(src => src.Location != null ? src.Location.Name : null));
+        CreateMap<Artwork, ArtworkListDto>()
+            .ForMember(dest => dest.ArtistName, opt => opt.MapFrom(src => src.Artist != null ? src.Artist.Name : null))
+            .ForMember(dest => dest.CollectionName, opt => opt.MapFrom(src => src.Collection != null ? src.Collection.Name : null))
+            .ForMember(dest => dest.LocationName, opt => opt.MapFrom(src => src.Location != null ? src.Location.Name : null));
+        CreateMap<CreateArtworkDto, Artwork>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Artist, opt => opt.Ignore())
+            .ForMember(dest => dest.Collection, opt => opt.Ignore())
+            .ForMember(dest => dest.Location, opt => opt.Ignore())
             .ForMember(dest => dest.ExhibitionArtworks, opt => opt.Ignore())
             .ForMember(dest => dest.Loans, opt => opt.Ignore())
             .ForMember(dest => dest.Insurances, opt => opt.Ignore())
             .ForMember(dest => dest.Restorations, opt => opt.Ignore());
-        CreateMap<UpdateArtworkDto, Domain.Entities.Artwork>()
+        CreateMap<UpdateArtworkDto, Artwork>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // Exhibition mappings
         CreateMap<Exhibition, ExhibitionResponseDto>()
-            .ForMember(dest => dest.ArtworkCount, opt => opt.MapFrom(src => src.ExhibitionArtworks.Count));
+            .ForMember(dest => dest.ArtworkCount, opt => opt.MapFrom(src => src.ExhibitionArtworks.Count))
+            .ForMember(dest => dest.ExhibitorName, opt => opt.MapFrom(src => src.Exhibitor != null ? src.Exhibitor.Name : null));
         CreateMap<Exhibition, ExhibitionDetailDto>()
             .ForMember(dest => dest.ArtworkCount, opt => opt.MapFrom(src => src.ExhibitionArtworks.Count))
+            .ForMember(dest => dest.ExhibitorName, opt => opt.MapFrom(src => src.Exhibitor != null ? src.Exhibitor.Name : null))
             .ForMember(dest => dest.Artworks, opt => opt.MapFrom(src => src.ExhibitionArtworks));
         CreateMap<ExhibitionArtwork, ExhibitionArtworkDto>()
-            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Artwork.Id))
-            .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Artwork.Title))
-            .ForMember(dest => dest.Artist, opt => opt.MapFrom(src => src.Artwork.Artist))
-            .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.Artwork.ImageUrl));
+            .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork != null ? src.Artwork.Title : null))
+            .ForMember(dest => dest.ArtistName, opt => opt.MapFrom(src => src.Artwork != null && src.Artwork.Artist != null ? src.Artwork.Artist.Name : null));
         CreateMap<CreateExhibitionDto, Exhibition>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => "Planning"))
-            .ForMember(dest => dest.ActualVisitors, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Exhibitor, opt => opt.Ignore())
             .ForMember(dest => dest.ExhibitionArtworks, opt => opt.Ignore());
         CreateMap<UpdateExhibitionDto, Exhibition>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // Visitor mappings
-        CreateMap<Domain.Entities.Visitor, VisitorResponseDto>()
-            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"));
-        CreateMap<CreateVisitorDto, Domain.Entities.Visitor>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.TotalVisits, opt => opt.MapFrom(_ => 0))
-            .ForMember(dest => dest.LastVisit, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-        CreateMap<UpdateVisitorDto, Domain.Entities.Visitor>()
+        CreateMap<Visitor, VisitorResponseDto>();
+        CreateMap<CreateVisitorDto, Visitor>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
+        CreateMap<UpdateVisitorDto, Visitor>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // Staff mappings
-        CreateMap<Domain.Entities.Staff, StaffResponseDto>()
-            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"));
-        CreateMap<CreateStaffDto, Domain.Entities.Staff>()
+        CreateMap<Staff, StaffResponseDto>();
+        CreateMap<CreateStaffDto, Staff>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => "Active"))
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-        CreateMap<UpdateStaffDto, Domain.Entities.Staff>()
+            .ForMember(dest => dest.Restorations, opt => opt.Ignore());
+        CreateMap<UpdateStaffDto, Staff>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // Loan mappings
-        CreateMap<Domain.Entities.Loan, LoanResponseDto>()
-            .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork.Title))
-            .ForMember(dest => dest.ArtworkArtist, opt => opt.MapFrom(src => src.Artwork.Artist))
-            .ForMember(dest => dest.ArtworkImageUrl, opt => opt.MapFrom(src => src.Artwork.ImageUrl));
-        CreateMap<CreateLoanDto, Domain.Entities.Loan>()
+        CreateMap<Loan, LoanResponseDto>()
+            .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork != null ? src.Artwork.Title : null))
+            .ForMember(dest => dest.ExhibitorName, opt => opt.MapFrom(src => src.Exhibitor != null ? src.Exhibitor.Name : null));
+        CreateMap<CreateLoanDto, Loan>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.Artwork, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => "Pending"))
-            .ForMember(dest => dest.ConditionOnReturn, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-        CreateMap<UpdateLoanDto, Domain.Entities.Loan>()
+            .ForMember(dest => dest.Exhibitor, opt => opt.Ignore());
+        CreateMap<UpdateLoanDto, Loan>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // Insurance mappings
-        CreateMap<Domain.Entities.Insurance, InsuranceResponseDto>()
-            .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork.Title))
-            .ForMember(dest => dest.ArtworkArtist, opt => opt.MapFrom(src => src.Artwork.Artist));
-        CreateMap<CreateInsuranceDto, Domain.Entities.Insurance>()
+        CreateMap<Insurance, InsuranceResponseDto>()
+            .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork != null ? src.Artwork.Title : null))
+            .ForMember(dest => dest.PolicyProvider, opt => opt.MapFrom(src => src.Policy != null ? src.Policy.Provider : null));
+        CreateMap<InsurancePolicy, InsurancePolicyResponseDto>();
+        CreateMap<CreateInsuranceDto, Insurance>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.Artwork, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => "Active"))
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-        CreateMap<UpdateInsuranceDto, Domain.Entities.Insurance>()
+            .ForMember(dest => dest.Policy, opt => opt.Ignore());
+        CreateMap<UpdateInsuranceDto, Insurance>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // Restoration mappings
-        CreateMap<Domain.Entities.Restoration, RestorationResponseDto>()
-            .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork.Title))
-            .ForMember(dest => dest.ArtworkArtist, opt => opt.MapFrom(src => src.Artwork.Artist))
-            .ForMember(dest => dest.ArtworkImageUrl, opt => opt.MapFrom(src => src.Artwork.ImageUrl));
-        CreateMap<CreateRestorationDto, Domain.Entities.Restoration>()
+        CreateMap<Restoration, RestorationResponseDto>()
+            .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork != null ? src.Artwork.Title : null))
+            .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.Staff != null ? src.Staff.Name : null));
+        CreateMap<CreateRestorationDto, Restoration>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.Artwork, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => "Scheduled"))
-            .ForMember(dest => dest.ActualCost, opt => opt.Ignore())
-            .ForMember(dest => dest.ConditionAfter, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
-        CreateMap<UpdateRestorationDto, Domain.Entities.Restoration>()
+            .ForMember(dest => dest.Staff, opt => opt.Ignore());
+        CreateMap<UpdateRestorationDto, Restoration>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
         // ETL mappings

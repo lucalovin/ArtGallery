@@ -10,34 +10,21 @@ public class CreateStaffValidator : AbstractValidator<CreateStaffDto>
 {
     public CreateStaffValidator()
     {
-        RuleFor(x => x.FirstName)
-            .NotEmpty().WithMessage("First name is required")
-            .MaximumLength(100).WithMessage("First name must not exceed 100 characters");
+        RuleFor(x => x.Name)
+            .NotEmpty().WithMessage("Name is required")
+            .MaximumLength(128).WithMessage("Name must not exceed 128 characters");
 
-        RuleFor(x => x.LastName)
-            .NotEmpty().WithMessage("Last name is required")
-            .MaximumLength(100).WithMessage("Last name must not exceed 100 characters");
-
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required")
-            .EmailAddress().WithMessage("Invalid email format")
-            .MaximumLength(255).WithMessage("Email must not exceed 255 characters");
-
-        RuleFor(x => x.Department)
-            .NotEmpty().WithMessage("Department is required")
-            .MaximumLength(50).WithMessage("Department must not exceed 50 characters");
-
-        RuleFor(x => x.Position)
-            .NotEmpty().WithMessage("Position is required")
-            .MaximumLength(100).WithMessage("Position must not exceed 100 characters");
+        RuleFor(x => x.Role)
+            .NotEmpty().WithMessage("Role is required")
+            .MaximumLength(64).WithMessage("Role must not exceed 64 characters");
 
         RuleFor(x => x.HireDate)
             .NotEmpty().WithMessage("Hire date is required")
             .LessThanOrEqualTo(DateTime.Today).WithMessage("Hire date cannot be in the future");
 
-        RuleFor(x => x.Salary)
-            .GreaterThan(0).WithMessage("Salary must be greater than 0")
-            .When(x => x.Salary.HasValue);
+        RuleFor(x => x.CertificationLevel)
+            .MaximumLength(32).WithMessage("Certification level must not exceed 32 characters")
+            .When(x => x.CertificationLevel != null);
     }
 }
 
@@ -48,12 +35,20 @@ public class UpdateStaffValidator : AbstractValidator<UpdateStaffDto>
 {
     public UpdateStaffValidator()
     {
-        RuleFor(x => x.Email)
-            .EmailAddress().WithMessage("Invalid email format")
-            .When(x => x.Email != null);
+        RuleFor(x => x.Name)
+            .MaximumLength(128).WithMessage("Name must not exceed 128 characters")
+            .When(x => x.Name != null);
 
-        RuleFor(x => x.Salary)
-            .GreaterThan(0).WithMessage("Salary must be greater than 0")
-            .When(x => x.Salary.HasValue);
+        RuleFor(x => x.Role)
+            .MaximumLength(64).WithMessage("Role must not exceed 64 characters")
+            .When(x => x.Role != null);
+
+        RuleFor(x => x.HireDate)
+            .LessThanOrEqualTo(DateTime.Today).WithMessage("Hire date cannot be in the future")
+            .When(x => x.HireDate.HasValue);
+
+        RuleFor(x => x.CertificationLevel)
+            .MaximumLength(32).WithMessage("Certification level must not exceed 32 characters")
+            .When(x => x.CertificationLevel != null);
     }
 }

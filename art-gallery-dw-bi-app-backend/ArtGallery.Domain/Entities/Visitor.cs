@@ -1,26 +1,25 @@
-﻿using ArtGallery.Domain.Common;
-
-namespace ArtGallery.Domain.Entities;
+﻿﻿namespace ArtGallery.Domain.Entities;
 
 /// <summary>
 /// Represents a visitor to the gallery.
+/// Maps to Oracle table: Visitor
 /// </summary>
-public class Visitor : BaseEntity
+public class Visitor
 {
     /// <summary>
-    /// Gets or sets the visitor's first name.
+    /// Gets or sets the visitor ID (maps to visitor_id in Oracle).
     /// </summary>
-    public string FirstName { get; set; } = string.Empty;
+    public int Id { get; set; }
 
     /// <summary>
-    /// Gets or sets the visitor's last name.
+    /// Gets or sets the name of the visitor.
     /// </summary>
-    public string LastName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the visitor's email address.
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     /// <summary>
     /// Gets or sets the visitor's phone number.
@@ -30,45 +29,10 @@ public class Visitor : BaseEntity
     /// <summary>
     /// Gets or sets the visitor's membership type.
     /// </summary>
-    public string MembershipType { get; set; } = "None";
+    public string? MembershipType { get; set; }
 
     /// <summary>
-    /// Gets or sets the membership expiry date.
+    /// Gets or sets the date when the visitor joined.
     /// </summary>
-    public DateTime? MembershipExpiry { get; set; }
-
-    /// <summary>
-    /// Gets or sets the total number of visits.
-    /// </summary>
-    public int TotalVisits { get; set; }
-
-    /// <summary>
-    /// Gets or sets the date of the last visit.
-    /// </summary>
-    public DateTime? LastVisit { get; set; }
-
-    /// <summary>
-    /// Gets or sets the visitor's address.
-    /// </summary>
-    public string? Address { get; set; }
-
-    /// <summary>
-    /// Gets or sets the visitor's city.
-    /// </summary>
-    public string? City { get; set; }
-
-    /// <summary>
-    /// Gets or sets the visitor's country.
-    /// </summary>
-    public string? Country { get; set; }
-
-    /// <summary>
-    /// Gets or sets any notes about the visitor.
-    /// </summary>
-    public string? Notes { get; set; }
-
-    /// <summary>
-    /// Gets the full name of the visitor.
-    /// </summary>
-    public string FullName => $"{FirstName} {LastName}";
+    public DateTime? JoinDate { get; set; }
 }

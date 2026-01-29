@@ -12,28 +12,21 @@ public class CreateExhibitionValidator : AbstractValidator<CreateExhibitionDto>
     {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is required")
-            .MaximumLength(255).WithMessage("Title must not exceed 255 characters");
+            .MaximumLength(128).WithMessage("Title must not exceed 128 characters");
 
         RuleFor(x => x.StartDate)
             .NotEmpty().WithMessage("Start date is required");
 
         RuleFor(x => x.EndDate)
             .NotEmpty().WithMessage("End date is required")
-            .GreaterThan(x => x.StartDate).WithMessage("End date must be after start date");
+            .GreaterThanOrEqualTo(x => x.StartDate).WithMessage("End date must be after start date");
 
-        RuleFor(x => x.Budget)
-            .GreaterThan(0).WithMessage("Budget must be greater than 0")
-            .When(x => x.Budget.HasValue);
+        RuleFor(x => x.ExhibitorId)
+            .GreaterThan(0).WithMessage("Exhibitor is required");
 
-        RuleFor(x => x.ExpectedVisitors)
-            .GreaterThan(0).WithMessage("Expected visitors must be greater than 0")
-            .When(x => x.ExpectedVisitors.HasValue);
-
-        RuleFor(x => x.Location)
-            .MaximumLength(100).WithMessage("Location must not exceed 100 characters");
-
-        RuleFor(x => x.Curator)
-            .MaximumLength(100).WithMessage("Curator name must not exceed 100 characters");
+        RuleFor(x => x.Description)
+            .MaximumLength(512).WithMessage("Description must not exceed 512 characters")
+            .When(x => x.Description != null);
     }
 }
 
@@ -45,15 +38,19 @@ public class UpdateExhibitionValidator : AbstractValidator<UpdateExhibitionDto>
     public UpdateExhibitionValidator()
     {
         RuleFor(x => x.Title)
-            .MaximumLength(255).WithMessage("Title must not exceed 255 characters")
+            .MaximumLength(128).WithMessage("Title must not exceed 128 characters")
             .When(x => x.Title != null);
 
         RuleFor(x => x.EndDate)
-            .GreaterThan(x => x.StartDate).WithMessage("End date must be after start date")
+            .GreaterThanOrEqualTo(x => x.StartDate!.Value).WithMessage("End date must be after start date")
             .When(x => x.StartDate.HasValue && x.EndDate.HasValue);
 
-        RuleFor(x => x.Budget)
-            .GreaterThan(0).WithMessage("Budget must be greater than 0")
-            .When(x => x.Budget.HasValue);
+        RuleFor(x => x.ExhibitorId)
+            .GreaterThan(0).WithMessage("Exhibitor ID must be a positive number")
+            .When(x => x.ExhibitorId.HasValue);
+
+        RuleFor(x => x.Description)
+            .MaximumLength(512).WithMessage("Description must not exceed 512 characters")
+            .When(x => x.Description != null);
     }
 }

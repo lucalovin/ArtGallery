@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ArtGallery.Domain.Entities;
 
@@ -11,42 +11,37 @@ public class InsuranceConfiguration : IEntityTypeConfiguration<Insurance>
 {
     public void Configure(EntityTypeBuilder<Insurance> builder)
     {
-        builder.ToTable("Insurances");
+        builder.ToTable("INSURANCE");
 
         builder.HasKey(i => i.Id);
+        builder.Property(i => i.Id)
+            .HasColumnName("INSURANCE_ID");
 
-        builder.Property(i => i.Provider)
+        builder.Property(i => i.ArtworkId)
             .IsRequired()
-            .HasMaxLength(255);
+            .HasColumnName("ARTWORK_ID");
 
-        builder.Property(i => i.PolicyNumber)
+        builder.Property(i => i.PolicyId)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasColumnName("POLICY_ID");
 
-        builder.Property(i => i.CoverageAmount)
-            .HasPrecision(18, 2);
-
-        builder.Property(i => i.Premium)
-            .HasPrecision(18, 2);
-
-        builder.Property(i => i.Status)
+        builder.Property(i => i.InsuredAmount)
             .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("Active");
+            .HasColumnType("NUMBER(14,2)")
+            .HasColumnName("INSURED_AMOUNT");
 
-        builder.Property(i => i.CoverageType)
-            .HasMaxLength(100);
-
-        builder.Property(i => i.Notes)
-            .HasMaxLength(1000);
-
+        // Foreign key relationships
         builder.HasOne(i => i.Artwork)
             .WithMany(a => a.Insurances)
             .HasForeignKey(i => i.ArtworkId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(i => i.Status);
-        builder.HasIndex(i => i.EndDate);
-        builder.HasIndex(i => i.PolicyNumber).IsUnique();
+        builder.HasOne(i => i.Policy)
+            .WithMany(p => p.Insurances)
+            .HasForeignKey(i => i.PolicyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(i => i.ArtworkId);
+        builder.HasIndex(i => i.PolicyId);
     }
 }

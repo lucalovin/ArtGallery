@@ -6,14 +6,10 @@
 public class CreateExhibitionDto
 {
     public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    public string? Location { get; set; }
-    public string? Curator { get; set; }
-    public string? ImageUrl { get; set; }
-    public decimal? Budget { get; set; }
-    public int? ExpectedVisitors { get; set; }
+    public int ExhibitorId { get; set; }
+    public string? Description { get; set; }
 }
 
 /// <summary>
@@ -22,16 +18,10 @@ public class CreateExhibitionDto
 public class UpdateExhibitionDto
 {
     public string? Title { get; set; }
-    public string? Description { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public string? Status { get; set; }
-    public string? Location { get; set; }
-    public string? Curator { get; set; }
-    public string? ImageUrl { get; set; }
-    public decimal? Budget { get; set; }
-    public int? ExpectedVisitors { get; set; }
-    public int? ActualVisitors { get; set; }
+    public int? ExhibitorId { get; set; }
+    public string? Description { get; set; }
 }
 
 /// <summary>
@@ -41,19 +31,12 @@ public class ExhibitionResponseDto
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public string? Location { get; set; }
-    public string? Curator { get; set; }
-    public string? ImageUrl { get; set; }
-    public decimal? Budget { get; set; }
-    public int? ExpectedVisitors { get; set; }
-    public int? ActualVisitors { get; set; }
+    public int ExhibitorId { get; set; }
+    public string? ExhibitorName { get; set; }
+    public string? Description { get; set; }
     public int ArtworkCount { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
 }
 
 /// <summary>
@@ -69,9 +52,10 @@ public class ExhibitionDetailDto : ExhibitionResponseDto
 /// </summary>
 public class ExhibitionArtworkDto
 {
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Artist { get; set; } = string.Empty;
-    public string? ImageUrl { get; set; }
-    public int? DisplayOrder { get; set; }
+    public int ArtworkId { get; set; }
+    public int ExhibitionId { get; set; }
+    public string? ArtworkTitle { get; set; }
+    public string? ArtistName { get; set; }
+    public string? PositionInGallery { get; set; }
+    public string? FeaturedStatus { get; set; }
 }

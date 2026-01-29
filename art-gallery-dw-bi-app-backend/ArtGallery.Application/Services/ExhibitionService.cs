@@ -34,7 +34,8 @@ public class ExhibitionService : IExhibitionService
     public async Task<PaginatedResponse<ExhibitionResponseDto>> GetAllAsync(PagedRequest request)
     {
         IQueryable<Exhibition> query = _repository.Query()
-            .Include(e => e.ExhibitionArtworks);
+            .Include(e => e.ExhibitionArtworks)
+            .Include(e => e.Exhibitor);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -62,6 +63,8 @@ public class ExhibitionService : IExhibitionService
         var exhibition = await _repository.Query()
             .Include(e => e.ExhibitionArtworks)
                 .ThenInclude(ea => ea.Artwork)
+                    .ThenInclude(a => a!.Artist)
+            .Include(e => e.Exhibitor)
             .FirstOrDefaultAsync(e => e.Id == id);
 
         return exhibition == null ? null : _mapper.Map<ExhibitionDetailDto>(exhibition);
@@ -84,13 +87,7 @@ public class ExhibitionService : IExhibitionService
         if (dto.Description != null) exhibition.Description = dto.Description;
         if (dto.StartDate.HasValue) exhibition.StartDate = dto.StartDate.Value;
         if (dto.EndDate.HasValue) exhibition.EndDate = dto.EndDate.Value;
-        if (dto.Status != null) exhibition.Status = dto.Status;
-        if (dto.Location != null) exhibition.Location = dto.Location;
-        if (dto.Curator != null) exhibition.Curator = dto.Curator;
-        if (dto.ImageUrl != null) exhibition.ImageUrl = dto.ImageUrl;
-        if (dto.Budget.HasValue) exhibition.Budget = dto.Budget;
-        if (dto.ExpectedVisitors.HasValue) exhibition.ExpectedVisitors = dto.ExpectedVisitors;
-        if (dto.ActualVisitors.HasValue) exhibition.ActualVisitors = dto.ActualVisitors;
+        if (dto.ExhibitorId.HasValue) exhibition.ExhibitorId = dto.ExhibitorId.Value;
 
         _repository.Update(exhibition);
         await _repository.SaveChangesAsync();
@@ -110,6 +107,7 @@ public class ExhibitionService : IExhibitionService
     {
         var exhibitions = await _repository.Query()
             .Include(e => e.ExhibitionArtworks)
+            .Include(e => e.Exhibitor)
             .Where(e => e.StartDate > DateTime.UtcNow)
             .OrderBy(e => e.StartDate)
             .Take(limit)
@@ -123,6 +121,7 @@ public class ExhibitionService : IExhibitionService
         var today = DateTime.UtcNow.Date;
         var exhibitions = await _repository.Query()
             .Include(e => e.ExhibitionArtworks)
+            .Include(e => e.Exhibitor)
             .Where(e => e.StartDate <= today && e.EndDate >= today)
             .ToListAsync();
 
@@ -133,6 +132,7 @@ public class ExhibitionService : IExhibitionService
     {
         var exhibitions = await _repository.Query()
             .Include(e => e.ExhibitionArtworks)
+            .Include(e => e.Exhibitor)
             .Where(e => e.EndDate < DateTime.UtcNow)
             .OrderByDescending(e => e.EndDate)
             .ToListAsync();
@@ -158,7 +158,7 @@ public class ExhibitionService : IExhibitionService
         {
             ExhibitionId = exhibitionId,
             ArtworkId = artworkId,
-            DisplayOrder = displayOrder
+            PositionInGallery = displayOrder?.ToString()
         };
 
         await _exhibitionArtworkRepository.AddAsync(exhibitionArtwork);
@@ -179,8 +179,9 @@ public class ExhibitionService : IExhibitionService
     {
         var exhibitionArtworks = await _exhibitionArtworkRepository.Query()
             .Include(ea => ea.Artwork)
+                .ThenInclude(a => a!.Artist)
             .Where(ea => ea.ExhibitionId == exhibitionId)
-            .OrderBy(ea => ea.DisplayOrder)
+            .OrderBy(ea => ea.PositionInGallery)
             .ToListAsync();
 
         return _mapper.Map<IEnumerable<ExhibitionArtworkDto>>(exhibitionArtworks);

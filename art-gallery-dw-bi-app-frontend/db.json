@@ -14,7 +14,12 @@
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
       "acquisitionDate": "2020-03-15",
       "estimatedValue": 1500000,
-      "tags": ["Post-Impressionism", "Night Scene", "Dutch Master", "Iconic"],
+      "tags": [
+        "Post-Impressionism",
+        "Night Scene",
+        "Dutch Master",
+        "Iconic"
+      ],
       "createdAt": "2020-03-15T10:00:00Z",
       "updatedAt": "2024-01-15T14:30:00Z"
     },
@@ -32,7 +37,11 @@
       "imageUrl": "",
       "acquisitionDate": "2018-07-20",
       "estimatedValue": 850000,
-      "tags": ["Surrealism", "Modern Art", "Spanish"],
+      "tags": [
+        "Surrealism",
+        "Modern Art",
+        "Spanish"
+      ],
       "createdAt": "2018-07-20T10:00:00Z",
       "updatedAt": "2024-01-10T09:15:00Z"
     },
@@ -50,7 +59,11 @@
       "imageUrl": "",
       "acquisitionDate": "2015-11-05",
       "estimatedValue": 2200000,
-      "tags": ["Dutch Golden Age", "Portrait", "Baroque"],
+      "tags": [
+        "Dutch Golden Age",
+        "Portrait",
+        "Baroque"
+      ],
       "createdAt": "2015-11-05T10:00:00Z",
       "updatedAt": "2024-01-05T11:20:00Z"
     },
@@ -68,7 +81,11 @@
       "imageUrl": "",
       "acquisitionDate": "2012-02-28",
       "estimatedValue": 3500000,
-      "tags": ["Renaissance", "Mythology", "Italian"],
+      "tags": [
+        "Renaissance",
+        "Mythology",
+        "Italian"
+      ],
       "createdAt": "2012-02-28T10:00:00Z",
       "updatedAt": "2023-12-20T16:45:00Z"
     },
@@ -86,7 +103,12 @@
       "imageUrl": "",
       "acquisitionDate": "2010-05-12",
       "estimatedValue": 4200000,
-      "tags": ["Sculpture", "Bronze", "French", "Modern"],
+      "tags": [
+        "Sculpture",
+        "Bronze",
+        "French",
+        "Modern"
+      ],
       "createdAt": "2010-05-12T10:00:00Z",
       "updatedAt": "2024-01-18T08:30:00Z"
     },
@@ -104,7 +126,12 @@
       "imageUrl": "",
       "acquisitionDate": "2008-09-30",
       "estimatedValue": 8500000,
-      "tags": ["Renaissance", "Marble", "Italian", "Masterpiece"],
+      "tags": [
+        "Renaissance",
+        "Marble",
+        "Italian",
+        "Masterpiece"
+      ],
       "createdAt": "2008-09-30T10:00:00Z",
       "updatedAt": "2024-01-12T13:00:00Z"
     },
@@ -122,7 +149,12 @@
       "imageUrl": "",
       "acquisitionDate": "2019-04-15",
       "estimatedValue": 125000,
-      "tags": ["Photography", "Documentary", "American", "Great Depression"],
+      "tags": [
+        "Photography",
+        "Documentary",
+        "American",
+        "Great Depression"
+      ],
       "createdAt": "2019-04-15T10:00:00Z",
       "updatedAt": "2023-11-28T10:15:00Z"
     },
@@ -140,7 +172,12 @@
       "imageUrl": "",
       "acquisitionDate": "2016-08-22",
       "estimatedValue": 2800000,
-      "tags": ["Impressionism", "Nature", "French", "Series"],
+      "tags": [
+        "Impressionism",
+        "Nature",
+        "French",
+        "Series"
+      ],
       "createdAt": "2016-08-22T10:00:00Z",
       "updatedAt": "2024-01-20T09:00:00Z"
     }
@@ -156,7 +193,11 @@
       "curator": "Dr. Sarah Mitchell",
       "location": "Gallery Wing A",
       "ticketPrice": 25,
-      "artworkIds": [1, 2, 5],
+      "artworkIds": [
+        1,
+        2,
+        5
+      ],
       "artworkCount": 45,
       "visitorCount": 12450,
       "imageUrl": "",
@@ -172,7 +213,10 @@
       "curator": "Prof. Marco Rossi",
       "location": "Gallery Wing B",
       "ticketPrice": 30,
-      "artworkIds": [4, 6],
+      "artworkIds": [
+        4,
+        6
+      ],
       "artworkCount": 32,
       "visitorCount": 0,
       "imageUrl": "",
@@ -204,11 +248,46 @@
       "curator": "Dr. Sarah Mitchell",
       "location": "Gallery Wing A",
       "ticketPrice": 25,
-      "artworkIds": [8],
+      "artworkIds": [
+        8
+      ],
       "artworkCount": 50,
       "visitorCount": 28500,
       "imageUrl": "",
       "createdAt": "2023-06-01T10:00:00Z"
+    },
+    {
+      "title": "exh",
+      "description": "",
+      "startDate": "",
+      "endDate": "",
+      "curator": "",
+      "location": "",
+      "ticketPrice": null,
+      "status": "upcoming",
+      "id": 5
+    },
+    {
+      "title": "exh2",
+      "description": "",
+      "startDate": "",
+      "endDate": "",
+      "curator": "",
+      "location": "",
+      "ticketPrice": null,
+      "status": "upcoming",
+      "id": 6
+    },
+    {
+      "title": "dsadas",
+      "description": "",
+      "startDate": "",
+      "endDate": "",
+      "curator": "",
+      "location": "",
+      "ticketPrice": null,
+      "status": "upcoming",
+      "id": 7
     }
   ],
   "visitors": [
@@ -503,8 +582,34 @@
       "avgVisitDuration": 2.4
     },
     "visitorTrends": {
-      "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-      "data": [3200, 3800, 4100, 4500, 5200, 6100, 5800, 5400, 4800, 4200, 3600, 4500]
+      "labels": [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec"
+      ],
+      "data": [
+        3200,
+        3800,
+        4100,
+        4500,
+        5200,
+        6100,
+        5800,
+        5400,
+        4800,
+        4200,
+        3600,
+        4500
+      ]
     },
     "revenueBySource": {
       "tickets": 345000,

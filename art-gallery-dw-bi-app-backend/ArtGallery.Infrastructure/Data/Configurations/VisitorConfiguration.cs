@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ArtGallery.Domain.Entities;
 
@@ -11,45 +11,32 @@ public class VisitorConfiguration : IEntityTypeConfiguration<Visitor>
 {
     public void Configure(EntityTypeBuilder<Visitor> builder)
     {
-        builder.ToTable("Visitors");
+        builder.ToTable("VISITOR");
 
         builder.HasKey(v => v.Id);
+        builder.Property(v => v.Id)
+            .HasColumnName("VISITOR_ID");
 
-        builder.Property(v => v.FirstName)
+        builder.Property(v => v.Name)
             .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(v => v.LastName)
-            .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(128)
+            .HasColumnName("NAME");
 
         builder.Property(v => v.Email)
-            .IsRequired()
-            .HasMaxLength(255);
+            .HasMaxLength(128)
+            .HasColumnName("EMAIL");
 
         builder.Property(v => v.Phone)
-            .HasMaxLength(20);
+            .HasMaxLength(32)
+            .HasColumnName("PHONE");
 
         builder.Property(v => v.MembershipType)
-            .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("None");
+            .HasMaxLength(32)
+            .HasColumnName("MEMBERSHIP_TYPE");
 
-        builder.Property(v => v.Address)
-            .HasMaxLength(255);
+        builder.Property(v => v.JoinDate)
+            .HasColumnName("JOIN_DATE");
 
-        builder.Property(v => v.City)
-            .HasMaxLength(100);
-
-        builder.Property(v => v.Country)
-            .HasMaxLength(100);
-
-        builder.Property(v => v.Notes)
-            .HasMaxLength(1000);
-
-        builder.Ignore(v => v.FullName);
-
-        builder.HasIndex(v => v.Email).IsUnique();
-        builder.HasIndex(v => v.MembershipType);
+        builder.HasIndex(v => v.Email);
     }
 }

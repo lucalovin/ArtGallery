@@ -11,14 +11,14 @@ public class UpdateArtworkDto
     public string? Title { get; set; }
 
     /// <summary>
-    /// Gets or sets the artist who created the artwork.
+    /// Gets or sets the artist ID (foreign key).
     /// </summary>
-    public string? Artist { get; set; }
+    public int? ArtistId { get; set; }
 
     /// <summary>
     /// Gets or sets the year the artwork was created.
     /// </summary>
-    public int? Year { get; set; }
+    public int? YearCreated { get; set; }
 
     /// <summary>
     /// Gets or sets the medium used.
@@ -26,47 +26,17 @@ public class UpdateArtworkDto
     public string? Medium { get; set; }
 
     /// <summary>
-    /// Gets or sets the dimensions.
+    /// Gets or sets the collection ID (foreign key).
     /// </summary>
-    public string? Dimensions { get; set; }
+    public int? CollectionId { get; set; }
 
     /// <summary>
-    /// Gets or sets the description.
+    /// Gets or sets the location ID (foreign key).
     /// </summary>
-    public string? Description { get; set; }
-
-    /// <summary>
-    /// Gets or sets the image URL.
-    /// </summary>
-    public string? ImageUrl { get; set; }
-
-    /// <summary>
-    /// Gets or sets the collection type.
-    /// </summary>
-    public string? Collection { get; set; }
-
-    /// <summary>
-    /// Gets or sets the status.
-    /// </summary>
-    public string? Status { get; set; }
+    public int? LocationId { get; set; }
 
     /// <summary>
     /// Gets or sets the estimated value.
     /// </summary>
     public decimal? EstimatedValue { get; set; }
-
-    /// <summary>
-    /// Gets or sets the location.
-    /// </summary>
-    public string? Location { get; set; }
-
-    /// <summary>
-    /// Gets or sets the condition.
-    /// </summary>
-    public string? Condition { get; set; }
-
-    /// <summary>
-    /// Gets or sets the tags.
-    /// </summary>
-    public List<string>? Tags { get; set; }
 }

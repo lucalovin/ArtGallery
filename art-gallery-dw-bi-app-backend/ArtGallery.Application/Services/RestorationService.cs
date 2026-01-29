@@ -22,13 +22,14 @@ public class RestorationService : IRestorationService
 
     public async Task<PaginatedResponse<RestorationResponseDto>> GetAllAsync(PagedRequest request)
     {
-        IQueryable<Restoration> query = _repository.Query().Include(r => r.Artwork);
+        IQueryable<Restoration> query = _repository.Query()
+            .Include(r => r.Artwork)
+            .Include(r => r.Staff);
 
         query = request.SortBy?.ToLower() switch
         {
             "startdate" => request.IsDescending ? query.OrderByDescending(r => r.StartDate) : query.OrderBy(r => r.StartDate),
-            "status" => request.IsDescending ? query.OrderByDescending(r => r.Status) : query.OrderBy(r => r.Status),
-            "type" => request.IsDescending ? query.OrderByDescending(r => r.Type) : query.OrderBy(r => r.Type),
+            "staff" => request.IsDescending ? query.OrderByDescending(r => r.Staff!.Name) : query.OrderBy(r => r.Staff!.Name),
             _ => query.OrderByDescending(r => r.StartDate)
         };
 
@@ -43,6 +44,7 @@ public class RestorationService : IRestorationService
     {
         var restoration = await _repository.Query()
             .Include(r => r.Artwork)
+            .Include(r => r.Staff)
             .FirstOrDefaultAsync(r => r.Id == id);
         return restoration == null ? null : _mapper.Map<RestorationResponseDto>(restoration);
     }
@@ -55,6 +57,7 @@ public class RestorationService : IRestorationService
 
         var created = await _repository.Query()
             .Include(r => r.Artwork)
+            .Include(r => r.Staff)
             .FirstAsync(r => r.Id == restoration.Id);
         return _mapper.Map<RestorationResponseDto>(created);
     }
@@ -63,20 +66,15 @@ public class RestorationService : IRestorationService
     {
         var restoration = await _repository.Query()
             .Include(r => r.Artwork)
+            .Include(r => r.Staff)
             .FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException(nameof(Restoration), id);
 
-        if (dto.Type != null) restoration.Type = dto.Type;
-        if (dto.Description != null) restoration.Description = dto.Description;
+        if (dto.ArtworkId.HasValue) restoration.ArtworkId = dto.ArtworkId.Value;
+        if (dto.StaffId.HasValue) restoration.StaffId = dto.StaffId.Value;
         if (dto.StartDate.HasValue) restoration.StartDate = dto.StartDate.Value;
         if (dto.EndDate.HasValue) restoration.EndDate = dto.EndDate;
-        if (dto.Status != null) restoration.Status = dto.Status;
-        if (dto.Conservator != null) restoration.Conservator = dto.Conservator;
-        if (dto.EstimatedCost.HasValue) restoration.EstimatedCost = dto.EstimatedCost;
-        if (dto.ActualCost.HasValue) restoration.ActualCost = dto.ActualCost;
-        if (dto.ConditionBefore != null) restoration.ConditionBefore = dto.ConditionBefore;
-        if (dto.ConditionAfter != null) restoration.ConditionAfter = dto.ConditionAfter;
-        if (dto.Notes != null) restoration.Notes = dto.Notes;
+        if (dto.Description != null) restoration.Description = dto.Description;
 
         _repository.Update(restoration);
         await _repository.SaveChangesAsync();
@@ -96,7 +94,8 @@ public class RestorationService : IRestorationService
     {
         var restorations = await _repository.Query()
             .Include(r => r.Artwork)
-            .Where(r => r.Status == "InProgress")
+            .Include(r => r.Staff)
+            .Where(r => r.EndDate == null)
             .ToListAsync();
         return _mapper.Map<IEnumerable<RestorationResponseDto>>(restorations);
     }
@@ -105,7 +104,8 @@ public class RestorationService : IRestorationService
     {
         var restorations = await _repository.Query()
             .Include(r => r.Artwork)
-            .Where(r => r.Status == "Completed")
+            .Include(r => r.Staff)
+            .Where(r => r.EndDate != null)
             .OrderByDescending(r => r.EndDate)
             .ToListAsync();
         return _mapper.Map<IEnumerable<RestorationResponseDto>>(restorations);
@@ -113,18 +113,18 @@ public class RestorationService : IRestorationService
 
     public async Task<RestorationStatisticsDto> GetStatisticsAsync()
     {
-        var restorations = await _repository.Query().ToListAsync();
+        var restorations = await _repository.Query()
+            .Include(r => r.Staff)
+            .ToListAsync();
 
         return new RestorationStatisticsDto
         {
             TotalRestorations = restorations.Count,
-            InProgressRestorations = restorations.Count(r => r.Status == "InProgress"),
-            CompletedRestorations = restorations.Count(r => r.Status == "Completed"),
-            TotalEstimatedCost = restorations.Sum(r => r.EstimatedCost ?? 0),
-            TotalActualCost = restorations.Sum(r => r.ActualCost ?? 0),
-            ByStatus = restorations.GroupBy(r => r.Status)
-                .ToDictionary(g => g.Key, g => g.Count()),
-            ByType = restorations.GroupBy(r => r.Type)
+            InProgressRestorations = restorations.Count(r => r.EndDate == null),
+            CompletedRestorations = restorations.Count(r => r.EndDate != null),
+            ByStaff = restorations
+                .Where(r => r.Staff != null)
+                .GroupBy(r => r.Staff!.Name)
                 .ToDictionary(g => g.Key, g => g.Count())
         };
     }

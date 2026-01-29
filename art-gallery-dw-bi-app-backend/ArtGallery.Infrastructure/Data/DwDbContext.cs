@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using ArtGallery.Domain.Entities.DW;
 
 namespace ArtGallery.Infrastructure.Data;
@@ -136,21 +136,13 @@ public class DwDbContext : DbContext
             entity.ToTable("DIM_DATE");
             entity.HasKey(e => e.DateKey);
             entity.Property(e => e.DateKey).HasColumnName("DATE_KEY").ValueGeneratedNever();
-            entity.Property(e => e.FullDate).HasColumnName("FULL_DATE");
-            entity.Property(e => e.DayOfWeek).HasColumnName("DAY_OF_WEEK");
-            entity.Property(e => e.DayName).HasColumnName("DAY_NAME").HasMaxLength(20);
-            entity.Property(e => e.DayOfMonth).HasColumnName("DAY_OF_MONTH");
-            entity.Property(e => e.DayOfYear).HasColumnName("DAY_OF_YEAR");
-            entity.Property(e => e.WeekOfYear).HasColumnName("WEEK_OF_YEAR");
-            entity.Property(e => e.MonthNumber).HasColumnName("MONTH_NUMBER");
+            entity.Property(e => e.CalendarDate).HasColumnName("CALENDAR_DATE").IsRequired();
+            entity.Property(e => e.CalendarYear).HasColumnName("CALENDAR_YEAR").IsRequired();
+            entity.Property(e => e.CalendarMonth).HasColumnName("CALENDAR_MONTH").IsRequired();
+            entity.Property(e => e.CalendarDay).HasColumnName("CALENDAR_DAY").IsRequired();
             entity.Property(e => e.MonthName).HasColumnName("MONTH_NAME").HasMaxLength(20);
             entity.Property(e => e.Quarter).HasColumnName("QUARTER");
-            entity.Property(e => e.Year).HasColumnName("YEAR");
-            entity.Property(e => e.FiscalYear).HasColumnName("FISCAL_YEAR");
-            entity.Property(e => e.FiscalQuarter).HasColumnName("FISCAL_QUARTER");
-            entity.Property(e => e.IsWeekend).HasColumnName("IS_WEEKEND");
-            entity.Property(e => e.IsHoliday).HasColumnName("IS_HOLIDAY");
-            entity.Property(e => e.HolidayName).HasColumnName("HOLIDAY_NAME").HasMaxLength(100);
+            entity.Property(e => e.IsWeekend).HasColumnName("IS_WEEKEND").HasMaxLength(1);
         });
     }
 
@@ -249,24 +241,20 @@ public class DwDbContext : DbContext
             entity.Property(e => e.FactKey).HasColumnName("FACT_KEY");
             entity.Property(e => e.DateKey).HasColumnName("DATE_KEY");
             entity.Property(e => e.ExhibitionKey).HasColumnName("EXHIBITION_KEY");
+            entity.Property(e => e.ExhibitorKey).HasColumnName("EXHIBITOR_KEY");
             entity.Property(e => e.ArtworkKey).HasColumnName("ARTWORK_KEY");
             entity.Property(e => e.ArtistKey).HasColumnName("ARTIST_KEY");
-            entity.Property(e => e.VisitorKey).HasColumnName("VISITOR_KEY");
-            entity.Property(e => e.StaffKey).HasColumnName("STAFF_KEY");
+            entity.Property(e => e.CollectionKey).HasColumnName("COLLECTION_KEY");
             entity.Property(e => e.LocationKey).HasColumnName("LOCATION_KEY");
-            entity.Property(e => e.InsuranceKey).HasColumnName("INSURANCE_KEY");
+            entity.Property(e => e.PolicyKey).HasColumnName("POLICY_KEY");
 
             // Measures
-            entity.Property(e => e.VisitorCount).HasColumnName("VISITOR_COUNT");
-            entity.Property(e => e.TicketRevenue).HasColumnName("TICKET_REVENUE").HasColumnType("NUMBER(18,2)");
-            entity.Property(e => e.MerchandiseRevenue).HasColumnName("MERCHANDISE_REVENUE").HasColumnType("NUMBER(18,2)");
-            entity.Property(e => e.TotalRevenue).HasColumnName("TOTAL_REVENUE").HasColumnType("NUMBER(18,2)");
-            entity.Property(e => e.VisitDurationMinutes).HasColumnName("VISIT_DURATION_MINUTES");
-            entity.Property(e => e.InsuranceValue).HasColumnName("INSURANCE_VALUE").HasColumnType("NUMBER(18,2)");
-            entity.Property(e => e.OperatingCost).HasColumnName("OPERATING_COST").HasColumnType("NUMBER(18,2)");
-            entity.Property(e => e.ArtworkCount).HasColumnName("ARTWORK_COUNT");
-            entity.Property(e => e.PartitionYear).HasColumnName("PARTITION_YEAR");
-            entity.Property(e => e.EtlLoadDate).HasColumnName("ETL_LOAD_DATE");
+            entity.Property(e => e.EstimatedValue).HasColumnName("ESTIMATED_VALUE").HasColumnType("NUMBER(12,2)");
+            entity.Property(e => e.InsuredAmount).HasColumnName("INSURED_AMOUNT").HasColumnType("NUMBER(14,2)");
+            entity.Property(e => e.LoanFlag).HasColumnName("LOAN_FLAG");
+            entity.Property(e => e.RestorationCount).HasColumnName("RESTORATION_COUNT");
+            entity.Property(e => e.ReviewCount).HasColumnName("REVIEW_COUNT");
+            entity.Property(e => e.AvgRating).HasColumnName("AVG_RATING").HasColumnType("NUMBER(5,2)");
 
             // Foreign keys
             entity.HasOne(e => e.Date)
@@ -289,31 +277,10 @@ public class DwDbContext : DbContext
                   .HasForeignKey(e => e.ArtistKey)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(e => e.Visitor)
-                  .WithMany()
-                  .HasForeignKey(e => e.VisitorKey)
-                  .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(e => e.Staff)
-                  .WithMany()
-                  .HasForeignKey(e => e.StaffKey)
-                  .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasOne(e => e.Location)
                   .WithMany()
                   .HasForeignKey(e => e.LocationKey)
                   .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(e => e.Insurance)
-                  .WithMany()
-                  .HasForeignKey(e => e.InsuranceKey)
-                  .OnDelete(DeleteBehavior.Restrict);
-
-            // Indexes for performance
-            entity.HasIndex(e => e.DateKey).HasDatabaseName("IX_FACT_DATE_KEY");
-            entity.HasIndex(e => e.ExhibitionKey).HasDatabaseName("IX_FACT_EXHIBITION_KEY");
-            entity.HasIndex(e => e.ArtworkKey).HasDatabaseName("IX_FACT_ARTWORK_KEY");
-            entity.HasIndex(e => e.PartitionYear).HasDatabaseName("IX_FACT_PARTITION_YEAR");
         });
     }
 

@@ -1,94 +1,48 @@
-﻿using ArtGallery.Domain.Common;
-
-namespace ArtGallery.Domain.Entities;
+﻿﻿namespace ArtGallery.Domain.Entities;
 
 /// <summary>
-/// Represents a loan of an artwork to an external institution.
+/// Represents a loan of an artwork to an external exhibitor.
+/// Maps to Oracle table: Loan
 /// </summary>
-public class Loan : BaseEntity
+public class Loan
 {
     /// <summary>
-    /// Gets or sets the ID of the loaned artwork.
+    /// Gets or sets the loan ID (maps to loan_id in Oracle).
+    /// </summary>
+    public int Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the artwork ID (foreign key to Artwork table).
     /// </summary>
     public int ArtworkId { get; set; }
 
     /// <summary>
-    /// Gets or sets the artwork being loaned.
+    /// Gets or sets the exhibitor ID (foreign key to Exhibitor table).
     /// </summary>
-    public virtual Artwork Artwork { get; set; } = null!;
-
-    /// <summary>
-    /// Gets or sets the name of the borrowing institution or individual.
-    /// </summary>
-    public string BorrowerName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the type of borrower (e.g., Museum, Gallery, Private Collector).
-    /// </summary>
-    public string? BorrowerType { get; set; }
-
-    /// <summary>
-    /// Gets or sets the contact information for the borrower.
-    /// </summary>
-    public string? BorrowerContact { get; set; }
-
-    /// <summary>
-    /// Gets or sets the borrower's address.
-    /// </summary>
-    public string? BorrowerAddress { get; set; }
+    public int ExhibitorId { get; set; }
 
     /// <summary>
     /// Gets or sets the start date of the loan.
     /// </summary>
-    public DateTime LoanStartDate { get; set; }
+    public DateTime StartDate { get; set; }
 
     /// <summary>
     /// Gets or sets the end date of the loan.
     /// </summary>
-    public DateTime LoanEndDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
     /// <summary>
-    /// Gets or sets the current status of the loan.
+    /// Gets or sets any conditions for the loan.
     /// </summary>
-    public string Status { get; set; } = "Pending";
+    public string? Conditions { get; set; }
 
     /// <summary>
-    /// Gets or sets the insurance value for the loan period.
+    /// Navigation property to the loaned artwork.
     /// </summary>
-    public decimal? InsuranceValue { get; set; }
+    public virtual Artwork? Artwork { get; set; }
 
     /// <summary>
-    /// Gets or sets the insurance provider for the loan.
+    /// Navigation property to the exhibitor receiving the loan.
     /// </summary>
-    public string? InsuranceProvider { get; set; }
-
-    /// <summary>
-    /// Gets or sets the insurance policy number.
-    /// </summary>
-    public string? InsurancePolicyNumber { get; set; }
-
-    /// <summary>
-    /// Gets or sets the fee charged for the loan.
-    /// </summary>
-    public decimal? LoanFee { get; set; }
-
-    /// <summary>
-    /// Gets or sets the purpose of the loan.
-    /// </summary>
-    public string? Purpose { get; set; }
-
-    /// <summary>
-    /// Gets or sets the condition of the artwork when loaned.
-    /// </summary>
-    public string? ConditionOnLoan { get; set; }
-
-    /// <summary>
-    /// Gets or sets the condition of the artwork when returned.
-    /// </summary>
-    public string? ConditionOnReturn { get; set; }
-
-    /// <summary>
-    /// Gets or sets any additional notes about the loan.
-    /// </summary>
-    public string? Notes { get; set; }
+    public virtual Exhibitor? Exhibitor { get; set; }
 }

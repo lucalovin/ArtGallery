@@ -11,25 +11,21 @@ public class CreateRestorationValidator : AbstractValidator<CreateRestorationDto
     public CreateRestorationValidator()
     {
         RuleFor(x => x.ArtworkId)
-            .GreaterThan(0).WithMessage("Artwork ID is required");
+            .GreaterThan(0).WithMessage("Artwork is required");
 
-        RuleFor(x => x.Type)
-            .NotEmpty().WithMessage("Restoration type is required")
-            .MaximumLength(100).WithMessage("Type must not exceed 100 characters");
+        RuleFor(x => x.StaffId)
+            .GreaterThan(0).WithMessage("Staff member is required");
 
         RuleFor(x => x.StartDate)
             .NotEmpty().WithMessage("Start date is required");
 
         RuleFor(x => x.EndDate)
-            .GreaterThan(x => x.StartDate).WithMessage("End date must be after start date")
+            .GreaterThanOrEqualTo(x => x.StartDate).WithMessage("End date must be after start date")
             .When(x => x.EndDate.HasValue);
 
-        RuleFor(x => x.EstimatedCost)
-            .GreaterThan(0).WithMessage("Estimated cost must be greater than 0")
-            .When(x => x.EstimatedCost.HasValue);
-
-        RuleFor(x => x.Conservator)
-            .MaximumLength(255).WithMessage("Conservator name must not exceed 255 characters");
+        RuleFor(x => x.Description)
+            .MaximumLength(512).WithMessage("Description must not exceed 512 characters")
+            .When(x => x.Description != null);
     }
 }
 
@@ -40,16 +36,20 @@ public class UpdateRestorationValidator : AbstractValidator<UpdateRestorationDto
 {
     public UpdateRestorationValidator()
     {
+        RuleFor(x => x.ArtworkId)
+            .GreaterThan(0).WithMessage("Artwork ID must be a positive number")
+            .When(x => x.ArtworkId.HasValue);
+
+        RuleFor(x => x.StaffId)
+            .GreaterThan(0).WithMessage("Staff ID must be a positive number")
+            .When(x => x.StaffId.HasValue);
+
         RuleFor(x => x.EndDate)
-            .GreaterThan(x => x.StartDate).WithMessage("End date must be after start date")
+            .GreaterThanOrEqualTo(x => x.StartDate!.Value).WithMessage("End date must be after start date")
             .When(x => x.StartDate.HasValue && x.EndDate.HasValue);
 
-        RuleFor(x => x.EstimatedCost)
-            .GreaterThan(0).WithMessage("Estimated cost must be greater than 0")
-            .When(x => x.EstimatedCost.HasValue);
-
-        RuleFor(x => x.ActualCost)
-            .GreaterThanOrEqualTo(0).WithMessage("Actual cost cannot be negative")
-            .When(x => x.ActualCost.HasValue);
+        RuleFor(x => x.Description)
+            .MaximumLength(512).WithMessage("Description must not exceed 512 characters")
+            .When(x => x.Description != null);
     }
 }

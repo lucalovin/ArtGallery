@@ -43,10 +43,13 @@ public class ReportService : IReportService
         var exhibitions = await _exhibitionRepository.Query()
             .Where(e => e.StartDate <= today && e.EndDate >= today)
             .ToListAsync();
-        var staff = await _staffRepository.Query().Where(s => s.Status == "Active").ToListAsync();
-        var loans = await _loanRepository.Query().Where(l => l.Status == "Active").ToListAsync();
-        var restorations = await _restorationRepository.Query().Where(r => r.Status == "InProgress").ToListAsync();
-        var insurances = await _insuranceRepository.Query().Where(i => i.Status == "Active").ToListAsync();
+        var staff = await _staffRepository.Query().ToListAsync();
+        var loans = await _loanRepository.Query().Where(l => l.EndDate == null || l.EndDate >= today).ToListAsync();
+        var restorations = await _restorationRepository.Query().Where(r => r.EndDate == null).ToListAsync();
+        var insurances = await _insuranceRepository.Query()
+            .Include(i => i.Policy)
+            .Where(i => i.Policy != null && i.Policy.EndDate >= today)
+            .ToListAsync();
 
         return new KpiDashboardDto
         {
@@ -57,7 +60,7 @@ public class ReportService : IReportService
             TotalCollectionValue = artworks.Sum(a => a.EstimatedValue ?? 0),
             ActiveLoans = loans.Count,
             ArtworksUnderRestoration = restorations.Count,
-            TotalInsuranceCoverage = insurances.Sum(i => i.CoverageAmount),
+            TotalInsuranceCoverage = insurances.Sum(i => i.InsuredAmount),
             GeneratedAt = DateTime.UtcNow
         };
     }
@@ -68,16 +71,16 @@ public class ReportService : IReportService
         var end = endDate ?? DateTime.UtcNow;
 
         var visitors = await _visitorRepository.Query()
-            .Where(v => v.CreatedAt >= start && v.CreatedAt <= end)
+            .Where(v => v.JoinDate != null && v.JoinDate >= start && v.JoinDate <= end)
             .ToListAsync();
 
         var trends = visitors
-            .GroupBy(v => v.CreatedAt.Date)
+            .GroupBy(v => v.JoinDate!.Value.Date)
             .Select(g => new VisitorTrendDto
             {
                 Date = g.Key,
                 VisitorCount = g.Count(),
-                NewMembers = g.Count(v => v.MembershipType != "None")
+                NewMembers = g.Count(v => v.MembershipType != null && v.MembershipType != "None")
             })
             .OrderBy(t => t.Date)
             .ToList();
@@ -87,10 +90,13 @@ public class ReportService : IReportService
 
     public async Task<IEnumerable<ArtworkDistributionDto>> GetArtworkDistributionAsync()
     {
-        var artworks = await _artworkRepository.Query().ToListAsync();
+        var artworks = await _artworkRepository.Query()
+            .Include(a => a.Collection)
+            .ToListAsync();
 
         var distribution = artworks
-            .GroupBy(a => a.Collection)
+            .Where(a => a.Collection != null)
+            .GroupBy(a => a.Collection!.Name)
             .Select(g => new ArtworkDistributionDto
             {
                 Category = g.Key,
@@ -106,7 +112,7 @@ public class ReportService : IReportService
     public async Task<IEnumerable<ExhibitionPerformanceDto>> GetExhibitionPerformanceAsync()
     {
         var exhibitions = await _exhibitionRepository.Query()
-            .Where(e => e.ActualVisitors.HasValue)
+            .Include(e => e.ExhibitionArtworks)
             .ToListAsync();
 
         var performance = exhibitions
@@ -116,12 +122,10 @@ public class ReportService : IReportService
                 Title = e.Title,
                 StartDate = e.StartDate,
                 EndDate = e.EndDate,
-                ExpectedVisitors = e.ExpectedVisitors,
-                ActualVisitors = e.ActualVisitors,
-                PerformanceRatio = e.ExpectedVisitors.HasValue && e.ExpectedVisitors > 0
-                    ? (double)(e.ActualVisitors ?? 0) / e.ExpectedVisitors.Value
-                    : 0,
-                Budget = e.Budget
+                ExpectedVisitors = null,
+                ActualVisitors = null,
+                PerformanceRatio = 0,
+                Budget = null
             })
             .OrderByDescending(p => p.EndDate)
             .ToList();
@@ -135,19 +139,19 @@ public class ReportService : IReportService
         var end = endDate ?? DateTime.UtcNow;
 
         var loans = await _loanRepository.Query()
-            .Where(l => l.LoanStartDate >= start && l.LoanStartDate <= end)
+            .Where(l => l.StartDate >= start && l.StartDate <= end)
             .ToListAsync();
 
         // Group by month
         var revenue = loans
-            .GroupBy(l => new DateTime(l.LoanStartDate.Year, l.LoanStartDate.Month, 1))
+            .GroupBy(l => new DateTime(l.StartDate.Year, l.StartDate.Month, 1))
             .Select(g => new RevenueDto
             {
                 Period = g.Key,
-                LoanFees = g.Sum(l => l.LoanFee ?? 0),
+                LoanFees = 0, // Loan fees not in the new schema
                 TicketSales = 0, // Would come from a separate tickets table
                 MembershipFees = 0, // Would come from membership transactions
-                TotalRevenue = g.Sum(l => l.LoanFee ?? 0)
+                TotalRevenue = 0
             })
             .OrderBy(r => r.Period)
             .ToList();

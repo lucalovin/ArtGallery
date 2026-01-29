@@ -1,21 +1,20 @@
-﻿using ArtGallery.Domain.Common;
-
-namespace ArtGallery.Domain.Entities;
+﻿﻿namespace ArtGallery.Domain.Entities;
 
 /// <summary>
 /// Represents an exhibition in the gallery.
+/// Maps to Oracle table: Exhibition
 /// </summary>
-public class Exhibition : BaseEntity
+public class Exhibition
 {
+    /// <summary>
+    /// Gets or sets the exhibition ID (maps to exhibition_id in Oracle).
+    /// </summary>
+    public int Id { get; set; }
+
     /// <summary>
     /// Gets or sets the title of the exhibition.
     /// </summary>
     public string Title { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the description of the exhibition.
-    /// </summary>
-    public string? Description { get; set; }
 
     /// <summary>
     /// Gets or sets the start date of the exhibition.
@@ -28,39 +27,19 @@ public class Exhibition : BaseEntity
     public DateTime EndDate { get; set; }
 
     /// <summary>
-    /// Gets or sets the current status of the exhibition.
+    /// Gets or sets the exhibitor ID (foreign key to Exhibitor table).
     /// </summary>
-    public string Status { get; set; } = "Planning";
+    public int ExhibitorId { get; set; }
 
     /// <summary>
-    /// Gets or sets the location of the exhibition within the gallery.
+    /// Gets or sets the description of the exhibition.
     /// </summary>
-    public string? Location { get; set; }
+    public string? Description { get; set; }
 
     /// <summary>
-    /// Gets or sets the curator responsible for the exhibition.
+    /// Navigation property to the exhibitor.
     /// </summary>
-    public string? Curator { get; set; }
-
-    /// <summary>
-    /// Gets or sets the URL of the exhibition's promotional image.
-    /// </summary>
-    public string? ImageUrl { get; set; }
-
-    /// <summary>
-    /// Gets or sets the budget allocated for the exhibition.
-    /// </summary>
-    public decimal? Budget { get; set; }
-
-    /// <summary>
-    /// Gets or sets the expected number of visitors.
-    /// </summary>
-    public int? ExpectedVisitors { get; set; }
-
-    /// <summary>
-    /// Gets or sets the actual number of visitors.
-    /// </summary>
-    public int? ActualVisitors { get; set; }
+    public virtual Exhibitor? Exhibitor { get; set; }
 
     /// <summary>
     /// Gets or sets the exhibition-artwork relationships.

@@ -4,283 +4,195 @@ namespace ArtGallery.Infrastructure.Data;
 
 /// <summary>
 /// Provides seed data for the database.
+/// Note: The OLTP database (ART_GALLERY_OLTP) should be populated using the create_oltp.sql script.
+/// This seed data is primarily for development/testing purposes.
 /// </summary>
 public static class SeedData
 {
+    /// <summary>
+    /// Gets seed artists.
+    /// </summary>
+    public static List<Artist> GetArtists() => new()
+    {
+        new Artist { Id = 1, Name = "Pablo Picasso", Nationality = "Spanish", BirthYear = 1881, DeathYear = 1973 },
+        new Artist { Id = 2, Name = "Vincent van Gogh", Nationality = "Dutch", BirthYear = 1853, DeathYear = 1890 },
+        new Artist { Id = 3, Name = "Claude Monet", Nationality = "French", BirthYear = 1840, DeathYear = 1926 },
+        new Artist { Id = 4, Name = "Salvador Dali", Nationality = "Spanish", BirthYear = 1904, DeathYear = 1989 }
+    };
+
+    /// <summary>
+    /// Gets seed collections.
+    /// </summary>
+    public static List<Collection> GetCollections() => new()
+    {
+        new Collection { Id = 1, Name = "Modern Masters", Description = "Key works of modern art", CreatedDate = new DateTime(2020, 1, 15) },
+        new Collection { Id = 2, Name = "Impressionist Highlights", Description = "Selected impressionist paintings", CreatedDate = new DateTime(2021, 3, 10) },
+        new Collection { Id = 3, Name = "Surreal Visions", Description = "Surrealist paintings and objects", CreatedDate = new DateTime(2022, 5, 20) },
+        new Collection { Id = 4, Name = "Permanent Collection", Description = "Core museum holdings", CreatedDate = new DateTime(2019, 9, 1) }
+    };
+
+    /// <summary>
+    /// Gets seed locations.
+    /// </summary>
+    public static List<Location> GetLocations() => new()
+    {
+        new Location { Id = 1, Name = "Main Hall", GalleryRoom = "R1", Type = "Exhibit", Capacity = 50 },
+        new Location { Id = 2, Name = "East Wing", GalleryRoom = "R2", Type = "Exhibit", Capacity = 40 },
+        new Location { Id = 3, Name = "Storage A", GalleryRoom = "S1", Type = "Storage", Capacity = 200 },
+        new Location { Id = 4, Name = "Storage B", GalleryRoom = "S2", Type = "Storage", Capacity = 150 }
+    };
+
+    /// <summary>
+    /// Gets seed exhibitors.
+    /// </summary>
+    public static List<Exhibitor> GetExhibitors() => new()
+    {
+        new Exhibitor { Id = 1, Name = "Louvre Museum", Address = "Rue de Rivoli", City = "Paris", ContactInfo = "contact@louvre.fr" },
+        new Exhibitor { Id = 2, Name = "MoMA", Address = "11 W 53rd St", City = "New York", ContactInfo = "info@moma.org" },
+        new Exhibitor { Id = 3, Name = "Tate Modern", Address = "Bankside", City = "London", ContactInfo = "contact@tate.org.uk" },
+        new Exhibitor { Id = 4, Name = "Reina Sofia", Address = "Calle de Santa Isabel", City = "Madrid", ContactInfo = "info@museoreinasofia.es" }
+    };
+
+    /// <summary>
+    /// Gets seed insurance policies.
+    /// </summary>
+    public static List<InsurancePolicy> GetInsurancePolicies() => new()
+    {
+        new InsurancePolicy { Id = 1, Provider = "Global Insurance", StartDate = new DateTime(2022, 1, 1), EndDate = new DateTime(2025, 1, 1), TotalCoverageAmount = 3000000 },
+        new InsurancePolicy { Id = 2, Provider = "ArtSecure", StartDate = new DateTime(2023, 1, 1), EndDate = new DateTime(2026, 1, 1), TotalCoverageAmount = 1500000 },
+        new InsurancePolicy { Id = 3, Provider = "FineArt Shield", StartDate = new DateTime(2023, 6, 1), EndDate = new DateTime(2027, 6, 1), TotalCoverageAmount = 2000000 },
+        new InsurancePolicy { Id = 4, Provider = "Museum Protect", StartDate = new DateTime(2024, 1, 1), EndDate = new DateTime(2028, 1, 1), TotalCoverageAmount = 2500000 }
+    };
+
+    /// <summary>
+    /// Gets seed artworks.
+    /// </summary>
     public static List<Artwork> GetArtworks() => new()
     {
-        new Artwork
-        {
-            Id = 1,
-            Title = "Water Lilies",
-            Artist = "Claude Monet",
-            Year = 1906,
-            Medium = "Oil on canvas",
-            Dimensions = "89.9 × 94.1 cm",
-            Description = "Part of Monet's famous Water Lilies series depicting his flower garden at Giverny.",
-            ImageUrl = "/images/artworks/water-lilies.jpg",
-            Collection = "Permanent",
-            Status = "OnDisplay",
-            EstimatedValue = 50000000,
-            Location = "Gallery A",
-            AcquisitionDate = new DateTime(2015, 3, 15),
-            AcquisitionMethod = "Purchase",
-            Provenance = "Private collection, Paris",
-            Condition = "Excellent",
-            Tags = new List<string> { "Impressionism", "Landscape", "French" }
-        },
-        new Artwork
-        {
-            Id = 2,
-            Title = "The Starry Night",
-            Artist = "Vincent van Gogh",
-            Year = 1889,
-            Medium = "Oil on canvas",
-            Dimensions = "73.7 × 92.1 cm",
-            Description = "Van Gogh's iconic depiction of a swirling night sky over a village.",
-            ImageUrl = "/images/artworks/starry-night.jpg",
-            Collection = "Permanent",
-            Status = "OnDisplay",
-            EstimatedValue = 100000000,
-            Location = "Gallery B",
-            AcquisitionDate = new DateTime(2010, 6, 20),
-            AcquisitionMethod = "Donation",
-            Provenance = "Museum of Modern Art",
-            Condition = "Good",
-            Tags = new List<string> { "Post-Impressionism", "Landscape", "Dutch" }
-        },
-        new Artwork
-        {
-            Id = 3,
-            Title = "Girl with a Pearl Earring",
-            Artist = "Johannes Vermeer",
-            Year = 1665,
-            Medium = "Oil on canvas",
-            Dimensions = "44.5 × 39 cm",
-            Description = "Known as the 'Mona Lisa of the North'.",
-            ImageUrl = "/images/artworks/girl-pearl-earring.jpg",
-            Collection = "Permanent",
-            Status = "Available",
-            EstimatedValue = 30000000,
-            Location = "Storage A",
-            AcquisitionDate = new DateTime(2018, 1, 10),
-            AcquisitionMethod = "Purchase",
-            Provenance = "Mauritshuis, The Hague",
-            Condition = "Excellent",
-            Tags = new List<string> { "Baroque", "Portrait", "Dutch" }
-        },
-        new Artwork
-        {
-            Id = 4,
-            Title = "The Persistence of Memory",
-            Artist = "Salvador Dalí",
-            Year = 1931,
-            Medium = "Oil on canvas",
-            Dimensions = "24 × 33 cm",
-            Description = "Famous surrealist painting with melting clocks.",
-            ImageUrl = "/images/artworks/persistence-memory.jpg",
-            Collection = "Permanent",
-            Status = "OnLoan",
-            EstimatedValue = 45000000,
-            Location = "On Loan",
-            AcquisitionDate = new DateTime(2012, 9, 5),
-            AcquisitionMethod = "Purchase",
-            Provenance = "Private collector, Spain",
-            Condition = "Good",
-            Tags = new List<string> { "Surrealism", "Modern", "Spanish" }
-        },
-        new Artwork
-        {
-            Id = 5,
-            Title = "The Birth of Venus",
-            Artist = "Sandro Botticelli",
-            Year = 1485,
-            Medium = "Tempera on canvas",
-            Dimensions = "172.5 × 278.9 cm",
-            Description = "Depicts the goddess Venus emerging from the sea.",
-            ImageUrl = "/images/artworks/birth-venus.jpg",
-            Collection = "Permanent",
-            Status = "UnderRestoration",
-            EstimatedValue = 80000000,
-            Location = "Conservation Lab",
-            AcquisitionDate = new DateTime(2008, 4, 22),
-            AcquisitionMethod = "Bequest",
-            Provenance = "Uffizi Gallery, Florence",
-            Condition = "Fair",
-            Tags = new List<string> { "Renaissance", "Mythology", "Italian" }
-        },
-        new Artwork
-        {
-            Id = 6,
-            Title = "Guernica",
-            Artist = "Pablo Picasso",
-            Year = 1937,
-            Medium = "Oil on canvas",
-            Dimensions = "349.3 × 776.6 cm",
-            Description = "Anti-war painting depicting the bombing of Guernica.",
-            ImageUrl = "/images/artworks/guernica.jpg",
-            Collection = "Permanent",
-            Status = "OnDisplay",
-            EstimatedValue = 200000000,
-            Location = "Gallery C",
-            AcquisitionDate = new DateTime(2005, 11, 30),
-            AcquisitionMethod = "Long-term loan",
-            Provenance = "Museo Reina Sofía, Madrid",
-            Condition = "Good",
-            Tags = new List<string> { "Cubism", "Modern", "Spanish", "War" }
-        },
-        new Artwork
-        {
-            Id = 7,
-            Title = "The Great Wave off Kanagawa",
-            Artist = "Katsushika Hokusai",
-            Year = 1831,
-            Medium = "Woodblock print",
-            Dimensions = "25.7 × 37.9 cm",
-            Description = "Iconic Japanese ukiyo-e print depicting a massive wave.",
-            ImageUrl = "/images/artworks/great-wave.jpg",
-            Collection = "Permanent",
-            Status = "Available",
-            EstimatedValue = 1500000,
-            Location = "Storage B",
-            AcquisitionDate = new DateTime(2019, 7, 8),
-            AcquisitionMethod = "Purchase",
-            Provenance = "Private collection, Tokyo",
-            Condition = "Excellent",
-            Tags = new List<string> { "Ukiyo-e", "Japanese", "Print" }
-        },
-        new Artwork
-        {
-            Id = 8,
-            Title = "American Gothic",
-            Artist = "Grant Wood",
-            Year = 1930,
-            Medium = "Oil on beaver board",
-            Dimensions = "78 × 65.3 cm",
-            Description = "Iconic American painting depicting a farmer and his daughter.",
-            ImageUrl = "/images/artworks/american-gothic.jpg",
-            Collection = "Temporary",
-            Status = "OnDisplay",
-            EstimatedValue = 25000000,
-            Location = "Gallery D",
-            AcquisitionDate = new DateTime(2022, 2, 14),
-            AcquisitionMethod = "Loan",
-            Provenance = "Art Institute of Chicago",
-            Condition = "Excellent",
-            Tags = new List<string> { "Regionalism", "American", "Portrait" }
-        }
+        new Artwork { Id = 1, Title = "Les Demoiselles d'Avignon", ArtistId = 1, YearCreated = 1907, Medium = "Oil on Canvas", CollectionId = 1, LocationId = 1, EstimatedValue = 1000000 },
+        new Artwork { Id = 2, Title = "Guernica", ArtistId = 1, YearCreated = 1937, Medium = "Oil on Canvas", CollectionId = 1, LocationId = 2, EstimatedValue = 1500000 },
+        new Artwork { Id = 3, Title = "Starry Night", ArtistId = 2, YearCreated = 1889, Medium = "Oil on Canvas", CollectionId = 2, LocationId = 1, EstimatedValue = 1200000 },
+        new Artwork { Id = 4, Title = "Sunflowers", ArtistId = 2, YearCreated = 1888, Medium = "Oil on Canvas", CollectionId = 2, LocationId = 2, EstimatedValue = 800000 },
+        new Artwork { Id = 5, Title = "Water Lilies", ArtistId = 3, YearCreated = 1916, Medium = "Oil on Canvas", CollectionId = 2, LocationId = 1, EstimatedValue = 900000 },
+        new Artwork { Id = 6, Title = "Impression, Sunrise", ArtistId = 3, YearCreated = 1872, Medium = "Oil on Canvas", CollectionId = 2, LocationId = 2, EstimatedValue = 700000 },
+        new Artwork { Id = 7, Title = "The Persistence of Memory", ArtistId = 4, YearCreated = 1931, Medium = "Oil on Canvas", CollectionId = 3, LocationId = 1, EstimatedValue = 600000 },
+        new Artwork { Id = 8, Title = "Swans Reflecting Elephants", ArtistId = 4, YearCreated = 1937, Medium = "Oil on Canvas", CollectionId = 3, LocationId = 2, EstimatedValue = 550000 }
     };
 
+    /// <summary>
+    /// Gets seed exhibitions.
+    /// </summary>
     public static List<Exhibition> GetExhibitions() => new()
     {
-        new Exhibition
-        {
-            Id = 1,
-            Title = "Impressionism: Light and Color",
-            Description = "A comprehensive look at the Impressionist movement featuring works from Monet, Renoir, and Degas.",
-            StartDate = new DateTime(2026, 2, 1),
-            EndDate = new DateTime(2026, 5, 31),
-            Status = "Upcoming",
-            Location = "Main Gallery",
-            Curator = "Dr. Sarah Mitchell",
-            ImageUrl = "/images/exhibitions/impressionism.jpg",
-            Budget = 150000,
-            ExpectedVisitors = 50000
-        },
-        new Exhibition
-        {
-            Id = 2,
-            Title = "Modern Masters",
-            Description = "Celebrating the revolutionary artists who defined modern art.",
-            StartDate = new DateTime(2025, 11, 1),
-            EndDate = new DateTime(2026, 3, 15),
-            Status = "Active",
-            Location = "West Wing",
-            Curator = "Prof. Michael Chen",
-            ImageUrl = "/images/exhibitions/modern-masters.jpg",
-            Budget = 200000,
-            ExpectedVisitors = 75000,
-            ActualVisitors = 45000
-        },
-        new Exhibition
-        {
-            Id = 3,
-            Title = "Dutch Golden Age",
-            Description = "Masterpieces from the 17th century Dutch Republic.",
-            StartDate = new DateTime(2025, 6, 1),
-            EndDate = new DateTime(2025, 9, 30),
-            Status = "Past",
-            Location = "East Gallery",
-            Curator = "Dr. Anna van Berg",
-            ImageUrl = "/images/exhibitions/dutch-golden-age.jpg",
-            Budget = 175000,
-            ExpectedVisitors = 60000,
-            ActualVisitors = 68500
-        },
-        new Exhibition
-        {
-            Id = 4,
-            Title = "Surrealism Dreams",
-            Description = "Exploring the unconscious mind through surrealist art.",
-            StartDate = new DateTime(2025, 3, 1),
-            EndDate = new DateTime(2025, 5, 31),
-            Status = "Past",
-            Location = "South Gallery",
-            Curator = "Dr. Carlos Rivera",
-            ImageUrl = "/images/exhibitions/surrealism.jpg",
-            Budget = 125000,
-            ExpectedVisitors = 40000,
-            ActualVisitors = 42000
-        }
+        new Exhibition { Id = 1, Title = "Modern Icons", StartDate = new DateTime(2024, 1, 10), EndDate = new DateTime(2024, 3, 10), ExhibitorId = 1, Description = "Masterpieces of modern art" },
+        new Exhibition { Id = 2, Title = "Impressionist Seasons", StartDate = new DateTime(2024, 4, 1), EndDate = new DateTime(2024, 6, 30), ExhibitorId = 2, Description = "Key impressionist works" },
+        new Exhibition { Id = 3, Title = "Surreal Moments", StartDate = new DateTime(2024, 7, 1), EndDate = new DateTime(2024, 9, 15), ExhibitorId = 3, Description = "Surrealist paintings and sculptures" },
+        new Exhibition { Id = 4, Title = "Van Gogh Focus", StartDate = new DateTime(2024, 10, 1), EndDate = new DateTime(2024, 12, 31), ExhibitorId = 4, Description = "A selection of Van Gogh's works" }
     };
 
+    /// <summary>
+    /// Gets seed visitors.
+    /// </summary>
     public static List<Visitor> GetVisitors() => new()
     {
-        new Visitor { Id = 1, FirstName = "John", LastName = "Smith", Email = "john.smith@email.com", Phone = "555-0101", MembershipType = "Premium", MembershipExpiry = new DateTime(2027, 1, 1), TotalVisits = 25, LastVisit = new DateTime(2026, 1, 10), City = "New York", Country = "USA" },
-        new Visitor { Id = 2, FirstName = "Emma", LastName = "Johnson", Email = "emma.j@email.com", Phone = "555-0102", MembershipType = "Patron", MembershipExpiry = new DateTime(2027, 6, 15), TotalVisits = 50, LastVisit = new DateTime(2026, 1, 15), City = "Boston", Country = "USA" },
-        new Visitor { Id = 3, FirstName = "Michael", LastName = "Brown", Email = "m.brown@email.com", Phone = "555-0103", MembershipType = "Basic", MembershipExpiry = new DateTime(2026, 12, 31), TotalVisits = 10, LastVisit = new DateTime(2026, 1, 5), City = "Chicago", Country = "USA" },
-        new Visitor { Id = 4, FirstName = "Sophie", LastName = "Laurent", Email = "sophie.l@email.com", Phone = "555-0104", MembershipType = "None", TotalVisits = 2, LastVisit = new DateTime(2025, 12, 20), City = "Paris", Country = "France" },
-        new Visitor { Id = 5, FirstName = "Yuki", LastName = "Tanaka", Email = "yuki.t@email.com", Phone = "555-0105", MembershipType = "Student", MembershipExpiry = new DateTime(2026, 8, 31), TotalVisits = 15, LastVisit = new DateTime(2026, 1, 12), City = "Tokyo", Country = "Japan" }
+        new Visitor { Id = 1, Name = "Alice Johnson", Email = "alice@example.com", Phone = "+40111111111", MembershipType = "Standard", JoinDate = new DateTime(2023, 1, 10) },
+        new Visitor { Id = 2, Name = "Bob Smith", Email = "bob@example.com", Phone = "+40111111112", MembershipType = "VIP", JoinDate = new DateTime(2023, 2, 15) },
+        new Visitor { Id = 3, Name = "Carla Pop", Email = "carla@example.com", Phone = "+40111111113", MembershipType = "Student", JoinDate = new DateTime(2023, 3, 20) },
+        new Visitor { Id = 4, Name = "Dan Ionescu", Email = "dan@example.com", Phone = "+40111111114", MembershipType = "Standard", JoinDate = new DateTime(2023, 4, 5) }
     };
 
+    /// <summary>
+    /// Gets seed staff members.
+    /// </summary>
     public static List<Staff> GetStaff() => new()
     {
-        new Staff { Id = 1, FirstName = "Sarah", LastName = "Mitchell", Email = "s.mitchell@gallery.com", Phone = "555-1001", Department = "Curatorial", Position = "Chief Curator", HireDate = new DateTime(2015, 3, 1), Salary = 95000, Status = "Active", Bio = "PhD in Art History from Yale University" },
-        new Staff { Id = 2, FirstName = "James", LastName = "Wilson", Email = "j.wilson@gallery.com", Phone = "555-1002", Department = "Conservation", Position = "Head Conservator", HireDate = new DateTime(2017, 6, 15), Salary = 85000, Status = "Active", Bio = "Specialist in Renaissance art conservation" },
-        new Staff { Id = 3, FirstName = "Maria", LastName = "Garcia", Email = "m.garcia@gallery.com", Phone = "555-1003", Department = "Security", Position = "Security Director", HireDate = new DateTime(2018, 1, 10), Salary = 75000, Status = "Active" },
-        new Staff { Id = 4, FirstName = "David", LastName = "Lee", Email = "d.lee@gallery.com", Phone = "555-1004", Department = "Administration", Position = "Operations Manager", HireDate = new DateTime(2016, 9, 1), Salary = 70000, Status = "Active" },
-        new Staff { Id = 5, FirstName = "Emily", LastName = "Brown", Email = "e.brown@gallery.com", Phone = "555-1005", Department = "Education", Position = "Education Coordinator", HireDate = new DateTime(2020, 2, 1), Salary = 55000, Status = "Active", Bio = "MA in Museum Studies" },
-        new Staff { Id = 6, FirstName = "Robert", LastName = "Taylor", Email = "r.taylor@gallery.com", Phone = "555-1006", Department = "Marketing", Position = "Marketing Manager", HireDate = new DateTime(2019, 4, 15), Salary = 65000, Status = "Active" }
+        new Staff { Id = 1, Name = "Elena Curator", Role = "Curator", HireDate = new DateTime(2020, 1, 1), CertificationLevel = "Level 2" },
+        new Staff { Id = 2, Name = "Mihai Restorer", Role = "Restorer", HireDate = new DateTime(2021, 5, 10), CertificationLevel = "Level 3" },
+        new Staff { Id = 3, Name = "Ioana Registrar", Role = "Registrar", HireDate = new DateTime(2022, 3, 15), CertificationLevel = "Level 1" },
+        new Staff { Id = 4, Name = "Andrei Manager", Role = "Manager", HireDate = new DateTime(2019, 9, 1), CertificationLevel = "Level 3" }
     };
 
+    /// <summary>
+    /// Gets seed loans.
+    /// </summary>
     public static List<Loan> GetLoans() => new()
     {
-        new Loan { Id = 1, ArtworkId = 4, BorrowerName = "Metropolitan Museum of Art", BorrowerType = "Museum", BorrowerContact = "loans@metmuseum.org", LoanStartDate = new DateTime(2025, 10, 1), LoanEndDate = new DateTime(2026, 4, 1), Status = "Active", InsuranceValue = 50000000, InsuranceProvider = "AXA Art", InsurancePolicyNumber = "AXA-2025-001", LoanFee = 100000, Purpose = "Surrealism Exhibition" },
-        new Loan { Id = 2, ArtworkId = 3, BorrowerName = "National Gallery London", BorrowerType = "Museum", BorrowerContact = "loans@nationalgallery.org.uk", LoanStartDate = new DateTime(2026, 6, 1), LoanEndDate = new DateTime(2026, 12, 1), Status = "Pending", InsuranceValue = 35000000, InsuranceProvider = "Hiscox", InsurancePolicyNumber = "HIS-2026-042", LoanFee = 75000, Purpose = "Dutch Masters Exhibition" },
-        new Loan { Id = 3, ArtworkId = 7, BorrowerName = "Tokyo National Museum", BorrowerType = "Museum", BorrowerContact = "international@tnm.jp", LoanStartDate = new DateTime(2025, 1, 1), LoanEndDate = new DateTime(2025, 6, 30), Status = "Returned", InsuranceValue = 2000000, InsuranceProvider = "AXA Art", InsurancePolicyNumber = "AXA-2024-089", LoanFee = 25000, Purpose = "Ukiyo-e Masters Exhibition", ConditionOnLoan = "Excellent", ConditionOnReturn = "Excellent" },
-        new Loan { Id = 4, ArtworkId = 2, BorrowerName = "Art Institute of Chicago", BorrowerType = "Museum", BorrowerContact = "loans@artic.edu", LoanStartDate = new DateTime(2025, 3, 1), LoanEndDate = new DateTime(2025, 9, 1), Status = "Overdue", InsuranceValue = 100000000, InsuranceProvider = "Lloyd's of London", InsurancePolicyNumber = "LLO-2025-003", LoanFee = 150000, Purpose = "Van Gogh Retrospective" }
+        new Loan { Id = 1, ArtworkId = 2, ExhibitorId = 2, StartDate = new DateTime(2023, 1, 1), EndDate = new DateTime(2023, 3, 1), Conditions = "Standard insurance" },
+        new Loan { Id = 2, ArtworkId = 4, ExhibitorId = 1, StartDate = new DateTime(2023, 2, 15), EndDate = new DateTime(2023, 4, 15), Conditions = "Climate control required" },
+        new Loan { Id = 3, ArtworkId = 6, ExhibitorId = 3, StartDate = new DateTime(2023, 5, 1), EndDate = new DateTime(2023, 7, 1), Conditions = "Framed transport" },
+        new Loan { Id = 4, ArtworkId = 8, ExhibitorId = 4, StartDate = new DateTime(2023, 8, 1), EndDate = new DateTime(2023, 10, 1), Conditions = "Handle with care" }
     };
 
+    /// <summary>
+    /// Gets seed insurance records.
+    /// </summary>
     public static List<Insurance> GetInsurances() => new()
     {
-        new Insurance { Id = 1, ArtworkId = 1, Provider = "AXA Art Insurance", PolicyNumber = "AXA-ART-001", CoverageAmount = 55000000, Premium = 27500, StartDate = new DateTime(2025, 1, 1), EndDate = new DateTime(2026, 12, 31), Status = "Active", CoverageType = "All-Risk" },
-        new Insurance { Id = 2, ArtworkId = 2, Provider = "Hiscox Fine Art", PolicyNumber = "HIS-FA-002", CoverageAmount = 110000000, Premium = 55000, StartDate = new DateTime(2025, 1, 1), EndDate = new DateTime(2026, 12, 31), Status = "Active", CoverageType = "All-Risk" },
-        new Insurance { Id = 3, ArtworkId = 5, Provider = "Lloyd's of London", PolicyNumber = "LLO-ART-003", CoverageAmount = 85000000, Premium = 42500, StartDate = new DateTime(2025, 6, 1), EndDate = new DateTime(2026, 5, 31), Status = "Active", CoverageType = "All-Risk" },
-        new Insurance { Id = 4, ArtworkId = 6, Provider = "AXA Art Insurance", PolicyNumber = "AXA-ART-004", CoverageAmount = 220000000, Premium = 110000, StartDate = new DateTime(2024, 1, 1), EndDate = new DateTime(2026, 1, 31), Status = "Active", CoverageType = "All-Risk", Notes = "Renewal pending" },
-        new Insurance { Id = 5, ArtworkId = 3, Provider = "Chubb Fine Art", PolicyNumber = "CHB-FA-005", CoverageAmount = 35000000, Premium = 17500, StartDate = new DateTime(2025, 1, 1), EndDate = new DateTime(2025, 12, 31), Status = "Active", CoverageType = "Named Perils" }
+        new Insurance { Id = 1, ArtworkId = 1, PolicyId = 1, InsuredAmount = 900000 },
+        new Insurance { Id = 2, ArtworkId = 2, PolicyId = 1, InsuredAmount = 1200000 },
+        new Insurance { Id = 3, ArtworkId = 3, PolicyId = 2, InsuredAmount = 1000000 },
+        new Insurance { Id = 4, ArtworkId = 4, PolicyId = 2, InsuredAmount = 700000 },
+        new Insurance { Id = 5, ArtworkId = 5, PolicyId = 3, InsuredAmount = 800000 },
+        new Insurance { Id = 6, ArtworkId = 6, PolicyId = 3, InsuredAmount = 600000 },
+        new Insurance { Id = 7, ArtworkId = 7, PolicyId = 4, InsuredAmount = 500000 },
+        new Insurance { Id = 8, ArtworkId = 8, PolicyId = 4, InsuredAmount = 450000 }
     };
 
+    /// <summary>
+    /// Gets seed restorations.
+    /// </summary>
     public static List<Restoration> GetRestorations() => new()
     {
-        new Restoration { Id = 1, ArtworkId = 5, Type = "Cleaning", Description = "Surface cleaning and varnish removal", StartDate = new DateTime(2025, 11, 1), Status = "InProgress", Conservator = "James Wilson", EstimatedCost = 50000, ConditionBefore = "Fair - yellowed varnish, surface dirt" },
-        new Restoration { Id = 2, ArtworkId = 1, Type = "Conservation", Description = "Canvas stabilization and minor touch-ups", StartDate = new DateTime(2024, 6, 1), EndDate = new DateTime(2024, 9, 15), Status = "Completed", Conservator = "James Wilson", EstimatedCost = 35000, ActualCost = 32000, ConditionBefore = "Good - minor canvas tension issues", ConditionAfter = "Excellent" },
-        new Restoration { Id = 3, ArtworkId = 6, Type = "Frame Restoration", Description = "Original frame repair and gold leaf restoration", StartDate = new DateTime(2025, 2, 1), EndDate = new DateTime(2025, 4, 30), Status = "Completed", Conservator = "Maria Santos", EstimatedCost = 15000, ActualCost = 18000, ConditionBefore = "Frame damage in corners", ConditionAfter = "Excellent" }
+        new Restoration { Id = 1, ArtworkId = 1, StaffId = 2, StartDate = new DateTime(2022, 1, 10), EndDate = new DateTime(2022, 2, 10), Description = "Varnish cleaning" },
+        new Restoration { Id = 2, ArtworkId = 3, StaffId = 2, StartDate = new DateTime(2021, 3, 1), EndDate = new DateTime(2021, 4, 1), Description = "Canvas stabilization" },
+        new Restoration { Id = 3, ArtworkId = 5, StaffId = 2, StartDate = new DateTime(2020, 9, 15), EndDate = new DateTime(2020, 10, 15), Description = "Color retouching" },
+        new Restoration { Id = 4, ArtworkId = 7, StaffId = 2, StartDate = new DateTime(2023, 1, 5), EndDate = new DateTime(2023, 2, 5), Description = "Frame repair" }
     };
 
+    /// <summary>
+    /// Gets seed exhibition-artwork relationships.
+    /// </summary>
+    public static List<ExhibitionArtwork> GetExhibitionArtworks() => new()
+    {
+        new ExhibitionArtwork { ExhibitionId = 1, ArtworkId = 1, PositionInGallery = "Room 1 - Center", FeaturedStatus = "Featured" },
+        new ExhibitionArtwork { ExhibitionId = 1, ArtworkId = 2, PositionInGallery = "Room 1 - Left", FeaturedStatus = "Regular" },
+        new ExhibitionArtwork { ExhibitionId = 2, ArtworkId = 3, PositionInGallery = "Room 2 - Center", FeaturedStatus = "Featured" },
+        new ExhibitionArtwork { ExhibitionId = 2, ArtworkId = 4, PositionInGallery = "Room 2 - Right", FeaturedStatus = "Regular" },
+        new ExhibitionArtwork { ExhibitionId = 2, ArtworkId = 5, PositionInGallery = "Room 3 - Left", FeaturedStatus = "Regular" },
+        new ExhibitionArtwork { ExhibitionId = 3, ArtworkId = 7, PositionInGallery = "Room 4 - Center", FeaturedStatus = "Featured" },
+        new ExhibitionArtwork { ExhibitionId = 3, ArtworkId = 8, PositionInGallery = "Room 4 - Right", FeaturedStatus = "Regular" },
+        new ExhibitionArtwork { ExhibitionId = 4, ArtworkId = 3, PositionInGallery = "Room 5 - Center", FeaturedStatus = "Featured" }
+    };
+
+    /// <summary>
+    /// Gets seed ETL sync records.
+    /// </summary>
     public static List<EtlSync> GetEtlSyncs() => new()
     {
-        new EtlSync { Id = 1, SyncDate = new DateTime(2026, 1, 17, 2, 0, 0), Status = "Completed", RecordsProcessed = 1250, RecordsFailed = 0, Duration = 45000, SourceSystem = "OLTP", TargetSystem = "DW", SyncType = "Full" },
-        new EtlSync { Id = 2, SyncDate = new DateTime(2026, 1, 16, 2, 0, 0), Status = "Completed", RecordsProcessed = 150, RecordsFailed = 2, Duration = 12000, SourceSystem = "OLTP", TargetSystem = "DW", SyncType = "Incremental", Details = "2 records skipped due to validation errors" },
-        new EtlSync { Id = 3, SyncDate = new DateTime(2026, 1, 15, 2, 0, 0), Status = "Completed", RecordsProcessed = 180, RecordsFailed = 0, Duration = 15000, SourceSystem = "OLTP", TargetSystem = "DW", SyncType = "Incremental" }
+        new EtlSync
+        {
+            Id = 1,
+            SyncDate = DateTime.UtcNow.AddDays(-7),
+            Status = "Completed",
+            RecordsProcessed = 100,
+            RecordsFailed = 0,
+            Duration = 5000,
+            SourceSystem = "OLTP",
+            TargetSystem = "DW",
+            SyncType = "Full"
+        },
+        new EtlSync
+        {
+            Id = 2,
+            SyncDate = DateTime.UtcNow.AddDays(-1),
+            Status = "Completed",
+            RecordsProcessed = 25,
+            RecordsFailed = 2,
+            Duration = 1200,
+            SourceSystem = "OLTP",
+            TargetSystem = "DW",
+            SyncType = "Incremental",
+            ErrorMessage = "2 records failed validation"
+        }
     };
 }

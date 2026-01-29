@@ -1,41 +1,25 @@
-﻿using ArtGallery.Domain.Common;
-
-namespace ArtGallery.Domain.Entities;
+﻿namespace ArtGallery.Domain.Entities;
 
 /// <summary>
 /// Represents a staff member of the gallery.
+/// Maps to Oracle table: Staff
 /// </summary>
-public class Staff : BaseEntity
+public class Staff
 {
     /// <summary>
-    /// Gets or sets the staff member's first name.
+    /// Gets or sets the staff ID (maps to staff_id in Oracle).
     /// </summary>
-    public string FirstName { get; set; } = string.Empty;
+    public int Id { get; set; }
 
     /// <summary>
-    /// Gets or sets the staff member's last name.
+    /// Gets or sets the name of the staff member.
     /// </summary>
-    public string LastName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the staff member's email address.
+    /// Gets or sets the role of the staff member.
     /// </summary>
-    public string Email { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the staff member's phone number.
-    /// </summary>
-    public string? Phone { get; set; }
-
-    /// <summary>
-    /// Gets or sets the department where the staff member works.
-    /// </summary>
-    public string Department { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the staff member's position/title.
-    /// </summary>
-    public string Position { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the date the staff member was hired.
@@ -43,27 +27,12 @@ public class Staff : BaseEntity
     public DateTime HireDate { get; set; }
 
     /// <summary>
-    /// Gets or sets the staff member's salary.
+    /// Gets or sets the certification level of the staff member.
     /// </summary>
-    public decimal? Salary { get; set; }
+    public string? CertificationLevel { get; set; }
 
     /// <summary>
-    /// Gets or sets the employment status.
+    /// Navigation property to restorations performed by this staff member.
     /// </summary>
-    public string Status { get; set; } = "Active";
-
-    /// <summary>
-    /// Gets or sets the URL of the staff member's profile image.
-    /// </summary>
-    public string? ImageUrl { get; set; }
-
-    /// <summary>
-    /// Gets or sets the staff member's biography.
-    /// </summary>
-    public string? Bio { get; set; }
-
-    /// <summary>
-    /// Gets the full name of the staff member.
-    /// </summary>
-    public string FullName => $"{FirstName} {LastName}";
+    public virtual ICollection<Restoration> Restorations { get; set; } = new List<Restoration>();
 }

@@ -1,87 +1,48 @@
-﻿namespace ArtGallery.Domain.Entities.DW;
+﻿﻿namespace ArtGallery.Domain.Entities.DW;
 
 /// <summary>
 /// Date dimension table for the Data Warehouse.
+/// Maps to DIM_DATE table in Oracle DW schema.
 /// </summary>
 public class DimDate
 {
     /// <summary>
-    /// Surrogate key (YYYYMMDD format).
+    /// Surrogate key (YYYYMMDD format). Maps to DATE_KEY.
     /// </summary>
     public int DateKey { get; set; }
 
     /// <summary>
-    /// Full date.
+    /// Full calendar date. Maps to CALENDAR_DATE.
     /// </summary>
-    public DateTime FullDate { get; set; }
+    public DateTime CalendarDate { get; set; }
 
     /// <summary>
-    /// Day of week (1-7).
+    /// Calendar year. Maps to CALENDAR_YEAR.
     /// </summary>
-    public int DayOfWeek { get; set; }
+    public int CalendarYear { get; set; }
 
     /// <summary>
-    /// Day name (e.g., Monday).
+    /// Calendar month (1-12). Maps to CALENDAR_MONTH.
     /// </summary>
-    public string DayName { get; set; } = string.Empty;
+    public int CalendarMonth { get; set; }
 
     /// <summary>
-    /// Day of month (1-31).
+    /// Calendar day (1-31). Maps to CALENDAR_DAY.
     /// </summary>
-    public int DayOfMonth { get; set; }
+    public int CalendarDay { get; set; }
 
     /// <summary>
-    /// Day of year (1-366).
+    /// Month name (e.g., January). Maps to MONTH_NAME.
     /// </summary>
-    public int DayOfYear { get; set; }
+    public string? MonthName { get; set; }
 
     /// <summary>
-    /// Week of year.
+    /// Quarter (1-4). Maps to QUARTER.
     /// </summary>
-    public int WeekOfYear { get; set; }
+    public int? Quarter { get; set; }
 
     /// <summary>
-    /// Month number (1-12).
+    /// Is weekend flag ('Y' or 'N'). Maps to IS_WEEKEND.
     /// </summary>
-    public int MonthNumber { get; set; }
-
-    /// <summary>
-    /// Month name (e.g., January).
-    /// </summary>
-    public string MonthName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Quarter (1-4).
-    /// </summary>
-    public int Quarter { get; set; }
-
-    /// <summary>
-    /// Year.
-    /// </summary>
-    public int Year { get; set; }
-
-    /// <summary>
-    /// Fiscal year.
-    /// </summary>
-    public int FiscalYear { get; set; }
-
-    /// <summary>
-    /// Fiscal quarter.
-    /// </summary>
-    public int FiscalQuarter { get; set; }
-
-    /// <summary>
-    /// Is weekend flag.
-    /// </summary>
-    public bool IsWeekend { get; set; }
-
-    /// <summary>
-    /// Is holiday flag.
-    /// </summary>
-    public bool IsHoliday { get; set; }
-
-    /// <summary>
-    /// Holiday name if applicable.
-    /// </summary>
-    public string? HolidayName { get; set; }
+    public string? IsWeekend { get; set; }
 }

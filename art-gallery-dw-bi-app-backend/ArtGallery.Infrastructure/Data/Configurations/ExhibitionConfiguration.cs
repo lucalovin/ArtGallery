@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ArtGallery.Domain.Entities;
 
@@ -11,37 +11,41 @@ public class ExhibitionConfiguration : IEntityTypeConfiguration<Exhibition>
 {
     public void Configure(EntityTypeBuilder<Exhibition> builder)
     {
-        builder.ToTable("Exhibitions");
+        builder.ToTable("Exhibition");
 
         builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id)
+            .HasColumnName("exhibition_id");
 
         builder.Property(e => e.Title)
             .IsRequired()
-            .HasMaxLength(255);
+            .HasMaxLength(128)
+            .HasColumnName("title");
+
+        builder.Property(e => e.StartDate)
+            .IsRequired()
+            .HasColumnName("start_date");
+
+        builder.Property(e => e.EndDate)
+            .IsRequired()
+            .HasColumnName("end_date");
+
+        builder.Property(e => e.ExhibitorId)
+            .IsRequired()
+            .HasColumnName("exhibitor_id");
 
         builder.Property(e => e.Description)
-            .HasMaxLength(2000);
+            .HasMaxLength(512)
+            .HasColumnName("description");
 
-        builder.Property(e => e.Status)
-            .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("Planning");
+        // Foreign key relationship
+        builder.HasOne(e => e.Exhibitor)
+            .WithMany(ex => ex.Exhibitions)
+            .HasForeignKey(e => e.ExhibitorId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Property(e => e.Location)
-            .HasMaxLength(100);
-
-        builder.Property(e => e.Curator)
-            .HasMaxLength(100);
-
-        builder.Property(e => e.ImageUrl)
-            .HasMaxLength(500);
-
-        builder.Property(e => e.Budget)
-            .HasPrecision(18, 2);
-
-        builder.HasIndex(e => e.Status);
+        builder.HasIndex(e => e.ExhibitorId);
         builder.HasIndex(e => e.StartDate);
-        builder.HasIndex(e => e.EndDate);
     }
 }
 
@@ -52,10 +56,26 @@ public class ExhibitionArtworkConfiguration : IEntityTypeConfiguration<Exhibitio
 {
     public void Configure(EntityTypeBuilder<ExhibitionArtwork> builder)
     {
-        builder.ToTable("ExhibitionArtworks");
+        builder.ToTable("ARTWORK_EXHIBITION");
 
-        builder.HasKey(ea => new { ea.ExhibitionId, ea.ArtworkId });
+        // Composite primary key
+        builder.HasKey(ea => new { ea.ArtworkId, ea.ExhibitionId });
 
+        builder.Property(ea => ea.ArtworkId)
+            .HasColumnName("ARTWORK_ID");
+
+        builder.Property(ea => ea.ExhibitionId)
+            .HasColumnName("EXHIBITION_ID");
+
+        builder.Property(ea => ea.PositionInGallery)
+            .HasMaxLength(64)
+            .HasColumnName("POSITION_IN_GALLERY");
+
+        builder.Property(ea => ea.FeaturedStatus)
+            .HasMaxLength(16)
+            .HasColumnName("FEATURED_STATUS");
+
+        // Foreign key relationships
         builder.HasOne(ea => ea.Exhibition)
             .WithMany(e => e.ExhibitionArtworks)
             .HasForeignKey(ea => ea.ExhibitionId)

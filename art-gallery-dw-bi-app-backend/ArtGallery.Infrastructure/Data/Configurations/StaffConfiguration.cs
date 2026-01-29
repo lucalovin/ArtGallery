@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ArtGallery.Domain.Entities;
 
@@ -11,51 +11,30 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
 {
     public void Configure(EntityTypeBuilder<Staff> builder)
     {
-        builder.ToTable("Staff");
+        builder.ToTable("STAFF");
 
         builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id)
+            .HasColumnName("STAFF_ID");
 
-        builder.Property(s => s.FirstName)
+        builder.Property(s => s.Name)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(128)
+            .HasColumnName("NAME");
 
-        builder.Property(s => s.LastName)
+        builder.Property(s => s.Role)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(64)
+            .HasColumnName("ROLE");
 
-        builder.Property(s => s.Email)
+        builder.Property(s => s.HireDate)
             .IsRequired()
-            .HasMaxLength(255);
+            .HasColumnName("HIRE_DATE");
 
-        builder.Property(s => s.Phone)
-            .HasMaxLength(20);
+        builder.Property(s => s.CertificationLevel)
+            .HasMaxLength(32)
+            .HasColumnName("CERTIFICATION_LEVEL");
 
-        builder.Property(s => s.Department)
-            .IsRequired()
-            .HasMaxLength(50);
-
-        builder.Property(s => s.Position)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(s => s.Salary)
-            .HasPrecision(18, 2);
-
-        builder.Property(s => s.Status)
-            .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("Active");
-
-        builder.Property(s => s.ImageUrl)
-            .HasMaxLength(500);
-
-        builder.Property(s => s.Bio)
-            .HasMaxLength(2000);
-
-        builder.Ignore(s => s.FullName);
-
-        builder.HasIndex(s => s.Email).IsUnique();
-        builder.HasIndex(s => s.Department);
-        builder.HasIndex(s => s.Status);
+        builder.HasIndex(s => s.Role);
     }
 }

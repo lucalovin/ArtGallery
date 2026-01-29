@@ -27,17 +27,16 @@ public class VisitorService : IVisitorService
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var searchTerm = request.Search.ToLower();
-            query = query.Where(v => v.FirstName.ToLower().Contains(searchTerm) ||
-                                     v.LastName.ToLower().Contains(searchTerm) ||
-                                     v.Email.ToLower().Contains(searchTerm));
+            query = query.Where(v => v.Name.ToLower().Contains(searchTerm) ||
+                                     (v.Email != null && v.Email.ToLower().Contains(searchTerm)));
         }
 
         query = request.SortBy?.ToLower() switch
         {
-            "name" => request.IsDescending ? query.OrderByDescending(v => v.LastName) : query.OrderBy(v => v.LastName),
+            "name" => request.IsDescending ? query.OrderByDescending(v => v.Name) : query.OrderBy(v => v.Name),
             "email" => request.IsDescending ? query.OrderByDescending(v => v.Email) : query.OrderBy(v => v.Email),
             "membershiptype" => request.IsDescending ? query.OrderByDescending(v => v.MembershipType) : query.OrderBy(v => v.MembershipType),
-            _ => query.OrderBy(v => v.LastName)
+            _ => query.OrderBy(v => v.Name)
         };
 
         var totalCount = await query.CountAsync();
@@ -66,16 +65,11 @@ public class VisitorService : IVisitorService
         var visitor = await _repository.GetByIdAsync(id)
             ?? throw new NotFoundException(nameof(Visitor), id);
 
-        if (dto.FirstName != null) visitor.FirstName = dto.FirstName;
-        if (dto.LastName != null) visitor.LastName = dto.LastName;
+        if (dto.Name != null) visitor.Name = dto.Name;
         if (dto.Email != null) visitor.Email = dto.Email;
         if (dto.Phone != null) visitor.Phone = dto.Phone;
         if (dto.MembershipType != null) visitor.MembershipType = dto.MembershipType;
-        if (dto.MembershipExpiry.HasValue) visitor.MembershipExpiry = dto.MembershipExpiry;
-        if (dto.Address != null) visitor.Address = dto.Address;
-        if (dto.City != null) visitor.City = dto.City;
-        if (dto.Country != null) visitor.Country = dto.Country;
-        if (dto.Notes != null) visitor.Notes = dto.Notes;
+        if (dto.JoinDate.HasValue) visitor.JoinDate = dto.JoinDate;
 
         _repository.Update(visitor);
         await _repository.SaveChangesAsync();
@@ -93,24 +87,21 @@ public class VisitorService : IVisitorService
 
     public async Task<IEnumerable<VisitorResponseDto>> GetMembersAsync()
     {
-        var visitors = await _repository.FindAsync(v => v.MembershipType != "None");
+        var visitors = await _repository.FindAsync(v => v.MembershipType != null && v.MembershipType != "None");
         return _mapper.Map<IEnumerable<VisitorResponseDto>>(visitors);
     }
 
     public async Task<VisitorStatisticsDto> GetStatisticsAsync()
     {
         var visitors = await _repository.Query().ToListAsync();
-        var thisMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
 
         return new VisitorStatisticsDto
         {
             TotalVisitors = visitors.Count,
-            TotalMembers = visitors.Count(v => v.MembershipType != "None"),
-            NewVisitorsThisMonth = visitors.Count(v => v.CreatedAt >= thisMonth),
-            ByMembershipType = visitors.GroupBy(v => v.MembershipType)
-                .ToDictionary(g => g.Key, g => g.Count()),
-            ByCountry = visitors.Where(v => v.Country != null)
-                .GroupBy(v => v.Country!)
+            TotalMembers = visitors.Count(v => v.MembershipType != null && v.MembershipType != "None"),
+            ByMembershipType = visitors
+                .Where(v => v.MembershipType != null)
+                .GroupBy(v => v.MembershipType!)
                 .ToDictionary(g => g.Key, g => g.Count())
         };
     }
@@ -119,9 +110,8 @@ public class VisitorService : IVisitorService
     {
         var searchTerm = query.ToLower();
         var visitors = await _repository.FindAsync(v =>
-            v.FirstName.ToLower().Contains(searchTerm) ||
-            v.LastName.ToLower().Contains(searchTerm) ||
-            v.Email.ToLower().Contains(searchTerm));
+            v.Name.ToLower().Contains(searchTerm) ||
+            (v.Email != null && v.Email.ToLower().Contains(searchTerm)));
         return _mapper.Map<IEnumerable<VisitorResponseDto>>(visitors);
     }
 }

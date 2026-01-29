@@ -10,25 +10,22 @@ public class CreateVisitorValidator : AbstractValidator<CreateVisitorDto>
 {
     public CreateVisitorValidator()
     {
-        RuleFor(x => x.FirstName)
-            .NotEmpty().WithMessage("First name is required")
-            .MaximumLength(100).WithMessage("First name must not exceed 100 characters");
-
-        RuleFor(x => x.LastName)
-            .NotEmpty().WithMessage("Last name is required")
-            .MaximumLength(100).WithMessage("Last name must not exceed 100 characters");
+        RuleFor(x => x.Name)
+            .NotEmpty().WithMessage("Name is required")
+            .MaximumLength(128).WithMessage("Name must not exceed 128 characters");
 
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Invalid email format")
-            .MaximumLength(255).WithMessage("Email must not exceed 255 characters");
+            .MaximumLength(128).WithMessage("Email must not exceed 128 characters")
+            .When(x => !string.IsNullOrEmpty(x.Email));
 
         RuleFor(x => x.Phone)
-            .MaximumLength(20).WithMessage("Phone must not exceed 20 characters");
+            .MaximumLength(32).WithMessage("Phone must not exceed 32 characters")
+            .When(x => x.Phone != null);
 
-        RuleFor(x => x.MembershipExpiry)
-            .GreaterThanOrEqualTo(DateTime.Today).WithMessage("Membership expiry must be today or in the future")
-            .When(x => x.MembershipExpiry.HasValue && x.MembershipType != "None");
+        RuleFor(x => x.MembershipType)
+            .MaximumLength(32).WithMessage("Membership type must not exceed 32 characters")
+            .When(x => x.MembershipType != null);
     }
 }
 
@@ -39,17 +36,21 @@ public class UpdateVisitorValidator : AbstractValidator<UpdateVisitorDto>
 {
     public UpdateVisitorValidator()
     {
-        RuleFor(x => x.FirstName)
-            .MaximumLength(100).WithMessage("First name must not exceed 100 characters")
-            .When(x => x.FirstName != null);
-
-        RuleFor(x => x.LastName)
-            .MaximumLength(100).WithMessage("Last name must not exceed 100 characters")
-            .When(x => x.LastName != null);
+        RuleFor(x => x.Name)
+            .MaximumLength(128).WithMessage("Name must not exceed 128 characters")
+            .When(x => x.Name != null);
 
         RuleFor(x => x.Email)
             .EmailAddress().WithMessage("Invalid email format")
-            .MaximumLength(255).WithMessage("Email must not exceed 255 characters")
-            .When(x => x.Email != null);
+            .MaximumLength(128).WithMessage("Email must not exceed 128 characters")
+            .When(x => !string.IsNullOrEmpty(x.Email));
+
+        RuleFor(x => x.Phone)
+            .MaximumLength(32).WithMessage("Phone must not exceed 32 characters")
+            .When(x => x.Phone != null);
+
+        RuleFor(x => x.MembershipType)
+            .MaximumLength(32).WithMessage("Membership type must not exceed 32 characters")
+            .When(x => x.MembershipType != null);
     }
 }

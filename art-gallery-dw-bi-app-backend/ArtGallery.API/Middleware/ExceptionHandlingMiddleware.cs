@@ -1,4 +1,4 @@
-﻿﻿using System.Net;
+﻿using System.Net;
 using System.Text.Json;
 using ArtGallery.Application.DTOs.Common;
 using ArtGallery.Application.Exceptions;
@@ -24,6 +24,7 @@ public class ExceptionHandlingMiddleware
     private const int ORA_INVALID_NUMBER = 1722;        // ORA-01722: invalid number
     private const int ORA_DEADLOCK = 60;                // ORA-00060: deadlock detected
     private const int ORA_RESOURCE_BUSY = 54;           // ORA-00054: resource busy and acquire with NOWAIT
+    private const int ORA_TABLE_OR_VIEW_MISSING = 942;  // ORA-00942: table or view does not exist
 
     public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
     {
@@ -131,6 +132,11 @@ public class ExceptionHandlingMiddleware
             ORA_RESOURCE_BUSY => (
                 HttpStatusCode.Conflict,
                 "The resource is currently busy. Please retry the operation.",
+                null
+            ),
+            ORA_TABLE_OR_VIEW_MISSING => (
+                HttpStatusCode.InternalServerError,
+                "The target table or view is missing or access is denied. Please verify the Oracle schema and privileges.",
                 null
             ),
             _ => (

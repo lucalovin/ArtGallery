@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ArtGallery.Domain.Entities;
 
@@ -11,65 +11,56 @@ public class ArtworkConfiguration : IEntityTypeConfiguration<Artwork>
 {
     public void Configure(EntityTypeBuilder<Artwork> builder)
     {
-        builder.ToTable("Artworks");
+        builder.ToTable("ARTWORK");
 
         builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id)
+            .HasColumnName("ARTWORK_ID");
 
         builder.Property(a => a.Title)
             .IsRequired()
-            .HasMaxLength(255);
+            .HasMaxLength(128)
+            .HasColumnName("TITLE");
 
-        builder.Property(a => a.Artist)
+        builder.Property(a => a.ArtistId)
             .IsRequired()
-            .HasMaxLength(255);
+            .HasColumnName("ARTIST_ID");
+
+        builder.Property(a => a.YearCreated)
+            .HasColumnName("YEAR_CREATED");
 
         builder.Property(a => a.Medium)
-            .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(64)
+            .HasColumnName("MEDIUM");
 
-        builder.Property(a => a.Dimensions)
-            .IsRequired()
-            .HasMaxLength(100);
+        builder.Property(a => a.CollectionId)
+            .HasColumnName("COLLECTION_ID");
 
-        builder.Property(a => a.Description)
-            .HasMaxLength(2000);
-
-        builder.Property(a => a.ImageUrl)
-            .HasMaxLength(500);
-
-        builder.Property(a => a.Collection)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(a => a.Status)
-            .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("Available");
+        builder.Property(a => a.LocationId)
+            .HasColumnName("LOCATION_ID");
 
         builder.Property(a => a.EstimatedValue)
-            .HasPrecision(18, 2);
+            .HasColumnType("NUMBER(12,2)")
+            .HasColumnName("ESTIMATED_VALUE");
 
-        builder.Property(a => a.Location)
-            .HasMaxLength(100);
+        // Foreign key relationships
+        builder.HasOne(a => a.Artist)
+            .WithMany(ar => ar.Artworks)
+            .HasForeignKey(a => a.ArtistId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Property(a => a.AcquisitionMethod)
-            .HasMaxLength(100);
+        builder.HasOne(a => a.Collection)
+            .WithMany(c => c.Artworks)
+            .HasForeignKey(a => a.CollectionId)
+            .OnDelete(DeleteBehavior.SetNull);
 
-        builder.Property(a => a.Provenance)
-            .HasMaxLength(2000);
+        builder.HasOne(a => a.Location)
+            .WithMany(l => l.Artworks)
+            .HasForeignKey(a => a.LocationId)
+            .OnDelete(DeleteBehavior.SetNull);
 
-        builder.Property(a => a.Condition)
-            .HasMaxLength(100);
-
-        // Store Tags as JSON
-        builder.Property(a => a.Tags)
-            .HasConversion(
-                v => string.Join(',', v),
-                v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
-            );
-
-        builder.HasIndex(a => a.Artist);
-        builder.HasIndex(a => a.Status);
-        builder.HasIndex(a => a.Collection);
+        builder.HasIndex(a => a.ArtistId);
+        builder.HasIndex(a => a.CollectionId);
+        builder.HasIndex(a => a.LocationId);
     }
 }
