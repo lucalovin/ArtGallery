@@ -322,7 +322,8 @@ export default {
           ]
         },
         { name: 'ETL Management', path: '/etl' },
-        { name: 'Reports', path: '/reports' }
+        { name: 'Reports', path: '/reports' },
+        { name: 'Analytics', path: '/analytics' }
       ],
 
       // Active dropdown menu (desktop)

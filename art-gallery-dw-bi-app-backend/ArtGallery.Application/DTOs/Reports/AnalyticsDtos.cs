@@ -192,3 +192,75 @@ public class PartitionStatDto
     public decimal SizeMb { get; set; }
     public DateTime? LastAnalyzed { get; set; }
 }
+
+// ============================================================================
+// Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
+// ============================================================================
+
+/// <summary>
+/// Query 1: Top artists by artwork count with total estimated value.
+/// Natural Language: "Show me the top 10 artists with the most artworks in the collection"
+/// </summary>
+public class ArtistStatisticsDto
+{
+    public string ArtistName { get; set; } = string.Empty;
+    public int ArtworkCount { get; set; }
+    public decimal TotalValue { get; set; }
+    public decimal AverageValue { get; set; }
+}
+
+/// <summary>
+/// Query 2: Collection value breakdown by art medium and collection type.
+/// Natural Language: "What is the total estimated value of the collection broken down by art medium and collection type?"
+/// </summary>
+public class CategoryValueDto
+{
+    public string MediumType { get; set; } = string.Empty;
+    public string CollectionName { get; set; } = string.Empty;
+    public int ArtworkCount { get; set; }
+    public decimal TotalValue { get; set; }
+    public decimal AverageValue { get; set; }
+}
+
+/// <summary>
+/// Query 3: Monthly exhibition activity metrics.
+/// Natural Language: "Analyze exhibition performance: show monthly activity metrics for the past year"
+/// </summary>
+public class MonthlyActivityDto
+{
+    public string MonthName { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public int ExhibitionCount { get; set; }
+    public int ArtworksExhibited { get; set; }
+    public decimal TotalArtworkValue { get; set; }
+    public decimal? AverageRating { get; set; }
+}
+
+/// <summary>
+/// Query 4: Location/gallery distribution of artworks.
+/// Natural Language: "What is the gallery occupancy rate and distribution of artworks across different locations?"
+/// </summary>
+public class LocationDistributionDto
+{
+    public string LocationName { get; set; } = string.Empty;
+    public string GalleryRoom { get; set; } = string.Empty;
+    public string LocationType { get; set; } = string.Empty;
+    public int ArtworksCount { get; set; }
+    public decimal TotalValue { get; set; }
+    public decimal Percentage { get; set; }
+}
+
+/// <summary>
+/// Query 5: Annual exhibition value trends with year-over-year growth.
+/// Natural Language: "Show the trend of exhibition activity: how has the annual total artwork value evolved?"
+/// </summary>
+public class AnnualTrendDto
+{
+    public int Year { get; set; }
+    public int ExhibitionsCount { get; set; }
+    public int ArtworksCount { get; set; }
+    public decimal TotalArtworkValue { get; set; }
+    public decimal AverageArtworkValue { get; set; }
+    public decimal? PreviousYearValue { get; set; }
+    public decimal? YoyGrowthRate { get; set; }
+}

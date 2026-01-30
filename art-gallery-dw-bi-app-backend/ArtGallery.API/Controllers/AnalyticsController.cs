@@ -151,4 +151,90 @@ public class AnalyticsController : ControllerBase
         var result = await _analyticsService.GetPartitionStatsAsync();
         return Ok(ApiResponse<IEnumerable<PartitionStatDto>>.SuccessResponse(result));
     }
+
+    // ============================================================================
+    // Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
+    // Accessible via /api/reports/analytics/* routes
+    // ============================================================================
+
+    /// <summary>
+    /// Query 1: Get top N artists by artwork count with total estimated value.
+    /// Natural Language: "Show me the top 10 artists with the most artworks in the collection"
+    /// </summary>
+    /// <param name="topN">Number of top artists to retrieve (default: 10)</param>
+    [HttpGet("~/api/reports/analytics/top-artists")]
+    [ResponseCache(Duration = 300)]
+    [ProducesResponseType(typeof(ApiResponse<List<ArtistStatisticsDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<ArtistStatisticsDto>>>> GetTopArtists(
+        [FromQuery] int topN = 10)
+    {
+        _logger.LogInformation("Getting top {TopN} artists by artwork count", topN);
+        var result = await _analyticsService.GetTopArtistsByArtworkCountAsync(topN);
+        return Ok(ApiResponse<List<ArtistStatisticsDto>>.SuccessResponse(result, 
+            $"Retrieved top {topN} artists by artwork count"));
+    }
+
+    /// <summary>
+    /// Query 2: Get collection value breakdown by art medium and collection type.
+    /// Natural Language: "What is the total estimated value broken down by art medium and collection type?"
+    /// </summary>
+    [HttpGet("~/api/reports/analytics/value-by-category")]
+    [ResponseCache(Duration = 300)]
+    [ProducesResponseType(typeof(ApiResponse<List<CategoryValueDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<CategoryValueDto>>>> GetValueByCategory()
+    {
+        _logger.LogInformation("Getting collection value by medium and collection type");
+        var result = await _analyticsService.GetValueByMediumAndCollectionAsync();
+        return Ok(ApiResponse<List<CategoryValueDto>>.SuccessResponse(result,
+            "Retrieved collection value breakdown by medium and collection"));
+    }
+
+    /// <summary>
+    /// Query 3: Get monthly exhibition activity metrics for the last N months.
+    /// Natural Language: "Analyze exhibition performance: show monthly activity metrics for the past year"
+    /// </summary>
+    /// <param name="months">Number of months to analyze (default: 12)</param>
+    [HttpGet("~/api/reports/analytics/visitor-trends")]
+    [ResponseCache(Duration = 300)]
+    [ProducesResponseType(typeof(ApiResponse<List<MonthlyActivityDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<MonthlyActivityDto>>>> GetMonthlyActivity(
+        [FromQuery] int months = 12)
+    {
+        _logger.LogInformation("Getting monthly exhibition activity for last {Months} months", months);
+        var result = await _analyticsService.GetMonthlyExhibitionActivityAsync(months);
+        return Ok(ApiResponse<List<MonthlyActivityDto>>.SuccessResponse(result,
+            $"Retrieved monthly activity for last {months} months"));
+    }
+
+    /// <summary>
+    /// Query 4: Get location/gallery distribution of artworks.
+    /// Natural Language: "What is the gallery occupancy rate and distribution of artworks across locations?"
+    /// </summary>
+    [HttpGet("~/api/reports/analytics/membership-distribution")]
+    [ResponseCache(Duration = 300)]
+    [ProducesResponseType(typeof(ApiResponse<List<LocationDistributionDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<LocationDistributionDto>>>> GetLocationDistribution()
+    {
+        _logger.LogInformation("Getting location/gallery distribution");
+        var result = await _analyticsService.GetLocationDistributionAsync();
+        return Ok(ApiResponse<List<LocationDistributionDto>>.SuccessResponse(result,
+            "Retrieved artwork distribution across locations"));
+    }
+
+    /// <summary>
+    /// Query 5: Get annual exhibition value trends with year-over-year growth.
+    /// Natural Language: "Show the trend of exhibition activity: how has the annual total artwork value evolved?"
+    /// </summary>
+    /// <param name="years">Number of years to analyze (default: 5)</param>
+    [HttpGet("~/api/reports/analytics/acquisition-trends")]
+    [ResponseCache(Duration = 600)]
+    [ProducesResponseType(typeof(ApiResponse<List<AnnualTrendDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<AnnualTrendDto>>>> GetAnnualTrends(
+        [FromQuery] int years = 5)
+    {
+        _logger.LogInformation("Getting annual exhibition trends for last {Years} years", years);
+        var result = await _analyticsService.GetAnnualExhibitionTrendsAsync(years);
+        return Ok(ApiResponse<List<AnnualTrendDto>>.SuccessResponse(result,
+            $"Retrieved annual exhibition trends for last {years} years"));
+    }
 }

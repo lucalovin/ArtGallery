@@ -61,4 +61,41 @@ public interface IDwAnalyticsService
     /// Gets partition statistics for DW tables.
     /// </summary>
     Task<IEnumerable<PartitionStatDto>> GetPartitionStatsAsync();
+
+    // ============================================================================
+    // Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
+    // ============================================================================
+
+    /// <summary>
+    /// Query 1: Get top N artists by artwork count with total estimated value.
+    /// Natural Language: "Show me the top 10 artists with the most artworks in the collection"
+    /// </summary>
+    /// <param name="topN">Number of top artists to retrieve (default: 10)</param>
+    Task<List<ArtistStatisticsDto>> GetTopArtistsByArtworkCountAsync(int topN = 10);
+
+    /// <summary>
+    /// Query 2: Get collection value breakdown by art medium and collection type.
+    /// Natural Language: "What is the total estimated value broken down by art medium and collection type?"
+    /// </summary>
+    Task<List<CategoryValueDto>> GetValueByMediumAndCollectionAsync();
+
+    /// <summary>
+    /// Query 3: Get monthly exhibition activity metrics for the last N months.
+    /// Natural Language: "Analyze exhibition performance: show monthly activity metrics for the past year"
+    /// </summary>
+    /// <param name="months">Number of months to analyze (default: 12)</param>
+    Task<List<MonthlyActivityDto>> GetMonthlyExhibitionActivityAsync(int months = 12);
+
+    /// <summary>
+    /// Query 4: Get location/gallery distribution of artworks.
+    /// Natural Language: "What is the gallery occupancy rate and distribution of artworks across locations?"
+    /// </summary>
+    Task<List<LocationDistributionDto>> GetLocationDistributionAsync();
+
+    /// <summary>
+    /// Query 5: Get annual exhibition value trends with year-over-year growth.
+    /// Natural Language: "Show the trend of exhibition activity: how has the annual total artwork value evolved?"
+    /// </summary>
+    /// <param name="years">Number of years to analyze (default: 5)</param>
+    Task<List<AnnualTrendDto>> GetAnnualExhibitionTrendsAsync(int years = 5);
 }

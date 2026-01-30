@@ -490,4 +490,262 @@ public class DwAnalyticsService : IDwAnalyticsService
             return new List<PartitionStatDto>();
         }
     }
+
+    // ============================================================================
+    // Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
+    // ============================================================================
+
+    /// <summary>
+    /// Query 1: Get top N artists by artwork count with total estimated value.
+    /// </summary>
+    public async Task<List<ArtistStatisticsDto>> GetTopArtistsByArtworkCountAsync(int topN = 10)
+    {
+        var cacheKey = $"top_artists_{topN}";
+        
+        if (_cache.TryGetValue(cacheKey, out List<ArtistStatisticsDto>? cached) && cached != null)
+        {
+            _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
+            return cached;
+        }
+
+        _logger.LogInformation("Fetching top {TopN} artists by artwork count", topN);
+
+        var sql = @"
+            SELECT * FROM (
+                SELECT
+                    da.NAME as ArtistName,
+                    COUNT(DISTINCT daw.ARTWORK_KEY) as ArtworkCount,
+                    SUM(NVL(f.ESTIMATED_VALUE, 0)) as TotalValue,
+                    AVG(NVL(f.ESTIMATED_VALUE, 0)) as AverageValue
+                FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+                JOIN ART_GALLERY_DW.DIM_ARTIST da ON f.ARTIST_KEY = da.ARTIST_KEY
+                JOIN ART_GALLERY_DW.DIM_ARTWORK daw ON f.ARTWORK_KEY = daw.ARTWORK_KEY
+                GROUP BY da.NAME
+                ORDER BY ArtworkCount DESC
+            )
+            WHERE ROWNUM <= :topN";
+
+        try
+        {
+            var results = await _dwContext.Database
+                .SqlQueryRaw<ArtistStatisticsDto>(sql, new OracleParameter("topN", topN))
+                .ToListAsync();
+
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(_defaultCacheTime)
+                .SetSize(1);
+            
+            _cache.Set(cacheKey, results, cacheEntryOptions);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching top artists by artwork count");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Query 2: Get collection value breakdown by art medium and collection type.
+    /// </summary>
+    public async Task<List<CategoryValueDto>> GetValueByMediumAndCollectionAsync()
+    {
+        var cacheKey = "value_by_medium_collection";
+        
+        if (_cache.TryGetValue(cacheKey, out List<CategoryValueDto>? cached) && cached != null)
+        {
+            _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
+            return cached;
+        }
+
+        _logger.LogInformation("Fetching value by medium and collection");
+
+        var sql = @"
+            SELECT
+                NVL(daw.MEDIUM, 'Unknown') as MediumType,
+                NVL(dc.NAME, 'Unknown') as CollectionName,
+                COUNT(DISTINCT f.ARTWORK_KEY) as ArtworkCount,
+                SUM(NVL(f.ESTIMATED_VALUE, 0)) as TotalValue,
+                AVG(NVL(f.ESTIMATED_VALUE, 0)) as AverageValue
+            FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+            JOIN ART_GALLERY_DW.DIM_ARTWORK daw ON f.ARTWORK_KEY = daw.ARTWORK_KEY
+            LEFT JOIN ART_GALLERY_DW.DIM_COLLECTION dc ON f.COLLECTION_KEY = dc.COLLECTION_KEY
+            GROUP BY daw.MEDIUM, dc.NAME
+            ORDER BY TotalValue DESC";
+
+        try
+        {
+            var results = await _dwContext.Database
+                .SqlQueryRaw<CategoryValueDto>(sql)
+                .ToListAsync();
+
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(_defaultCacheTime)
+                .SetSize(1);
+            
+            _cache.Set(cacheKey, results, cacheEntryOptions);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching value by medium and collection");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Query 3: Get monthly exhibition activity metrics for the last N months.
+    /// </summary>
+    public async Task<List<MonthlyActivityDto>> GetMonthlyExhibitionActivityAsync(int months = 12)
+    {
+        var cacheKey = $"monthly_activity_{months}";
+        
+        if (_cache.TryGetValue(cacheKey, out List<MonthlyActivityDto>? cached) && cached != null)
+        {
+            _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
+            return cached;
+        }
+
+        _logger.LogInformation("Fetching monthly exhibition activity for last {Months} months", months);
+
+        var sql = @"
+            SELECT
+                dd.MONTH_NAME as MonthName,
+                dd.CALENDAR_YEAR as Year,
+                COUNT(DISTINCT f.EXHIBITION_KEY) as ExhibitionCount,
+                COUNT(DISTINCT f.ARTWORK_KEY) as ArtworksExhibited,
+                SUM(NVL(f.ESTIMATED_VALUE, 0)) as TotalArtworkValue,
+                AVG(f.AVG_RATING) as AverageRating
+            FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+            JOIN ART_GALLERY_DW.DIM_DATE dd ON f.DATE_KEY = dd.DATE_KEY
+            WHERE dd.CALENDAR_DATE >= ADD_MONTHS(SYSDATE, :negMonths)
+            GROUP BY dd.CALENDAR_YEAR, dd.MONTH_NAME, dd.CALENDAR_MONTH
+            ORDER BY dd.CALENDAR_YEAR, dd.CALENDAR_MONTH";
+
+        try
+        {
+            var results = await _dwContext.Database
+                .SqlQueryRaw<MonthlyActivityDto>(sql, new OracleParameter("negMonths", -months))
+                .ToListAsync();
+
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(_defaultCacheTime)
+                .SetSize(1);
+            
+            _cache.Set(cacheKey, results, cacheEntryOptions);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching monthly exhibition activity");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Query 4: Get location/gallery distribution of artworks.
+    /// </summary>
+    public async Task<List<LocationDistributionDto>> GetLocationDistributionAsync()
+    {
+        var cacheKey = "location_distribution";
+        
+        if (_cache.TryGetValue(cacheKey, out List<LocationDistributionDto>? cached) && cached != null)
+        {
+            _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
+            return cached;
+        }
+
+        _logger.LogInformation("Fetching location distribution");
+
+        var sql = @"
+            SELECT
+                NVL(dl.NAME, 'Unknown') as LocationName,
+                NVL(dl.GALLERY_ROOM, 'N/A') as GalleryRoom,
+                NVL(dl.TYPE, 'Unknown') as LocationType,
+                COUNT(DISTINCT f.ARTWORK_KEY) as ArtworksCount,
+                SUM(NVL(f.ESTIMATED_VALUE, 0)) as TotalValue,
+                ROUND(COUNT(DISTINCT f.ARTWORK_KEY) * 100.0 / 
+                    NULLIF(SUM(COUNT(DISTINCT f.ARTWORK_KEY)) OVER(), 0), 2) as Percentage
+            FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+            JOIN ART_GALLERY_DW.DIM_LOCATION dl ON f.LOCATION_KEY = dl.LOCATION_KEY
+            GROUP BY dl.NAME, dl.GALLERY_ROOM, dl.TYPE
+            ORDER BY ArtworksCount DESC";
+
+        try
+        {
+            var results = await _dwContext.Database
+                .SqlQueryRaw<LocationDistributionDto>(sql)
+                .ToListAsync();
+
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(_defaultCacheTime)
+                .SetSize(1);
+            
+            _cache.Set(cacheKey, results, cacheEntryOptions);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching location distribution");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Query 5: Get annual exhibition value trends with year-over-year growth.
+    /// </summary>
+    public async Task<List<AnnualTrendDto>> GetAnnualExhibitionTrendsAsync(int years = 5)
+    {
+        var cacheKey = $"annual_trends_{years}";
+        
+        if (_cache.TryGetValue(cacheKey, out List<AnnualTrendDto>? cached) && cached != null)
+        {
+            _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
+            return cached;
+        }
+
+        _logger.LogInformation("Fetching annual exhibition trends for last {Years} years", years);
+
+        var sql = @"
+            SELECT
+                dd.CALENDAR_YEAR as Year,
+                COUNT(DISTINCT f.EXHIBITION_KEY) as ExhibitionsCount,
+                COUNT(DISTINCT f.ARTWORK_KEY) as ArtworksCount,
+                SUM(NVL(f.ESTIMATED_VALUE, 0)) as TotalArtworkValue,
+                AVG(NVL(f.ESTIMATED_VALUE, 0)) as AverageArtworkValue,
+                LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR) as PreviousYearValue,
+                CASE 
+                    WHEN LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR) IS NOT NULL 
+                         AND LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR) > 0
+                    THEN ROUND(
+                        ((SUM(NVL(f.ESTIMATED_VALUE, 0)) - 
+                          LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR)) * 100.0 / 
+                          LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR)), 2)
+                    ELSE NULL
+                END as YoyGrowthRate
+            FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+            JOIN ART_GALLERY_DW.DIM_DATE dd ON f.DATE_KEY = dd.DATE_KEY
+            WHERE dd.CALENDAR_YEAR >= EXTRACT(YEAR FROM SYSDATE) - :years
+            GROUP BY dd.CALENDAR_YEAR
+            ORDER BY dd.CALENDAR_YEAR";
+
+        try
+        {
+            var results = await _dwContext.Database
+                .SqlQueryRaw<AnnualTrendDto>(sql, new OracleParameter("years", years))
+                .ToListAsync();
+
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(_defaultCacheTime)
+                .SetSize(1);
+            
+            _cache.Set(cacheKey, results, cacheEntryOptions);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching annual exhibition trends");
+            throw;
+        }
+    }
 }

@@ -32,7 +32,7 @@ public class Artwork
     public string? Medium { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection ID (foreign key to Collection table).
+    /// Gets or sets the collection ID (foreign key to Collection table). 
     /// </summary>
     public int? CollectionId { get; set; }
 

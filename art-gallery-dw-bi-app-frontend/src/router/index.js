@@ -42,6 +42,7 @@ const ETLManagement = () => import('@/pages/ETLManagement.vue');
 const ETLMappingPage = () => import('@/pages/ETLMappingPage.vue');
 const ETLHistoryPage = () => import('@/pages/ETLHistoryPage.vue');
 const Reports = () => import('@/pages/Reports.vue');
+const AnalyticsDashboard = () => import('@/pages/AnalyticsDashboard.vue');
 const NotFound = () => import('@/pages/NotFound.vue');
 
 /**
@@ -321,6 +322,21 @@ const routes = [
       title: 'BI Reports',
       description: 'Business Intelligence dashboards and reports',
       icon: 'chart-bar'
+    }
+  },
+
+  // ========================================
+  // ANALYTICS DASHBOARD ROUTE
+  // Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
+  // ========================================
+  {
+    path: '/analytics',
+    name: 'Analytics',
+    component: AnalyticsDashboard,
+    meta: {
+      title: 'Analytics Dashboard',
+      description: 'Data Warehouse insights and analytical reports',
+      icon: 'chart-pie'
     }
   },
 
