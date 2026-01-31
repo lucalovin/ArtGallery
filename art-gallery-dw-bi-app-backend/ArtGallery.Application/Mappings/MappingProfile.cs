@@ -24,8 +24,11 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CollectionName, opt => opt.MapFrom(src => src.Collection != null ? src.Collection.Name : null))
             .ForMember(dest => dest.LocationName, opt => opt.MapFrom(src => src.Location != null ? src.Location.Name : null));
         CreateMap<Artwork, ArtworkListDto>()
+            .ForMember(dest => dest.ArtistId, opt => opt.MapFrom(src => src.ArtistId))
             .ForMember(dest => dest.ArtistName, opt => opt.MapFrom(src => src.Artist != null ? src.Artist.Name : null))
+            .ForMember(dest => dest.CollectionId, opt => opt.MapFrom(src => src.CollectionId))
             .ForMember(dest => dest.CollectionName, opt => opt.MapFrom(src => src.Collection != null ? src.Collection.Name : null))
+            .ForMember(dest => dest.LocationId, opt => opt.MapFrom(src => src.LocationId))
             .ForMember(dest => dest.LocationName, opt => opt.MapFrom(src => src.Location != null ? src.Location.Name : null));
         CreateMap<CreateArtworkDto, Artwork>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())

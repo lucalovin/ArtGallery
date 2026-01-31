@@ -165,6 +165,15 @@ export default {
       commit('SET_LOANS', []);
       commit('SET_RESTORATIONS', []);
       commit('SET_INSURANCES', []);
+    },
+
+    /**
+     * Load loans from LocalStorage (placeholder for compatibility)
+     * Since loans are always fetched from API, this is a no-op
+     */
+    loadFromLocalStorage() {
+      // No-op: loans are always fetched from API
+      // This action exists for consistency with other stores
     }
   },
 

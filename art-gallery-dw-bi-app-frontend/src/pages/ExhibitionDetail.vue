@@ -55,22 +55,12 @@
             <p class="text-gray-600 leading-relaxed">{{ exhibition.description }}</p>
           </div>
 
-          <!-- Artworks -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold text-gray-800">Featured Artworks</h2>
-              <span class="text-sm text-gray-500">{{ exhibition.artworkCount }} pieces</span>
-            </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div 
-                v-for="n in 4" 
-                :key="n"
-                class="aspect-square bg-gray-100 rounded-lg flex items-center justify-center text-3xl"
-              >
-                🖼️
-              </div>
-            </div>
-          </div>
+          <!-- Artworks Section - Using the new component -->
+          <ExhibitionArtworks 
+            :exhibition-id="id"
+            @artwork-added="onArtworkChanged"
+            @artwork-removed="onArtworkChanged"
+          />
         </div>
 
         <!-- Sidebar -->
@@ -117,12 +107,17 @@
 
 <script>
 import { mapState, mapActions } from 'vuex';
+import ExhibitionArtworks from '@/components/exhibitions/ExhibitionArtworks.vue';
 
 /**
  * ExhibitionDetail Page
  */
 export default {
   name: 'ExhibitionDetailPage',
+
+  components: {
+    ExhibitionArtworks
+  },
 
   props: {
     id: {
@@ -221,6 +216,15 @@ export default {
         past: 'bg-gray-100 text-gray-700'
       };
       return classes[status] || classes.past;
+    },
+
+    /**
+     * Handle artwork added/removed events
+     * Refresh exhibition data to update artwork count
+     */
+    onArtworkChanged() {
+      // Refresh the exhibition data
+      this.fetchExhibitions();
     }
   }
 };

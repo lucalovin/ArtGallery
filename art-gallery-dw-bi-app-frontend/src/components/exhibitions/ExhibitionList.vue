@@ -396,14 +396,14 @@ export default {
 
     handleView(exhibition) {
       this.$router.push({
-        name: 'exhibition-detail',
+        name: 'ExhibitionDetail',
         params: { id: exhibition.id }
       });
     },
 
     handleEdit(exhibition) {
       this.$router.push({
-        name: 'exhibition-edit',
+        name: 'EditExhibition',
         params: { id: exhibition.id }
       });
     },

@@ -6,6 +6,12 @@
 public class EtlPropagationResult
 {
     /// <summary>
+    /// Unique identifier for this ETL run (from SEQ_ETL_RUN sequence).
+    /// Use this to query ETL_LOG for detailed step-by-step information.
+    /// </summary>
+    public int EtlRunId { get; set; }
+
+    /// <summary>
     /// Status of the operation (Success, Error, Running).
     /// </summary>
     public string Status { get; set; } = "Success";

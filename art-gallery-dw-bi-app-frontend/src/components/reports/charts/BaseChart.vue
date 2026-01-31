@@ -78,25 +78,62 @@ export default {
       return this.chartData.datasets.some(ds => ds.data && ds.data.length > 0);
     },
 
+    /**
+     * Safe chart data that ensures valid structure for Chart.js
+     * This prevents the "Cannot set properties of undefined (setting 'fullSize')" error
+     */
+    safeChartData() {
+      // Return a valid chart structure even if data is empty/missing
+      if (!this.chartData || !this.chartData.datasets || !this.hasData) {
+        return {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: [],
+            borderColor: []
+          }]
+        };
+      }
+      return this.chartData;
+    },
+
     mergedOptions() {
-      return {
+      const baseOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        ...this.options
+        plugins: {
+          legend: {
+            display: this.hasData,
+            position: 'top',
+            labels: {}
+          },
+          title: {
+            display: false
+          }
+        }
       };
+      
+      // Deep merge options to ensure all plugin configurations are properly set
+      return this.deepMerge(baseOptions, this.options || {});
     }
   },
 
   watch: {
     chartData: {
-      handler() {
-        this.updateChart();
+      handler(newVal, oldVal) {
+        // Use nextTick to ensure DOM is ready and avoid race conditions
+        this.$nextTick(() => {
+          this.updateChart();
+        });
       },
       deep: true
     },
     options: {
       handler() {
-        this.updateChart();
+        // When options change significantly, recreate the chart to avoid state issues
+        this.$nextTick(() => {
+          this.recreateChart();
+        });
       },
       deep: true
     },
@@ -114,27 +151,60 @@ export default {
   },
 
   methods: {
+    /**
+     * Deep merge helper to properly merge nested options objects
+     */
+    deepMerge(target, source) {
+      const result = { ...target };
+      
+      for (const key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+          result[key] = this.deepMerge(target[key] || {}, source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+      
+      return result;
+    },
+
     createChart() {
       if (!this.$refs.chartCanvas) return;
+      // Don't create chart if there's no valid data
+      if (!this.hasData) return;
 
       const ctx = this.$refs.chartCanvas.getContext('2d');
       
       this.chart = new Chart(ctx, {
         type: this.type,
-        data: this.chartData,
+        data: this.safeChartData,
         options: this.mergedOptions
       });
     },
 
     updateChart() {
+      if (!this.hasData) {
+        // Destroy chart if data becomes empty
+        this.destroyChart();
+        return;
+      }
+      
       if (!this.chart) {
         this.createChart();
         return;
       }
 
-      this.chart.data = this.chartData;
-      this.chart.options = this.mergedOptions;
-      this.chart.update();
+      try {
+        // Update data
+        this.chart.data.labels = this.safeChartData.labels;
+        this.chart.data.datasets = this.safeChartData.datasets;
+        
+        // Update with 'none' mode to skip animations and reduce state issues
+        this.chart.update('none');
+      } catch (error) {
+        console.warn('Chart update failed, recreating chart:', error);
+        this.recreateChart();
+      }
     },
 
     recreateChart() {

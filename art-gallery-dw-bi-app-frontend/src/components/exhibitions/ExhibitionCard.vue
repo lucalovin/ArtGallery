@@ -247,7 +247,7 @@ export default {
     viewExhibition() {
       this.$emit('view', this.exhibition);
       this.$router.push({
-        name: 'exhibition-detail',
+        name: 'ExhibitionDetail',
         params: { id: this.exhibition.id }
       });
     },

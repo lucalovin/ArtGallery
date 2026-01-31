@@ -84,12 +84,12 @@ export const exhibitionAPI = {
    * Add artwork to exhibition
    * @param {number|string} exhibitionId - Exhibition ID
    * @param {number|string} artworkId - Artwork ID to add
+   * @param {number|string} displayOrder - Optional display order/position
    * @returns {Promise} Axios response promise
    */
-  addArtwork: (exhibitionId, artworkId) => {
-    return apiClient.post(`/exhibitions/${exhibitionId}/artworks`, { 
-      artworkId 
-    });
+  addArtwork: (exhibitionId, artworkId, displayOrder = null) => {
+    const params = displayOrder !== null ? { displayOrder } : {};
+    return apiClient.post(`/exhibitions/${exhibitionId}/artworks/${artworkId}`, null, { params });
   },
 
   /**
@@ -100,6 +100,15 @@ export const exhibitionAPI = {
    */
   removeArtwork: (exhibitionId, artworkId) => {
     return apiClient.delete(`/exhibitions/${exhibitionId}/artworks/${artworkId}`);
+  },
+
+  /**
+   * Get artworks in an exhibition
+   * @param {number|string} exhibitionId - Exhibition ID
+   * @returns {Promise} Axios response promise
+   */
+  getArtworks: (exhibitionId) => {
+    return apiClient.get(`/exhibitions/${exhibitionId}/artworks`);
   },
 
   /**

@@ -362,8 +362,8 @@ export default {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         result = result.filter(artwork => 
-          artwork.title.toLowerCase().includes(query) ||
-          artwork.artist.toLowerCase().includes(query) ||
+          artwork.title?.toLowerCase().includes(query) ||
+          artwork.artist?.toLowerCase().includes(query) ||
           artwork.description?.toLowerCase().includes(query)
         );
       }

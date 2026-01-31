@@ -217,7 +217,7 @@ export default {
     viewArtwork() {
       this.$emit('view', this.artwork);
       this.$router.push({
-        name: 'artwork-detail',
+        name: 'ArtworkDetail',
         params: { id: this.artwork.id }
       });
     },
@@ -228,7 +228,7 @@ export default {
     editArtwork() {
       this.$emit('edit', this.artwork);
       this.$router.push({
-        name: 'artwork-edit',
+        name: 'EditArtwork',
         params: { id: this.artwork.id }
       });
     },

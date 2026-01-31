@@ -451,17 +451,66 @@ export default {
     /**
      * Add artwork to exhibition
      */
-    addArtworkToExhibition({ commit, dispatch }, payload) {
-      commit('ADD_ARTWORK_TO_EXHIBITION', payload);
-      dispatch('saveToLocalStorage');
+    async addArtworkToExhibition({ commit, dispatch }, { exhibitionId, artworkId, displayOrder }) {
+      try {
+        commit('SET_LOADING', true);
+        commit('CLEAR_ERROR');
+        
+        await exhibitionAPI.addArtwork(exhibitionId, artworkId, displayOrder);
+        commit('ADD_ARTWORK_TO_EXHIBITION', { exhibitionId, artworkId });
+        dispatch('saveToLocalStorage');
+        
+        return { success: true };
+      } catch (error) {
+        const message = error.response?.data?.message || 'Failed to add artwork to exhibition';
+        commit('SET_ERROR', message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
     },
 
     /**
      * Remove artwork from exhibition
      */
-    removeArtworkFromExhibition({ commit, dispatch }, payload) {
-      commit('REMOVE_ARTWORK_FROM_EXHIBITION', payload);
-      dispatch('saveToLocalStorage');
+    async removeArtworkFromExhibition({ commit, dispatch }, { exhibitionId, artworkId }) {
+      try {
+        commit('SET_LOADING', true);
+        commit('CLEAR_ERROR');
+        
+        await exhibitionAPI.removeArtwork(exhibitionId, artworkId);
+        commit('REMOVE_ARTWORK_FROM_EXHIBITION', { exhibitionId, artworkId });
+        dispatch('saveToLocalStorage');
+        
+        return { success: true };
+      } catch (error) {
+        const message = error.response?.data?.message || 'Failed to remove artwork from exhibition';
+        commit('SET_ERROR', message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+
+    /**
+     * Fetch artworks for an exhibition
+     */
+    async fetchExhibitionArtworks({ commit }, exhibitionId) {
+      try {
+        commit('SET_LOADING', true);
+        commit('CLEAR_ERROR');
+        
+        const response = await exhibitionAPI.getArtworks(exhibitionId);
+        const artworks = response.data?.success ? response.data.data : (response.data || []);
+        
+        return artworks;
+      } catch (error) {
+        const message = error.response?.data?.message || 'Failed to fetch exhibition artworks';
+        commit('SET_ERROR', message);
+        throw error;
+      } finally {
+        commit('SET_LOADING', false);
+      }
     }
   },
 

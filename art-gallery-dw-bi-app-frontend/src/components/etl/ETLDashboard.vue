@@ -80,7 +80,7 @@
               <h3 class="text-sm font-medium text-gray-700 mb-3">Select Data Sources to Sync</h3>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <label 
-                  v-for="source in dataSources" 
+                  v-for="source in mergedDataSources" 
                   :key="source.id"
                   class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                   :class="{ 'ring-2 ring-primary-500 bg-primary-50': selectedSources.includes(source.id) }"
@@ -227,14 +227,6 @@
             </div>
           </div>
         </div>
-
-        <!-- ETL Log Component -->
-        <etl-log 
-          :logs="recentLogs"
-          :is-loading="isLoadingLogs"
-          @refresh="fetchLogs"
-          @view-all="viewAllLogs"
-        />
       </div>
 
       <!-- Right Column: Status & Schedule -->
@@ -245,99 +237,6 @@
           :connections="dataConnections"
           @test-connection="testConnection"
         />
-
-        <!-- Schedule Panel -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-900">Sync Schedule</h2>
-          </div>
-          <div class="p-6">
-            <!-- Auto Sync Toggle -->
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-sm font-medium text-gray-700">Auto Sync</span>
-              <button
-                @click="toggleAutoSync"
-                :class="[
-                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                  autoSyncEnabled ? 'bg-primary-600' : 'bg-gray-200'
-                ]"
-              >
-                <span
-                  :class="[
-                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                    autoSyncEnabled ? 'translate-x-6' : 'translate-x-1'
-                  ]"
-                ></span>
-              </button>
-            </div>
-
-            <!-- Schedule Options -->
-            <div v-if="autoSyncEnabled" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
-                <select v-model="syncFrequency" class="form-input">
-                  <option value="hourly">Every Hour</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-              </div>
-
-              <div v-if="syncFrequency === 'daily' || syncFrequency === 'weekly'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                <input type="time" v-model="syncTime" class="form-input" />
-              </div>
-
-              <div v-if="syncFrequency === 'weekly'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Day</label>
-                <select v-model="syncDay" class="form-input">
-                  <option v-for="day in weekDays" :key="day.value" :value="day.value">
-                    {{ day.label }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="pt-4 border-t border-gray-100">
-                <p class="text-sm text-gray-600">
-                  <strong>Next scheduled sync:</strong><br />
-                  {{ nextScheduledSync }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-900">Quick Actions</h2>
-          </div>
-          <div class="p-4 space-y-2">
-            <button @click="validateData" class="w-full btn btn-secondary justify-start">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Validate Data Integrity
-            </button>
-            <button @click="generateReport" class="w-full btn btn-secondary justify-start">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Generate ETL Report
-            </button>
-            <button @click="clearCache" class="w-full btn btn-secondary justify-start">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Clear ETL Cache
-            </button>
-            <button @click="viewDWSchema" class="w-full btn btn-secondary justify-start">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-              </svg>
-              View DW Schema
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -346,7 +245,6 @@
 <script>
 import { mapState, mapActions, mapGetters } from 'vuex';
 import ETLStatus from './ETLStatus.vue';
-import ETLLog from './ETLLog.vue';
 
 /**
  * ETLDashboard Component
@@ -356,8 +254,7 @@ export default {
   name: 'ETLDashboard',
 
   components: {
-    'etl-status': ETLStatus,
-    'etl-log': ETLLog
+    'etl-status': ETLStatus
   },
 
   props: {
@@ -420,29 +317,8 @@ export default {
       syncProgress: 0,
       currentOperation: '',
       
-      // Schedule settings
-      autoSyncEnabled: false,
-      syncFrequency: 'daily',
-      syncTime: '02:00',
-      syncDay: 'sunday',
-      
       // Syncing status per source
       syncingSourcesStatus: [],
-      
-      // Week days for schedule
-      weekDays: [
-        { value: 'sunday', label: 'Sunday' },
-        { value: 'monday', label: 'Monday' },
-        { value: 'tuesday', label: 'Tuesday' },
-        { value: 'wednesday', label: 'Wednesday' },
-        { value: 'thursday', label: 'Thursday' },
-        { value: 'friday', label: 'Friday' },
-        { value: 'saturday', label: 'Saturday' }
-      ],
-      
-      // Logs
-      recentLogs: [],
-      isLoadingLogs: false,
       
       // ETL Status
       etlStatus: {
@@ -454,25 +330,31 @@ export default {
       
       // Data connections
       dataConnections: [
-        { id: 'oltp', name: 'OLTP Database', type: 'PostgreSQL', status: 'connected' },
-        { id: 'dw', name: 'Data Warehouse', type: 'PostgreSQL', status: 'connected' },
-        { id: 'staging', name: 'Staging Area', type: 'Redis', status: 'connected' }
+        { id: 'db', name: 'Database', type: 'Oracle', status: 'connected' }
       ],
-
-      // Sync interval reference
-      syncInterval: null
+      
+      // Local copy of data sources (to avoid mutating props)
+      localDataSources: []
     };
   },
 
   computed: {
     lastSyncStatus() {
       if (!this.etlStatus.lastSync) return 'Never';
-      return this.etlStatus.lastSync.status === 'success' ? 'Success' : 'Failed';
+      const status = this.etlStatus.lastSync.status;
+      // Consider 'success', 'completed', or absence of explicit failure as success
+      if (status === 'success' || status === 'completed' || status === undefined) return 'Success';
+      if (status === 'failed' || status === 'error') return 'Failed';
+      return 'Success';
     },
 
     lastSyncStatusClass() {
       if (!this.etlStatus.lastSync) return 'text-gray-500';
-      return this.etlStatus.lastSync.status === 'success' ? 'text-green-600' : 'text-red-600';
+      const status = this.etlStatus.lastSync.status;
+      // Consider 'success', 'completed', or absence of explicit failure as success
+      if (status === 'success' || status === 'completed' || status === undefined) return 'text-green-600';
+      if (status === 'failed' || status === 'error') return 'text-red-600';
+      return 'text-green-600';
     },
 
     formattedLastSyncTime() {
@@ -485,69 +367,24 @@ export default {
       return this.etlStatus.lastSync.recordsProcessed || 0;
     },
 
+    // Merged data sources (local overrides + prop defaults)
+    mergedDataSources() {
+      if (this.localDataSources.length > 0) {
+        return this.localDataSources;
+      }
+      return this.dataSources;
+    },
+
     pendingChanges() {
       // Calculate pending changes from data sources
-      return this.dataSources.reduce((sum, source) => {
+      return this.mergedDataSources.reduce((sum, source) => {
         return sum + (source.pendingChanges || 0);
       }, 0);
-    },
-
-    nextScheduledSync() {
-      if (!this.autoSyncEnabled) return 'Auto sync disabled';
-      
-      const now = new Date();
-      let nextSync = new Date();
-      
-      if (this.syncFrequency === 'hourly') {
-        nextSync.setHours(nextSync.getHours() + 1, 0, 0, 0);
-      } else if (this.syncFrequency === 'daily') {
-        const [hours, minutes] = this.syncTime.split(':');
-        nextSync.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        if (nextSync <= now) {
-          nextSync.setDate(nextSync.getDate() + 1);
-        }
-      } else if (this.syncFrequency === 'weekly') {
-        const dayIndex = this.weekDays.findIndex(d => d.value === this.syncDay);
-        const currentDay = now.getDay();
-        let daysUntil = dayIndex - currentDay;
-        if (daysUntil <= 0) daysUntil += 7;
-        
-        const [hours, minutes] = this.syncTime.split(':');
-        nextSync.setDate(now.getDate() + daysUntil);
-        nextSync.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      }
-      
-      return nextSync.toLocaleString();
-    }
-  },
-
-  watch: {
-    autoSyncEnabled(newValue) {
-      if (newValue) {
-        this.setupAutoSync();
-      } else {
-        this.clearAutoSync();
-      }
-    },
-
-    syncFrequency() {
-      if (this.autoSyncEnabled) {
-        this.setupAutoSync();
-      }
     }
   },
 
   created() {
     this.fetchInitialData();
-  },
-
-  mounted() {
-    this.fetchLogs();
-    this.loadScheduleSettings();
-  },
-
-  beforeUnmount() {
-    this.clearAutoSync();
   },
 
   methods: {
@@ -559,17 +396,34 @@ export default {
         const statusResponse = await this.$api.etl.getStatus();
         if (statusResponse.data?.success && statusResponse.data?.data) {
           const status = statusResponse.data.data;
+          
+          // Build lastSync object from API data
+          let lastSync = null;
+          if (status.lastSync) {
+            lastSync = {
+              timestamp: status.lastSync.syncDate || status.lastSync.timestamp || status.lastSync,
+              status: status.lastSync.status || 'success',
+              recordsProcessed: status.lastSync.recordsProcessed || status.recordsProcessed || 0
+            };
+          } else if (status.lastSyncDate || status.lastSyncTime) {
+            lastSync = {
+              timestamp: status.lastSyncDate || status.lastSyncTime,
+              status: 'success',
+              recordsProcessed: status.recordsProcessed || 0
+            };
+          }
+          
           this.etlStatus = {
             ...this.etlStatus,
             oltpConnection: status.oltpConnection || 'connected',
             dwConnection: status.dwConnection || 'connected',
             status: status.status || 'idle',
-            lastSync: status.lastSync || null
+            lastSync: lastSync
           };
           
-          // Update data sources with real counts if available
+          // Update local data sources with real counts if available
           if (status.dataSources) {
-            this.dataSources = this.dataSources.map(source => {
+            this.localDataSources = this.dataSources.map(source => {
               const backendSource = status.dataSources.find(s => s.id === source.id);
               return backendSource ? { ...source, ...backendSource } : source;
             });
@@ -581,31 +435,8 @@ export default {
       }
     },
 
-    async fetchLogs() {
-      this.isLoadingLogs = true;
-      try {
-        // Fetch ETL history/logs from backend API
-        const response = await this.$api.etl.getHistory({ limit: 10 });
-        if (response.data?.success && response.data?.data) {
-          this.recentLogs = response.data.data.map((log, index) => ({
-            id: log.id || index + 1,
-            timestamp: log.timestamp || log.startTime,
-            level: log.status === 'failed' ? 'error' : (log.status === 'warning' ? 'warning' : 'info'),
-            message: log.message || `ETL operation: ${log.status}`,
-            source: log.source || 'system'
-          }));
-        }
-      } catch (error) {
-        console.error('Failed to fetch logs:', error);
-        // Fallback to empty logs on error
-        this.recentLogs = [];
-      } finally {
-        this.isLoadingLogs = false;
-      }
-    },
-
     selectAllSources() {
-      this.selectedSources = this.dataSources.map(s => s.id);
+      this.selectedSources = this.mergedDataSources.map(s => s.id);
     },
 
     clearSelection() {
@@ -621,7 +452,7 @@ export default {
 
       // Initialize syncing status for each selected source
       this.syncingSourcesStatus = this.selectedSources.map(sourceId => {
-        const source = this.dataSources.find(s => s.id === sourceId);
+        const source = this.mergedDataSources.find(s => s.id === sourceId);
         return {
           id: sourceId,
           name: source.name,
@@ -682,24 +513,12 @@ export default {
             attempts++;
           }
           
-          // Refresh logs after sync
-          await this.fetchLogs();
-          
         } else {
           throw new Error(response.data?.message || 'Failed to trigger ETL sync');
         }
       } catch (error) {
         console.error('Sync failed:', error);
         this.currentOperation = `Sync failed: ${error.message}`;
-        
-        // Add error log
-        this.recentLogs.unshift({
-          id: Date.now(),
-          timestamp: new Date().toISOString(),
-          level: 'error',
-          message: `ETL sync failed: ${error.message}`,
-          source: 'system'
-        });
       } finally {
         setTimeout(() => {
           this.isSyncing = false;
@@ -711,35 +530,6 @@ export default {
       this.isSyncing = false;
       this.currentOperation = 'Sync cancelled';
       this.syncProgress = 0;
-    },
-
-    toggleAutoSync() {
-      this.autoSyncEnabled = !this.autoSyncEnabled;
-    },
-
-    setupAutoSync() {
-      this.clearAutoSync();
-      // In production, this would set up actual scheduled jobs
-      console.log('Auto sync enabled with frequency:', this.syncFrequency);
-    },
-
-    clearAutoSync() {
-      if (this.syncInterval) {
-        clearInterval(this.syncInterval);
-        this.syncInterval = null;
-      }
-    },
-
-    loadScheduleSettings() {
-      // Load settings from localStorage
-      const settings = localStorage.getItem('etl_schedule_settings');
-      if (settings) {
-        const parsed = JSON.parse(settings);
-        this.autoSyncEnabled = parsed.autoSyncEnabled || false;
-        this.syncFrequency = parsed.syncFrequency || 'daily';
-        this.syncTime = parsed.syncTime || '02:00';
-        this.syncDay = parsed.syncDay || 'sunday';
-      }
     },
 
     async testConnection(connectionId) {

@@ -52,10 +52,9 @@
       <kpi-card
         v-for="kpi in kpiData"
         :key="kpi.id"
-        :title="kpi.title"
+        :label="kpi.title"
         :value="kpi.value"
-        :change="kpi.change"
-        :change-type="kpi.changeType"
+        :trend="kpi.change"
         :icon="kpi.icon"
         :color="kpi.color"
         :format="kpi.format"
@@ -262,14 +261,14 @@ export default {
       tableSearch: '',
       tableFilter: 'all',
 
-      // KPI Data
+      // KPI Data - initialized with structure, values populated from API
       kpiData: [
         {
           id: 1,
           title: 'Total Revenue',
-          value: 1250000,
-          change: 12.5,
-          changeType: 'increase',
+          value: 0,
+          change: 0,
+          changeType: 'neutral',
           icon: 'currency-dollar',
           color: 'green',
           format: 'currency'
@@ -277,19 +276,19 @@ export default {
         {
           id: 2,
           title: 'Total Visitors',
-          value: 45230,
-          change: 8.3,
-          changeType: 'increase',
+          value: 0,
+          change: 0,
+          changeType: 'neutral',
           icon: 'users',
           color: 'blue',
           format: 'number'
         },
         {
           id: 3,
-          title: 'Artworks Sold',
-          value: 127,
-          change: -2.1,
-          changeType: 'decrease',
+          title: 'Artworks in Collection',
+          value: 0,
+          change: 0,
+          changeType: 'neutral',
           icon: 'photograph',
           color: 'purple',
           format: 'number'
@@ -297,7 +296,7 @@ export default {
         {
           id: 4,
           title: 'Active Exhibitions',
-          value: 8,
+          value: 0,
           change: 0,
           changeType: 'neutral',
           icon: 'calendar',
@@ -314,6 +313,12 @@ export default {
 
       // Top Exhibitions (populated from API)
       topExhibitions: [],
+
+      // Revenue data from API
+      revenueData: [],
+
+      // Visitor trends data from API
+      visitorTrendsData: [],
 
       // Transaction Columns
       transactionColumns: [
@@ -391,11 +396,15 @@ export default {
 
   computed: {
     revenueChartData() {
+      // Uses data fetched from API stored in revenueData
+      if (!this.revenueData || this.revenueData.length === 0) {
+        return { labels: [], datasets: [] };
+      }
       return {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        labels: this.revenueData.map(r => r.period || r.month || r.label),
         datasets: [{
           label: 'Revenue',
-          data: [85000, 92000, 78000, 105000, 112000, 98000, 125000, 134000, 118000, 142000, 156000, 165000],
+          data: this.revenueData.map(r => r.amount || r.revenue || r.value || 0),
           borderColor: chartColors.blue,
           backgroundColor: withOpacity(chartColors.blue, 0.1),
           fill: true,
@@ -405,29 +414,24 @@ export default {
     },
 
     visitorChartData() {
-      const labels = this.visitorMetric === 'daily' 
-        ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        : this.visitorMetric === 'weekly'
-          ? ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-          : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-
-      const data = this.visitorMetric === 'daily'
-        ? [1200, 1450, 1320, 1580, 1890, 2340, 2120]
-        : this.visitorMetric === 'weekly'
-          ? [8500, 9200, 8900, 10100]
-          : [32000, 35000, 38000, 41000, 45000, 48000];
-
+      // Uses data fetched from API stored in visitorTrendsData
+      if (!this.visitorTrendsData || this.visitorTrendsData.length === 0) {
+        return { labels: [], datasets: [] };
+      }
       return {
-        labels,
+        labels: this.visitorTrendsData.map(v => v.period || v.month || v.label),
         datasets: [{
           label: 'Visitors',
-          data,
+          data: this.visitorTrendsData.map(v => v.visitorCount || v.count || v.value || 0),
           backgroundColor: chartColors.emerald
         }]
       };
     },
 
     artworkCategoryData() {
+      if (!this.artworkCategories || this.artworkCategories.length === 0) {
+        return { labels: [], datasets: [] };
+      }
       return {
         labels: this.artworkCategories.map(c => c.name),
         datasets: [{
@@ -437,39 +441,60 @@ export default {
       };
     },
 
+    // Sales by Artist - uses artworkCategories as a proxy showing artwork values by medium/category
+    // This shows distribution of artwork insurance values by category
     salesByArtistData() {
+      if (!this.artworkCategories || this.artworkCategories.length === 0) {
+        return { labels: [], datasets: [] };
+      }
       return {
-        labels: ['Van Gogh', 'Monet', 'Picasso', 'Warhol', 'Banksy'],
+        labels: this.artworkCategories.slice(0, 5).map(c => c.name),
         datasets: [{
-          label: 'Sales',
-          data: [245000, 198000, 175000, 156000, 134000],
+          label: 'Artworks',
+          data: this.artworkCategories.slice(0, 5).map(c => c.count),
           backgroundColor: chartColors.violet
         }]
       };
     },
 
+    // Revenue sources - derived from exhibition performance showing visitor distribution
     revenueSourceData() {
+      if (!this.topExhibitions || this.topExhibitions.length === 0) {
+        return { labels: [], datasets: [] };
+      }
+      const totalVisitors = this.topExhibitions.reduce((sum, ex) => sum + (ex.visitors || 0), 0);
       return {
-        labels: ['Artwork Sales', 'Tickets', 'Memberships', 'Gift Shop', 'Events'],
+        labels: this.topExhibitions.slice(0, 5).map(ex => ex.name),
         datasets: [{
-          data: [65, 15, 10, 5, 5],
+          data: this.topExhibitions.slice(0, 5).map(ex => 
+            totalVisitors > 0 ? Math.round((ex.visitors / totalVisitors) * 100) : 0
+          ),
           backgroundColor: chartColorPalettes.standard.slice(0, 5)
         }]
       };
     },
 
+    // YoY comparison - derived from revenue data if available, grouped by quarter
     yoyComparisonData() {
+      if (!this.revenueData || this.revenueData.length === 0) {
+        return { labels: [], datasets: [] };
+      }
+      // Group revenue data into quarterly summaries
+      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+      const currentYear = new Date().getFullYear();
+      const currentYearData = quarters.map(() => 0);
+      
+      this.revenueData.forEach((r, index) => {
+        const quarterIndex = Math.floor(index / 3) % 4;
+        currentYearData[quarterIndex] += r.amount || r.revenue || r.value || 0;
+      });
+      
       return {
-        labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+        labels: quarters,
         datasets: [
           {
-            label: '2025',
-            data: [320000, 380000, 420000, 480000],
-            backgroundColor: chartColors.slate
-          },
-          {
-            label: '2026',
-            data: [380000, 450000, 0, 0],
+            label: String(currentYear),
+            data: currentYearData,
             backgroundColor: chartColors.blue
           }
         ]
@@ -513,11 +538,13 @@ export default {
       this.isLoadingTable = true;
       try {
         // Fetch all dashboard data in parallel
-        const [kpiResponse, exhibitionResponse, artworkDistResponse, loansResponse] = await Promise.all([
+        const [kpiResponse, exhibitionResponse, artworkDistResponse, loansResponse, revenueResponse, visitorResponse] = await Promise.all([
           this.$api.reports.getDashboardKPIs(),
           this.$api.reports.getExhibitionPerformance?.() || Promise.resolve(null),
           this.$api.reports.getArtworkDistribution?.() || Promise.resolve(null),
-          this.$api.loans.getAll?.() || Promise.resolve(null)
+          this.$api.loans.getAll?.() || Promise.resolve(null),
+          this.$api.reports.getRevenueByPeriod?.({ period: 'monthly' }) || Promise.resolve(null),
+          this.$api.reports.getVisitorTrends?.() || Promise.resolve(null)
         ]);
 
         // Update KPI data
@@ -525,11 +552,16 @@ export default {
           const kpis = kpiResponse.data.data;
           if (kpis.totalRevenue !== undefined) this.kpiData[0].value = kpis.totalRevenue;
           if (kpis.totalVisitors !== undefined) this.kpiData[1].value = kpis.totalVisitors;
-          if (kpis.artworksSold !== undefined) this.kpiData[2].value = kpis.artworksSold;
+          // Use total artworks in collection instead of "sold"
+          if (kpis.totalArtworks !== undefined) this.kpiData[2].value = kpis.totalArtworks;
           if (kpis.activeExhibitions !== undefined) this.kpiData[3].value = kpis.activeExhibitions;
           if (kpis.revenueChange !== undefined) {
             this.kpiData[0].change = Math.abs(kpis.revenueChange);
             this.kpiData[0].changeType = kpis.revenueChange >= 0 ? 'increase' : 'decrease';
+          }
+          if (kpis.visitorChange !== undefined) {
+            this.kpiData[1].change = Math.abs(kpis.visitorChange);
+            this.kpiData[1].changeType = kpis.visitorChange >= 0 ? 'increase' : 'decrease';
           }
         }
 
@@ -550,6 +582,16 @@ export default {
             name: cat.category || cat.medium || cat.name || 'Other',
             count: cat.count || cat.artworkCount || 0
           }));
+        }
+
+        // Update revenue data for charts
+        if (revenueResponse?.data?.success && revenueResponse.data?.data) {
+          this.revenueData = revenueResponse.data.data;
+        }
+
+        // Update visitor trends data for charts
+        if (visitorResponse?.data?.success && visitorResponse.data?.data) {
+          this.visitorTrendsData = visitorResponse.data.data;
         }
 
         // Update transactions from loans (showing recent loan activity)

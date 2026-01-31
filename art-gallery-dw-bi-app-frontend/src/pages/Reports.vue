@@ -111,17 +111,27 @@ export default {
           }));
         }
 
-        // Set default revenue data (could also be fetched from API)
-        this.revenueData = {
-          labels: ['Tickets', 'Memberships', 'Gift Shop', 'Events', 'Loans', 'Donations'],
-          datasets: [
-            {
-              label: 'Revenue ($)',
-              data: [345000, 125000, 89000, 156000, 98000, 79500],
-              backgroundColor: chartColorPalettes.purple
-            }
-          ]
-        };
+        // Fetch revenue data from API
+        const revenueResponse = await this.$api.reports?.getRevenueByPeriod?.({ period: 'monthly' });
+        if (revenueResponse?.data?.success && revenueResponse.data?.data) {
+          const revenueItems = revenueResponse.data.data;
+          this.revenueData = {
+            labels: revenueItems.map(r => r.period || r.month || r.label),
+            datasets: [
+              {
+                label: 'Revenue ($)',
+                data: revenueItems.map(r => r.amount || r.revenue || r.value || 0),
+                backgroundColor: chartColorPalettes.purple
+              }
+            ]
+          };
+        } else {
+          // Empty state if no data
+          this.revenueData = {
+            labels: [],
+            datasets: []
+          };
+        }
 
       } catch (error) {
         console.error('Failed to load report data:', error);

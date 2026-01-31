@@ -378,6 +378,9 @@ export default {
           await this.$api.artworks.create(artworkData);
         }
 
+        // Refresh artwork list in store to show the new/updated artwork
+        await this.$store.dispatch('artwork/fetchArtworks');
+
         // Navigate back to inventory
         this.$router.push('/artworks');
       } catch (error) {

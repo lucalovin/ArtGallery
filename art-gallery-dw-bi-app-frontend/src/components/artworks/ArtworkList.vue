@@ -485,7 +485,7 @@ export default {
      */
     handleEdit(artwork) {
       this.$router.push({
-        name: 'artwork-edit',
+        name: 'EditArtwork',
         params: { id: artwork.id }
       });
     },

@@ -50,56 +50,6 @@
         </div>
       </div>
 
-      <!-- Health Metrics -->
-      <div class="pt-4 border-t border-gray-100">
-        <h3 class="text-sm font-medium text-gray-700 mb-3">Health Metrics</h3>
-        <div class="space-y-3">
-          <!-- CPU Usage -->
-          <div>
-            <div class="flex justify-between text-xs text-gray-500 mb-1">
-              <span>ETL Process CPU</span>
-              <span>{{ metrics.cpuUsage }}%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="h-2 rounded-full transition-all duration-300"
-                :class="getMetricBarClass(metrics.cpuUsage)"
-                :style="{ width: `${metrics.cpuUsage}%` }"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Memory Usage -->
-          <div>
-            <div class="flex justify-between text-xs text-gray-500 mb-1">
-              <span>Memory Usage</span>
-              <span>{{ metrics.memoryUsage }}%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="h-2 rounded-full transition-all duration-300"
-                :class="getMetricBarClass(metrics.memoryUsage)"
-                :style="{ width: `${metrics.memoryUsage}%` }"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Queue Size -->
-          <div>
-            <div class="flex justify-between text-xs text-gray-500 mb-1">
-              <span>Job Queue</span>
-              <span>{{ metrics.queueSize }} jobs</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                :style="{ width: `${Math.min(metrics.queueSize * 10, 100)}%` }"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Last Activity -->
       <div class="pt-4 border-t border-gray-100">
         <h3 class="text-sm font-medium text-gray-700 mb-3">Last Activity</h3>
@@ -153,13 +103,7 @@ export default {
 
   data() {
     return {
-      metrics: {
-        cpuUsage: 23,
-        memoryUsage: 45,
-        queueSize: 2
-      },
-      uptimeStart: new Date(Date.now() - 86400000 * 3), // 3 days ago
-      metricsInterval: null
+      uptimeStart: new Date(Date.now() - 86400000 * 3) // 3 days ago
     };
   },
 
@@ -217,35 +161,7 @@ export default {
     }
   },
 
-  mounted() {
-    // Start fetching real metrics
-    this.fetchMetrics();
-    this.startMetricsUpdates();
-  },
-
-  beforeUnmount() {
-    if (this.metricsInterval) {
-      clearInterval(this.metricsInterval);
-    }
-  },
-
   methods: {
-    async fetchMetrics() {
-      try {
-        const response = await this.$api.etl.getStatus();
-        if (response.data?.success && response.data?.data?.metrics) {
-          const serverMetrics = response.data.data.metrics;
-          this.metrics = {
-            cpuUsage: serverMetrics.cpuUsage ?? this.metrics.cpuUsage,
-            memoryUsage: serverMetrics.memoryUsage ?? this.metrics.memoryUsage,
-            queueSize: serverMetrics.queueSize ?? this.metrics.queueSize
-          };
-        }
-      } catch (error) {
-        console.error('Failed to fetch metrics:', error);
-        // Keep current metrics values on error
-      }
-    },
     getConnectionIndicatorClasses(status) {
       const base = 'w-3 h-3 rounded-full';
       const statusClasses = {
@@ -278,12 +194,6 @@ export default {
       return statusLabels[status] || status;
     },
 
-    getMetricBarClass(value) {
-      if (value >= 80) return 'bg-red-500';
-      if (value >= 60) return 'bg-yellow-500';
-      return 'bg-green-500';
-    },
-
     formatTimeAgo(date) {
       const now = new Date();
       const diff = now - date;
@@ -296,13 +206,6 @@ export default {
       if (minutes < 60) return `${minutes}m ago`;
       if (hours < 24) return `${hours}h ago`;
       return `${days}d ago`;
-    },
-
-    startMetricsUpdates() {
-      // Poll for real metrics every 5 seconds
-      this.metricsInterval = setInterval(() => {
-        this.fetchMetrics();
-      }, 5000);
     }
   }
 };

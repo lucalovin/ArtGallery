@@ -220,21 +220,41 @@ export default {
         commit('SET_LOADING', true);
         commit('CLEAR_ERROR');
         
-        const response = await artworkAPI.getAll();
-        // API returns { success: true, data: { items: [...] } } or { success: true, data: [...] }
+        // Request a large page size to get all artworks (backend max is 100 per page)
+        // We'll fetch multiple pages if needed
+        const response = await artworkAPI.getAll({ PageSize: 100, Page: 1 });
+        // API returns { success: true, data: { items: [...], totalCount: n } }
         const responseData = response.data;
         let artworks = [];
+        let totalCount = 0;
         
         if (responseData?.success && responseData?.data) {
-          // Handle paginated response { data: { items: [...] } }
+          // Handle paginated response { data: { items: [...], totalCount: n } }
           artworks = responseData.data.items || responseData.data;
+          totalCount = responseData.data.totalCount || artworks.length;
         } else if (Array.isArray(responseData)) {
           artworks = responseData;
+          totalCount = artworks.length;
         }
         
         // Ensure artworks is always an array
         if (!Array.isArray(artworks)) {
           artworks = [];
+        }
+        
+        // Fetch additional pages if there are more artworks
+        if (totalCount > artworks.length) {
+          const totalPages = Math.ceil(totalCount / 100);
+          for (let page = 2; page <= totalPages; page++) {
+            const pageResponse = await artworkAPI.getAll({ PageSize: 100, Page: page });
+            const pageData = pageResponse.data;
+            if (pageData?.success && pageData?.data) {
+              const pageItems = pageData.data.items || pageData.data;
+              if (Array.isArray(pageItems)) {
+                artworks = artworks.concat(pageItems);
+              }
+            }
+          }
         }
         
         commit('SET_ARTWORKS', artworks);
@@ -263,16 +283,19 @@ export default {
         
         // First check if already in state
         const existing = state.artworks.find(a => a.id === parseInt(id));
-        if (existing) {
+        if (existing && existing.artistId) {
+          // Only use cached version if it has full data (including artistId)
           commit('SET_SELECTED_ARTWORK', existing);
           return existing;
         }
         
         // Fetch from API
         const response = await artworkAPI.getById(id);
-        commit('SET_SELECTED_ARTWORK', response.data);
+        // Handle ApiResponse format: { success: true, data: { ... } }
+        const artwork = response.data?.data || response.data;
+        commit('SET_SELECTED_ARTWORK', artwork);
         
-        return response.data;
+        return artwork;
       } catch (error) {
         const message = error.response?.data?.message || 'Failed to fetch artwork';
         commit('SET_ERROR', message);

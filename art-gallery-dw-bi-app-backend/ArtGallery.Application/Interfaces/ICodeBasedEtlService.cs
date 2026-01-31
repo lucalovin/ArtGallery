@@ -25,6 +25,16 @@ public interface ICodeBasedEtlService
     Task<int> PropagateArtworksAsync(CancellationToken cancellationToken = default);
     
     /// <summary>
+    /// Propagates collections from OLTP to DW DIM_COLLECTION.
+    /// </summary>
+    Task<int> PropagateCollectionsAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Propagates locations from OLTP to DW DIM_LOCATION.
+    /// </summary>
+    Task<int> PropagateLocationsAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
     /// Propagates exhibitions from OLTP to DW DIM_EXHIBITION.
     /// </summary>
     Task<int> PropagateExhibitionsAsync(CancellationToken cancellationToken = default);
@@ -53,6 +63,10 @@ public class EtlResult
     public int TotalRecordsProcessed { get; set; }
     public int ArtistsProcessed { get; set; }
     public int ArtworksProcessed { get; set; }
+    public int CollectionsProcessed { get; set; }
+    public int LocationsProcessed { get; set; }
+    public int ExhibitorsProcessed { get; set; }
+    public int PoliciesProcessed { get; set; }
     public int ExhibitionsProcessed { get; set; }
     public int VisitorsProcessed { get; set; }
     public int StaffProcessed { get; set; }
