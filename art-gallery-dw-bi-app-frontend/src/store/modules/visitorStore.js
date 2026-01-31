@@ -112,11 +112,19 @@ export default {
         commit('CLEAR_ERROR');
         
         const response = await visitorAPI.getAll();
-        commit('SET_VISITORS', response.data);
+        // API returns { success: true, data: { items: [...], totalCount: N } }
+        let visitors = [];
+        if (response.data?.success && response.data?.data) {
+          const data = response.data.data;
+          visitors = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+        } else if (Array.isArray(response.data)) {
+          visitors = response.data;
+        }
         
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(response.data));
+        commit('SET_VISITORS', visitors);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(visitors));
         
-        return response.data;
+        return visitors;
       } catch (error) {
         console.warn('API unavailable, loading from localStorage:', error.message);
         dispatch('loadFromLocalStorage');

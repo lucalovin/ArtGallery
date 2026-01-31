@@ -59,29 +59,32 @@
 
           <!-- Artist -->
           <div>
-            <label for="artist" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="artistId" class="block text-sm font-medium text-gray-700 mb-1">
               Artist <span class="text-red-500">*</span>
             </label>
-            <input
-              id="artist"
-              v-model="form.artist"
-              type="text"
+            <select
+              id="artistId"
+              v-model="form.artistId"
               required
               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              :class="errors.artist ? 'border-red-300' : 'border-gray-200'"
-              placeholder="Enter artist name"
-            />
-            <p v-if="errors.artist" class="mt-1 text-sm text-red-500">{{ errors.artist }}</p>
+              :class="errors.artistId ? 'border-red-300' : 'border-gray-200'"
+            >
+              <option value="">Select an artist</option>
+              <option v-for="artist in artists" :key="artist.id" :value="artist.id">
+                {{ artist.name }}{{ artist.description ? ` (${artist.description})` : '' }}
+              </option>
+            </select>
+            <p v-if="errors.artistId" class="mt-1 text-sm text-red-500">{{ errors.artistId }}</p>
           </div>
 
           <!-- Year -->
           <div>
-            <label for="year" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="yearCreated" class="block text-sm font-medium text-gray-700 mb-1">
               Year Created <span class="text-red-500">*</span>
             </label>
             <input
-              id="year"
-              v-model.number="form.year"
+              id="yearCreated"
+              v-model.number="form.yearCreated"
               type="number"
               required
               min="1"
@@ -91,46 +94,6 @@
               placeholder="e.g., 1889"
             />
             <p v-if="errors.year" class="mt-1 text-sm text-red-500">{{ errors.year }}</p>
-          </div>
-
-          <!-- Category -->
-          <div>
-            <label for="category" class="block text-sm font-medium text-gray-700 mb-1">
-              Category <span class="text-red-500">*</span>
-            </label>
-            <select
-              id="category"
-              v-model="form.category"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              :class="errors.category ? 'border-red-300' : 'border-gray-200'"
-            >
-              <option value="">Select category</option>
-              <option v-for="category in categories" :key="category" :value="category">
-                {{ category }}
-              </option>
-            </select>
-            <p v-if="errors.category" class="mt-1 text-sm text-red-500">{{ errors.category }}</p>
-          </div>
-
-          <!-- Status -->
-          <div>
-            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
-              Status <span class="text-red-500">*</span>
-            </label>
-            <select
-              id="status"
-              v-model="form.status"
-              required
-              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              :class="errors.status ? 'border-red-300' : 'border-gray-200'"
-            >
-              <option value="">Select status</option>
-              <option v-for="status in statuses" :key="status" :value="status">
-                {{ status }}
-              </option>
-            </select>
-            <p v-if="errors.status" class="mt-1 text-sm text-red-500">{{ errors.status }}</p>
           </div>
 
           <!-- Medium -->
@@ -146,34 +109,6 @@
               placeholder="e.g., Oil on canvas"
             />
           </div>
-
-          <!-- Dimensions -->
-          <div>
-            <label for="dimensions" class="block text-sm font-medium text-gray-700 mb-1">
-              Dimensions
-            </label>
-            <input
-              id="dimensions"
-              v-model="form.dimensions"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g., 73.7 cm × 92.1 cm"
-            />
-          </div>
-
-          <!-- Description -->
-          <div class="md:col-span-2">
-            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              v-model="form.description"
-              rows="4"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Enter artwork description..."
-            ></textarea>
-          </div>
         </div>
       </div>
 
@@ -184,29 +119,36 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Location -->
           <div>
-            <label for="location" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="locationId" class="block text-sm font-medium text-gray-700 mb-1">
               Current Location
             </label>
-            <input
-              id="location"
-              v-model="form.location"
-              type="text"
+            <select
+              id="locationId"
+              v-model="form.locationId"
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g., Gallery A, Room 3"
-            />
+            >
+              <option value="">Select a location</option>
+              <option v-for="location in locations" :key="location.id" :value="location.id">
+                {{ location.name }}{{ location.description ? ` - ${location.description}` : '' }}
+              </option>
+            </select>
           </div>
 
-          <!-- Acquisition Date -->
+          <!-- Collection -->
           <div>
-            <label for="acquisitionDate" class="block text-sm font-medium text-gray-700 mb-1">
-              Acquisition Date
+            <label for="collectionId" class="block text-sm font-medium text-gray-700 mb-1">
+              Collection
             </label>
-            <input
-              id="acquisitionDate"
-              v-model="form.acquisitionDate"
-              type="date"
+            <select
+              id="collectionId"
+              v-model="form.collectionId"
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
+            >
+              <option value="">Select a collection</option>
+              <option v-for="collection in collections" :key="collection.id" :value="collection.id">
+                {{ collection.name }}
+              </option>
+            </select>
           </div>
 
           <!-- Estimated Value -->
@@ -224,63 +166,7 @@
               placeholder="Enter estimated value"
             />
           </div>
-
-          <!-- Image URL -->
-          <div>
-            <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">
-              Image URL
-            </label>
-            <input
-              id="imageUrl"
-              v-model="form.imageUrl"
-              type="url"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
         </div>
-      </div>
-
-      <!-- Tags Card -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Tags</h2>
-        
-        <!-- Tag Input -->
-        <div class="flex items-center space-x-2 mb-4">
-          <input
-            v-model="newTag"
-            type="text"
-            class="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="Add a tag..."
-            @keydown.enter.prevent="addTag"
-          />
-          <button
-            type="button"
-            @click="addTag"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-          >
-            Add
-          </button>
-        </div>
-
-        <!-- Tag List -->
-        <div v-if="form.tags.length > 0" class="flex flex-wrap gap-2">
-          <span 
-            v-for="(tag, index) in form.tags" 
-            :key="index"
-            class="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm"
-          >
-            {{ tag }}
-            <button
-              type="button"
-              @click="removeTag(index)"
-              class="ml-2 hover:text-primary-900"
-            >
-              ×
-            </button>
-          </span>
-        </div>
-        <p v-else class="text-sm text-gray-400">No tags added yet</p>
       </div>
 
       <!-- Form Actions -->
@@ -311,6 +197,7 @@ import { mapActions } from 'vuex';
 /**
  * AddEditArtwork Page Component
  * Form for creating and editing artworks
+ * Properly respects OLTP FK relationships: Artist, Collection, Location
  */
 export default {
   name: 'AddEditArtworkPage',
@@ -326,23 +213,18 @@ export default {
     return {
       isLoading: false,
       isSubmitting: false,
-      newTag: '',
-      categories: ['Painting', 'Sculpture', 'Photography', 'Drawing', 'Print', 'Mixed Media', 'Digital Art'],
-      statuses: ['On Display', 'In Storage', 'On Loan', 'Under Restoration'],
+      // Lookup data from database
+      artists: [],
+      collections: [],
+      locations: [],
       form: {
         title: '',
-        artist: '',
-        year: null,
-        category: '',
-        status: '',
+        artistId: '',          // FK to Artist table
+        yearCreated: null,
         medium: '',
-        dimensions: '',
-        description: '',
-        location: '',
-        acquisitionDate: '',
-        estimatedValue: null,
-        imageUrl: '',
-        tags: []
+        collectionId: '',      // FK to Collection table
+        locationId: '',        // FK to Location table
+        estimatedValue: null
       },
       errors: {}
     };
@@ -371,12 +253,48 @@ export default {
     }
   },
 
+  async created() {
+    await this.loadLookups();
+  },
+
   methods: {
     ...mapActions({
       createArtworkAction: 'artwork/createArtwork',
       updateArtworkAction: 'artwork/updateArtwork',
       fetchArtworkById: 'artwork/fetchArtworkById'
     }),
+
+    async loadLookups() {
+      try {
+        // Fetch all lookups in parallel
+        const [artistsRes, collectionsRes, locationsRes] = await Promise.all([
+          this.$api.lookups.getArtists(),
+          this.$api.lookups.getCollections(),
+          this.$api.lookups.getLocations()
+        ]);
+
+        // Handle ApiResponse format: { success: true, data: [...] }
+        if (artistsRes.data?.success && artistsRes.data?.data) {
+          this.artists = artistsRes.data.data;
+        } else if (Array.isArray(artistsRes.data)) {
+          this.artists = artistsRes.data;
+        }
+        
+        if (collectionsRes.data?.success && collectionsRes.data?.data) {
+          this.collections = collectionsRes.data.data;
+        } else if (Array.isArray(collectionsRes.data)) {
+          this.collections = collectionsRes.data;
+        }
+        
+        if (locationsRes.data?.success && locationsRes.data?.data) {
+          this.locations = locationsRes.data.data;
+        } else if (Array.isArray(locationsRes.data)) {
+          this.locations = locationsRes.data;
+        }
+      } catch (error) {
+        console.error('Error loading lookups:', error);
+      }
+    },
 
     async loadArtwork() {
       this.isLoading = true;
@@ -386,18 +304,12 @@ export default {
         if (artwork) {
           this.form = {
             title: artwork.title || '',
-            artist: artwork.artist || '',
-            year: artwork.year || null,
-            category: artwork.category || '',
-            status: artwork.status || '',
+            artistId: artwork.artistId || '',
+            yearCreated: artwork.yearCreated || artwork.year || null,
             medium: artwork.medium || '',
-            dimensions: artwork.dimensions || '',
-            description: artwork.description || '',
-            location: artwork.location || '',
-            acquisitionDate: artwork.acquisitionDate || '',
-            estimatedValue: artwork.estimatedValue || null,
-            imageUrl: artwork.imageUrl || '',
-            tags: artwork.tags || []
+            collectionId: artwork.collectionId || '',
+            locationId: artwork.locationId || '',
+            estimatedValue: artwork.estimatedValue || null
           };
         }
       } catch (error) {
@@ -411,18 +323,12 @@ export default {
     resetForm() {
       this.form = {
         title: '',
-        artist: '',
-        year: null,
-        category: '',
-        status: '',
+        artistId: '',
+        yearCreated: null,
         medium: '',
-        dimensions: '',
-        description: '',
-        location: '',
-        acquisitionDate: '',
-        estimatedValue: null,
-        imageUrl: '',
-        tags: []
+        collectionId: '',
+        locationId: '',
+        estimatedValue: null
       };
       this.errors = {};
     },
@@ -434,22 +340,14 @@ export default {
         this.errors.title = 'Title is required';
       }
 
-      if (!this.form.artist.trim()) {
-        this.errors.artist = 'Artist is required';
+      if (!this.form.artistId) {
+        this.errors.artistId = 'Artist is required';
       }
 
-      if (!this.form.year) {
+      if (!this.form.yearCreated) {
         this.errors.year = 'Year is required';
-      } else if (this.form.year > this.currentYear) {
+      } else if (this.form.yearCreated > this.currentYear) {
         this.errors.year = 'Year cannot be in the future';
-      }
-
-      if (!this.form.category) {
-        this.errors.category = 'Category is required';
-      }
-
-      if (!this.form.status) {
-        this.errors.status = 'Status is required';
       }
 
       return Object.keys(this.errors).length === 0;
@@ -463,10 +361,21 @@ export default {
       this.isSubmitting = true;
 
       try {
+        // Prepare data for API (matching backend DTO)
+        const artworkData = {
+          title: this.form.title,
+          artistId: parseInt(this.form.artistId),
+          yearCreated: this.form.yearCreated,
+          medium: this.form.medium || null,
+          collectionId: this.form.collectionId ? parseInt(this.form.collectionId) : null,
+          locationId: this.form.locationId ? parseInt(this.form.locationId) : null,
+          estimatedValue: this.form.estimatedValue || null
+        };
+
         if (this.isEditMode) {
-          await this.updateArtworkAction({ id: this.id, ...this.form });
+          await this.$api.artworks.update(this.id, artworkData);
         } else {
-          await this.createArtworkAction(this.form);
+          await this.$api.artworks.create(artworkData);
         }
 
         // Navigate back to inventory
@@ -477,18 +386,6 @@ export default {
       } finally {
         this.isSubmitting = false;
       }
-    },
-
-    addTag() {
-      const tag = this.newTag.trim();
-      if (tag && !this.form.tags.includes(tag)) {
-        this.form.tags.push(tag);
-        this.newTag = '';
-      }
-    },
-
-    removeTag(index) {
-      this.form.tags.splice(index, 1);
     },
 
     goBack() {

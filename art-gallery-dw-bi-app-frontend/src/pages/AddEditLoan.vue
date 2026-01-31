@@ -1,11 +1,12 @@
-<template>
+﻿<template>
   <!--
     AddEditLoan.vue - Add/Edit Loan Form
     Art Gallery Management System
+    Form respects Loan table schema with ArtworkId and ExhibitorId FKs
   -->
   <div class="add-edit-loan-page">
     <button @click="goBack" class="inline-flex items-center text-gray-500 hover:text-gray-700 mb-6">
-      <span class="mr-2">←</span>
+      <span class="mr-2"></span>
       Back to Loans
     </button>
 
@@ -18,7 +19,7 @@
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <!-- Artwork Selection -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Artwork Details</h2>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Artwork & Exhibitor</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -30,69 +31,27 @@
               required
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
-              <option value="">Select Artwork</option>
-              <option v-for="artwork in availableArtworks" :key="artwork.id" :value="artwork.id">
-                {{ artwork.title }} - {{ artwork.artist }}
+              <option value="" disabled>Select Artwork</option>
+              <option v-for="artwork in artworks" :key="artwork.id" :value="artwork.id">
+                {{ artwork.title }} {{ artwork.artistName ? `(${artwork.artistName})` : '' }}
               </option>
             </select>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              v-model="form.status"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="Pending">Pending Approval</option>
-              <option value="Active">Active</option>
-              <option value="Returned">Returned</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Borrower Details -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Borrower Information</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Institution Name <span class="text-red-500">*</span>
+              Exhibitor <span class="text-red-500">*</span>
             </label>
-            <input
-              v-model="form.borrowerName"
-              type="text"
+            <select
+              v-model="form.exhibitorId"
               required
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-            <input
-              v-model="form.contactPerson"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
-            <input
-              v-model="form.contactEmail"
-              type="email"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
-            <input
-              v-model="form.contactPhone"
-              type="tel"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
+            >
+              <option value="" disabled>Select Exhibitor</option>
+              <option v-for="exhibitor in exhibitors" :key="exhibitor.id" :value="exhibitor.id">
+                {{ exhibitor.name }}
+              </option>
+            </select>
           </div>
         </div>
       </div>
@@ -103,10 +62,13 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Start Date <span class="text-red-500">*</span>
+            </label>
             <input
               v-model="form.startDate"
               type="date"
+              required
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -122,56 +84,11 @@
         </div>
       </div>
 
-      <!-- Financial Details -->
+      <!-- Conditions -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Financial & Insurance</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Loan Fee (USD)</label>
-            <input
-              v-model.number="form.loanFee"
-              type="number"
-              min="0"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Insured Value (USD)</label>
-            <input
-              v-model.number="form.insuredValue"
-              type="number"
-              min="0"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Insurance Provider</label>
-            <input
-              v-model="form.insuranceProvider"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Policy Number</label>
-            <input
-              v-model="form.policyNumber"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Notes -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Additional Notes</h2>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Conditions</h2>
         <textarea
-          v-model="form.notes"
+          v-model="form.conditions"
           rows="4"
           class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
           placeholder="Special conditions, handling instructions, etc."
@@ -199,10 +116,11 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapActions } from 'vuex';
 
 /**
  * AddEditLoan Page - OPTIONS API
+ * Form respects Loan table schema: ArtworkId (FK), ExhibitorId (FK), StartDate, EndDate, Conditions
  */
 export default {
   name: 'AddEditLoanPage',
@@ -217,45 +135,28 @@ export default {
   data() {
     return {
       isSubmitting: false,
+      artworks: [],
+      exhibitors: [],
       form: {
         artworkId: '',
-        artworkTitle: '',
-        artist: '',
-        status: 'Pending',
-        borrowerName: '',
-        contactPerson: '',
-        contactEmail: '',
-        contactPhone: '',
+        exhibitorId: '',
         startDate: '',
         endDate: '',
-        loanFee: null,
-        insuredValue: null,
-        insuranceProvider: '',
-        policyNumber: '',
-        notes: '',
-        daysRemaining: 0
+        conditions: ''
       }
     };
   },
 
   computed: {
-    ...mapState({
-      artworks: state => state.artwork?.artworks || [],
-      loans: state => state.loans?.loans || []
-    }),
-
-    availableArtworks() {
-      return this.artworks.map(a => ({ id: a.id, title: a.title, artist: a.artist }));
-    },
-
     isEditMode() {
       return !!this.id;
     }
   },
 
-  created() {
+  async created() {
+    await this.loadLookups();
     if (this.isEditMode) {
-      this.loadLoan();
+      await this.loadLoan();
     }
   },
 
@@ -263,37 +164,57 @@ export default {
     ...mapActions({
       createLoan: 'loans/createLoan',
       updateLoan: 'loans/updateLoan',
-      fetchLoans: 'loans/fetchLoans'
+      fetchLoanById: 'loans/fetchLoanById'
     }),
 
+    async loadLookups() {
+      try {
+        const [artworksResponse, exhibitorsResponse] = await Promise.all([
+          this.$api.lookups.getArtworks(),
+          this.$api.lookups.getExhibitors()
+        ]);
+        
+        // Extract data from API response wrapper { success: true, data: [...] }
+        this.artworks = artworksResponse.data?.data || artworksResponse.data || [];
+        this.exhibitors = exhibitorsResponse.data?.data || exhibitorsResponse.data || [];
+      } catch (error) {
+        console.error('Failed to load lookups:', error);
+      }
+    },
+
     async loadLoan() {
-      const loan = this.loans.find(l => l.id === parseInt(this.id));
-      if (loan) {
-        this.form = { ...loan };
+      try {
+        const loan = await this.fetchLoanById(this.id);
+        this.form = {
+          artworkId: loan.artworkId || '',
+          exhibitorId: loan.exhibitorId || '',
+          startDate: loan.startDate ? loan.startDate.split('T')[0] : '',
+          endDate: loan.endDate ? loan.endDate.split('T')[0] : '',
+          conditions: loan.conditions || ''
+        };
+      } catch (error) {
+        console.error('Error loading loan:', error);
+        this.$router.push('/loans');
       }
     },
 
     async handleSubmit() {
       this.isSubmitting = true;
       try {
-        // Get artwork details
-        const artwork = this.artworks.find(a => a.id === parseInt(this.form.artworkId));
-        if (artwork) {
-          this.form.artworkTitle = artwork.title;
-          this.form.artist = artwork.artist;
-        }
-        
-        // Calculate days remaining
-        if (this.form.endDate) {
-          const end = new Date(this.form.endDate);
-          const now = new Date();
-          this.form.daysRemaining = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-        }
+        // Build DTO matching backend CreateLoanDto/UpdateLoanDto
+        // Ensure dates are in ISO format and empty strings become null
+        const submitData = {
+          artworkId: parseInt(this.form.artworkId),
+          exhibitorId: parseInt(this.form.exhibitorId),
+          startDate: this.form.startDate ? new Date(this.form.startDate).toISOString() : null,
+          endDate: this.form.endDate ? new Date(this.form.endDate).toISOString() : null,
+          conditions: this.form.conditions || null
+        };
 
         if (this.isEditMode) {
-          await this.updateLoan({ id: parseInt(this.id), ...this.form });
+          await this.updateLoan({ id: parseInt(this.id), ...submitData });
         } else {
-          await this.createLoan(this.form);
+          await this.createLoan(submitData);
         }
         this.$router.push('/loans');
       } catch (error) {

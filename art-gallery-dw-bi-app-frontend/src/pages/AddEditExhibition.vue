@@ -34,64 +34,38 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
             <input
               v-model="form.startDate"
               type="date"
+              required
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">End Date <span class="text-red-500">*</span></label>
             <input
               v-model="form.endDate"
               type="date"
+              required
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Curator</label>
-            <input
-              v-model="form.curator"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="Curator name"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-            <input
-              v-model="form.location"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="Gallery location"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Ticket Price</label>
-            <input
-              v-model.number="form.ticketPrice"
-              type="number"
-              min="0"
-              step="0.01"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="0.00"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Exhibitor <span class="text-red-500">*</span>
+            </label>
             <select
-              v-model="form.status"
+              v-model="form.exhibitorId"
+              required
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
-              <option value="upcoming">Upcoming</option>
-              <option value="current">Current</option>
-              <option value="past">Past</option>
+              <option value="" disabled>Select an exhibitor</option>
+              <option v-for="exhibitor in exhibitors" :key="exhibitor.id" :value="exhibitor.id">
+                {{ exhibitor.name }}
+              </option>
             </select>
           </div>
 
@@ -132,6 +106,7 @@ import { mapActions } from 'vuex';
 
 /**
  * AddEditExhibition Page
+ * Form respects Exhibition table schema with ExhibitorId FK
  */
 export default {
   name: 'AddEditExhibitionPage',
@@ -146,15 +121,13 @@ export default {
   data() {
     return {
       isSubmitting: false,
+      exhibitors: [],
       form: {
         title: '',
         description: '',
         startDate: '',
         endDate: '',
-        curator: '',
-        location: '',
-        ticketPrice: null,
-        status: 'upcoming'
+        exhibitorId: ''
       }
     };
   },
@@ -165,9 +138,10 @@ export default {
     }
   },
 
-  created() {
+  async created() {
+    await this.loadLookups();
     if (this.isEditMode) {
-      this.loadExhibition();
+      await this.loadExhibition();
     }
   },
 
@@ -178,18 +152,32 @@ export default {
       fetchExhibitionById: 'exhibition/fetchExhibitionById'
     }),
 
+    async loadLookups() {
+      try {
+        const response = await this.$api.lookups.getExhibitors();
+        // API returns { success: true, data: [...] }
+        if (response.data?.success && response.data?.data) {
+          this.exhibitors = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          this.exhibitors = response.data;
+        } else {
+          this.exhibitors = [];
+        }
+      } catch (error) {
+        console.error('Failed to load lookups:', error);
+        this.exhibitors = [];
+      }
+    },
+
     async loadExhibition() {
       try {
         const exhibition = await this.fetchExhibitionById(this.id);
         this.form = {
           title: exhibition.title || '',
           description: exhibition.description || '',
-          startDate: exhibition.startDate || '',
-          endDate: exhibition.endDate || '',
-          curator: exhibition.curator || '',
-          location: exhibition.location || '',
-          ticketPrice: exhibition.ticketPrice || null,
-          status: exhibition.status || 'upcoming'
+          startDate: exhibition.startDate ? exhibition.startDate.split('T')[0] : '',
+          endDate: exhibition.endDate ? exhibition.endDate.split('T')[0] : '',
+          exhibitorId: exhibition.exhibitorId || ''
         };
       } catch (error) {
         console.error('Failed to load exhibition:', error);
@@ -200,13 +188,21 @@ export default {
     async handleSubmit() {
       this.isSubmitting = true;
       try {
+        const submitData = {
+          title: this.form.title,
+          description: this.form.description || null,
+          startDate: this.form.startDate,
+          endDate: this.form.endDate,
+          exhibitorId: parseInt(this.form.exhibitorId)
+        };
+
         if (this.isEditMode) {
           await this.updateExhibition({
             id: this.id,
-            ...this.form
+            ...submitData
           });
         } else {
-          await this.createExhibition(this.form);
+          await this.createExhibition(submitData);
         }
         this.$router.push('/exhibitions');
       } catch (error) {

@@ -128,11 +128,11 @@
                   New Exhibition
                 </router-link>
                 <router-link 
-                  to="/visitors/new" 
+                  to="/reviews/new" 
                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   @click="showQuickActions = false"
                 >
-                  New Visitor
+                  New Review
                 </router-link>
                 <router-link 
                   to="/loans/new" 
@@ -319,6 +319,16 @@ export default {
           children: [
             { name: 'All Exhibitions', path: '/exhibitions' },
             { name: 'Add Exhibition', path: '/exhibitions/new' }
+          ]
+        },
+        { 
+          name: 'Management', 
+          children: [
+            { name: 'Reviews', path: '/reviews' },
+            { name: 'Visitors', path: '/visitors' },
+            { name: 'Staff', path: '/staff' },
+            { name: 'Loans', path: '/loans' },
+            { name: 'Insurance', path: '/insurance' }
           ]
         },
         { name: 'ETL Management', path: '/etl' },

@@ -73,8 +73,9 @@ export default {
      * Set all artworks
      */
     SET_ARTWORKS(state, artworks) {
-      state.artworks = artworks;
-      state.pagination.totalItems = artworks.length;
+      // Ensure artworks is always an array
+      state.artworks = Array.isArray(artworks) ? artworks : [];
+      state.pagination.totalItems = state.artworks.length;
     },
 
     /**
@@ -220,12 +221,28 @@ export default {
         commit('CLEAR_ERROR');
         
         const response = await artworkAPI.getAll();
-        commit('SET_ARTWORKS', response.data);
+        // API returns { success: true, data: { items: [...] } } or { success: true, data: [...] }
+        const responseData = response.data;
+        let artworks = [];
+        
+        if (responseData?.success && responseData?.data) {
+          // Handle paginated response { data: { items: [...] } }
+          artworks = responseData.data.items || responseData.data;
+        } else if (Array.isArray(responseData)) {
+          artworks = responseData;
+        }
+        
+        // Ensure artworks is always an array
+        if (!Array.isArray(artworks)) {
+          artworks = [];
+        }
+        
+        commit('SET_ARTWORKS', artworks);
         
         // Also save to LocalStorage for persistence
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(response.data));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(artworks));
         
-        return response.data;
+        return artworks;
       } catch (error) {
         console.warn('API unavailable, loading from localStorage:', error.message);
         // Fallback to localStorage when API fails

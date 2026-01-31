@@ -2,12 +2,13 @@
   <!--
     StaffManagement.vue - Staff Management Page
     Art Gallery Management System
+    Displays staff with fields: Name, Role, HireDate, CertificationLevel
   -->
   <div class="staff-management-page">
     <header class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Staff Management</h1>
-        <p class="text-gray-500 mt-1">Manage gallery employees and departments</p>
+        <p class="text-gray-500 mt-1">Manage gallery employees</p>
       </div>
       <router-link
         to="/staff/new"
@@ -18,18 +19,18 @@
       </router-link>
     </header>
 
-    <!-- Department Filter -->
+    <!-- Role Filter -->
     <div class="flex flex-wrap gap-2 mb-6">
       <button
-        v-for="dept in departments"
-        :key="dept"
-        @click="selectedDepartment = selectedDepartment === dept ? '' : dept"
+        v-for="role in roles"
+        :key="role"
+        @click="selectedRole = selectedRole === role ? '' : role"
         class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-        :class="selectedDepartment === dept 
+        :class="selectedRole === role 
           ? 'bg-primary-600 text-white' 
           : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'"
       >
-        {{ dept }}
+        {{ role }}
       </button>
     </div>
 
@@ -55,29 +56,25 @@
         <div class="flex items-start justify-between mb-4">
           <div class="flex items-center space-x-4">
             <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-2xl text-primary-600 font-bold">
-              {{ staff.name.split(' ').map(n => n[0]).join('') }}
+              {{ getInitials(staff.name) }}
             </div>
             <div>
               <h3 class="font-semibold text-gray-900">{{ staff.name }}</h3>
-              <p class="text-sm text-gray-500">{{ staff.position }}</p>
+              <p class="text-sm text-gray-500">{{ staff.role }}</p>
             </div>
           </div>
           <span 
-            class="px-2 py-1 text-xs font-medium rounded-full"
-            :class="staff.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+            v-if="staff.certificationLevel"
+            class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700"
           >
-            {{ staff.isActive ? 'Active' : 'Inactive' }}
+            {{ staff.certificationLevel }}
           </span>
         </div>
 
         <div class="space-y-2 text-sm">
           <div class="flex items-center text-gray-600">
-            <span class="mr-2">🏢</span>
-            {{ staff.department }}
-          </div>
-          <div class="flex items-center text-gray-600">
-            <span class="mr-2">📧</span>
-            {{ staff.email }}
+            <span class="mr-2">💼</span>
+            {{ staff.role }}
           </div>
           <div class="flex items-center text-gray-600">
             <span class="mr-2">📅</span>
@@ -100,6 +97,13 @@
           </button>
         </div>
       </div>
+
+      <div v-if="filteredStaff.length === 0" class="col-span-full text-center py-12 text-gray-500">
+        No staff members found.
+        <router-link to="/staff/new" class="text-primary-600 hover:text-primary-700 ml-1">
+          Add one now
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -107,6 +111,7 @@
 <script>
 /**
  * StaffManagement Page
+ * Displays staff with backend fields: Name, Role, HireDate, CertificationLevel
  */
 export default {
   name: 'StaffManagementPage',
@@ -114,18 +119,18 @@ export default {
   data() {
     return {
       isLoading: true,
-      selectedDepartment: '',
-      departments: ['All', 'Curatorial', 'Administration', 'Security', 'Education', 'Maintenance'],
+      selectedRole: '',
+      roles: ['All', 'Curator', 'Restorer', 'Security', 'Guide', 'Administrator', 'Maintenance'],
       staff: []
     };
   },
 
   computed: {
     filteredStaff() {
-      if (!this.selectedDepartment || this.selectedDepartment === 'All') {
+      if (!this.selectedRole || this.selectedRole === 'All') {
         return this.staff;
       }
-      return this.staff.filter(s => s.department === this.selectedDepartment);
+      return this.staff.filter(s => s.role === this.selectedRole);
     }
   },
 
@@ -138,20 +143,22 @@ export default {
       this.isLoading = true;
       try {
         const response = await this.$api.staff?.getStaff?.();
+        // API returns { success: true, data: { items: [...], totalCount: N } }
         if (response?.data?.success && response.data?.data) {
-          this.staff = response.data.data.map(s => ({
+          const data = response.data.data;
+          const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+          this.staff = items.map(s => ({
             id: s.id,
-            name: s.name || `${s.firstName} ${s.lastName}`,
-            position: s.position || s.jobTitle,
-            department: s.department,
-            email: s.email,
-            hireDate: s.hireDate || s.startDate,
-            isActive: s.isActive !== false
+            name: s.name,
+            role: s.role,
+            hireDate: s.hireDate,
+            certificationLevel: s.certificationLevel
           }));
+        } else if (Array.isArray(response?.data)) {
+          this.staff = response.data;
         }
       } catch (error) {
         console.error('Failed to load staff:', error);
-        // Keep empty array on error
         this.staff = [];
       } finally {
         this.isLoading = false;
@@ -163,15 +170,24 @@ export default {
     },
 
     async deleteStaff(staff) {
+      if (!confirm(`Are you sure you want to remove "${staff.name}"?`)) return;
+      
       try {
         await this.$api.staff?.deleteStaff?.(staff.id);
         this.staff = this.staff.filter(s => s.id !== staff.id);
       } catch (error) {
         console.error('Failed to delete staff:', error);
+        alert('Failed to remove staff member. Please try again.');
       }
     },
 
+    getInitials(name) {
+      if (!name) return '?';
+      return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    },
+
     formatDate(date) {
+      if (!date) return 'N/A';
       return new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     }
   }

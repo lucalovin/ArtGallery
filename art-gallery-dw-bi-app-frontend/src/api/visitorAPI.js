@@ -72,6 +72,15 @@ export const visitorAPI = {
   },
 
   /**
+   * Get a review by ID
+   * @param {number|string} id - Review ID
+   * @returns {Promise} Axios response promise
+   */
+  getReviewById: (id) => {
+    return apiClient.get(`/reviews/${id}`);
+  },
+
+  /**
    * Get reviews by exhibition
    * @param {number|string} exhibitionId - Exhibition ID
    * @returns {Promise} Axios response promise

@@ -27,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<InsurancePolicy> InsurancePolicies => Set<InsurancePolicy>();
     public DbSet<Insurance> Insurances => Set<Insurance>();
     public DbSet<Restoration> Restorations => Set<Restoration>();
+    public DbSet<GalleryReview> GalleryReviews => Set<GalleryReview>();
     public DbSet<EtlSync> EtlSyncs => Set<EtlSync>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

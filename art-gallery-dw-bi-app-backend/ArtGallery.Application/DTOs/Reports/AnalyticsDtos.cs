@@ -29,9 +29,9 @@ public class ArtworkInventoryDto
     public string Title { get; set; } = string.Empty;
     public string ArtistName { get; set; } = string.Empty;
     public int? CreationYear { get; set; }
-    public string Medium { get; set; } = string.Empty;
-    public string CollectionType { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public string? Medium { get; set; }
+    public string? CollectionType { get; set; }
+    public string? Status { get; set; }
     public decimal? EstimatedValue { get; set; }
     public decimal? InsuranceValue { get; set; }
     public int ExhibitionCount { get; set; }
@@ -75,8 +75,8 @@ public class ArtistPerformanceDto
 {
     public int ArtistKey { get; set; }
     public string ArtistName { get; set; } = string.Empty;
-    public string Nationality { get; set; } = string.Empty;
-    public string ArtMovement { get; set; } = string.Empty;
+    public string? Nationality { get; set; }
+    public string? ArtMovement { get; set; }
     public int TotalArtworks { get; set; }
     public decimal TotalEstimatedValue { get; set; }
     public decimal AverageArtworkValue { get; set; }
@@ -215,8 +215,8 @@ public class ArtistStatisticsDto
 /// </summary>
 public class CategoryValueDto
 {
-    public string MediumType { get; set; } = string.Empty;
-    public string CollectionName { get; set; } = string.Empty;
+    public string? MediumType { get; set; }
+    public string? CollectionName { get; set; }
     public int ArtworkCount { get; set; }
     public decimal TotalValue { get; set; }
     public decimal AverageValue { get; set; }
@@ -243,8 +243,8 @@ public class MonthlyActivityDto
 public class LocationDistributionDto
 {
     public string LocationName { get; set; } = string.Empty;
-    public string GalleryRoom { get; set; } = string.Empty;
-    public string LocationType { get; set; } = string.Empty;
+    public string? GalleryRoom { get; set; }
+    public string? LocationType { get; set; }
     public int ArtworksCount { get; set; }
     public decimal TotalValue { get; set; }
     public decimal Percentage { get; set; }

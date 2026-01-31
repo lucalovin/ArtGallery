@@ -71,6 +71,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// CORS (must be before exception handling to ensure error responses include CORS headers)
+app.UseCors("AllowVueApp");
+
 // Global exception handling
 app.UseExceptionHandling();
 
@@ -84,9 +87,6 @@ app.UseHttpsRedirection();
 
 // Response caching
 app.UseResponseCaching();
-
-// CORS
-app.UseCors("AllowVueApp");
 
 app.UseAuthorization();
 

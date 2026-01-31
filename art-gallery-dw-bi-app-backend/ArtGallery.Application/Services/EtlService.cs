@@ -12,11 +12,19 @@ namespace ArtGallery.Application.Services;
 public class EtlService : IEtlService
 {
     private readonly IRepository<EtlSync> _repository;
+    private readonly IEntityCountService _entityCountService;
+    private readonly ICodeBasedEtlService _codeBasedEtlService;
     private readonly IMapper _mapper;
 
-    public EtlService(IRepository<EtlSync> repository, IMapper mapper)
+    public EtlService(
+        IRepository<EtlSync> repository, 
+        IEntityCountService entityCountService,
+        ICodeBasedEtlService codeBasedEtlService,
+        IMapper mapper)
     {
         _repository = repository;
+        _entityCountService = entityCountService;
+        _codeBasedEtlService = codeBasedEtlService;
         _mapper = mapper;
     }
 
@@ -62,15 +70,18 @@ public class EtlService : IEtlService
 
         try
         {
-            // Simulate ETL processing
-            await Task.Delay(2000); // Simulate work
+            // Actually propagate data from OLTP to DW
+            var fullLoad = dto.SyncType?.ToLower() == "full";
+            var result = await _codeBasedEtlService.PropagateAllAsync(fullLoad);
 
             stopwatch.Stop();
-            sync.Status = "Completed";
-            sync.RecordsProcessed = new Random().Next(100, 500);
-            sync.RecordsFailed = 0;
+            sync.Status = result.Success ? "Completed" : "Failed";
+            sync.RecordsProcessed = result.TotalRecordsProcessed;
+            sync.RecordsFailed = result.Success ? 0 : 1;
             sync.Duration = stopwatch.ElapsedMilliseconds;
-            sync.Details = $"Successfully synced {sync.RecordsProcessed} records";
+            sync.Details = result.Success 
+                ? $"Successfully synced {result.TotalRecordsProcessed} records (Artists: {result.ArtistsProcessed}, Artworks: {result.ArtworksProcessed}, Exhibitions: {result.ExhibitionsProcessed}, Visitors: {result.VisitorsProcessed}, Staff: {result.StaffProcessed}, Facts: {result.FactRecordsProcessed})"
+                : result.ErrorMessage;
         }
         catch (Exception ex)
         {
@@ -90,15 +101,69 @@ public class EtlService : IEtlService
     {
         var syncs = await _repository.Query().ToListAsync();
         var lastSync = syncs.OrderByDescending(s => s.SyncDate).FirstOrDefault();
+        var isRunning = syncs.Any(s => s.Status == "Running");
+
+        // Get record counts from actual database tables
+        var dataSources = new List<EtlDataSourceDto>
+        {
+            new EtlDataSourceDto 
+            { 
+                Id = "artworks", 
+                Name = "Artworks", 
+                Status = "connected",
+                RecordCount = await _entityCountService.GetArtworkCountAsync()
+            },
+            new EtlDataSourceDto 
+            { 
+                Id = "exhibitions", 
+                Name = "Exhibitions", 
+                Status = "connected",
+                RecordCount = await _entityCountService.GetExhibitionCountAsync()
+            },
+            new EtlDataSourceDto 
+            { 
+                Id = "visitors", 
+                Name = "Visitors", 
+                Status = "connected",
+                RecordCount = await _entityCountService.GetVisitorCountAsync()
+            },
+            new EtlDataSourceDto 
+            { 
+                Id = "staff", 
+                Name = "Staff", 
+                Status = "connected",
+                RecordCount = await _entityCountService.GetStaffCountAsync()
+            },
+            new EtlDataSourceDto 
+            { 
+                Id = "loans", 
+                Name = "Loans", 
+                Status = "connected",
+                RecordCount = await _entityCountService.GetLoanCountAsync()
+            }
+        };
+
+        var totalRecords = dataSources.Sum(ds => ds.RecordCount);
+        var successfulSyncs = syncs.Count(s => s.Status == "Completed");
+        var successRate = syncs.Count > 0 ? (double)successfulSyncs / syncs.Count * 100 : 100;
 
         return new EtlStatusDto
         {
-            IsRunning = syncs.Any(s => s.Status == "Running"),
+            IsRunning = isRunning,
+            Status = isRunning ? "running" : "idle",
             LastSync = lastSync != null ? _mapper.Map<EtlSyncResponseDto>(lastSync) : null,
             TotalSyncs = syncs.Count,
-            SuccessfulSyncs = syncs.Count(s => s.Status == "Completed"),
+            SuccessfulSyncs = successfulSyncs,
             FailedSyncs = syncs.Count(s => s.Status == "Failed"),
-            SuccessRate = syncs.Count > 0 ? (double)syncs.Count(s => s.Status == "Completed") / syncs.Count * 100 : 0
+            SuccessRate = successRate,
+            DataSources = dataSources,
+            Stats = new EtlStatsDto
+            {
+                TotalRecords = totalRecords,
+                Duration = lastSync != null ? $"{lastSync.Duration}ms" : "N/A",
+                SuccessRate = successRate,
+                FailedRecords = syncs.Sum(s => s.RecordsFailed)
+            }
         };
     }
 

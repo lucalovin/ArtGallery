@@ -2,6 +2,7 @@
   <!--
     AddEditStaff.vue - Add/Edit Staff Form
     Art Gallery Management System
+    Matches backend CreateStaffDto: Name, Role, HireDate, CertificationLevel
   -->
   <div class="add-edit-staff-page">
     <button @click="goBack" class="inline-flex items-center text-gray-500 hover:text-gray-700 mb-6">
@@ -17,7 +18,7 @@
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Personal Information</h2>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Staff Information</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -28,93 +29,49 @@
               v-model="form.name"
               type="text"
               required
+              placeholder="e.g., John Smith"
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Email <span class="text-red-500">*</span>
+              Role <span class="text-red-500">*</span>
+            </label>
+            <select
+              v-model="form.role"
+              required
+              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Select Role</option>
+              <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Hire Date <span class="text-red-500">*</span>
             </label>
             <input
-              v-model="form.email"
-              type="email"
+              v-model="form.hireDate"
+              type="date"
               required
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-            <input
-              v-model="form.phone"
-              type="tel"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-            <input
-              v-model="form.address"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Employment Details</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
-            <input
-              v-model="form.position"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Certification Level</label>
             <select
-              v-model="form.department"
+              v-model="form.certificationLevel"
               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
-              <option value="">Select Department</option>
-              <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
+              <option value="">None</option>
+              <option value="Basic">Basic</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+              <option value="Expert">Expert</option>
             </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Hire Date</label>
-            <input
-              v-model="form.hireDate"
-              type="date"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Salary</label>
-            <input
-              v-model.number="form.salary"
-              type="number"
-              min="0"
-              class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div class="flex items-center">
-            <input
-              id="isActive"
-              v-model="form.isActive"
-              type="checkbox"
-              class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-            />
-            <label for="isActive" class="ml-2 text-sm text-gray-700">Active Employee</label>
           </div>
         </div>
       </div>
@@ -142,6 +99,7 @@
 <script>
 /**
  * AddEditStaff Page
+ * Matches backend DTO: Name, Role, HireDate, CertificationLevel
  */
 export default {
   name: 'AddEditStaffPage',
@@ -156,17 +114,12 @@ export default {
   data() {
     return {
       isSubmitting: false,
-      departments: ['Curatorial', 'Administration', 'Security', 'Education', 'Maintenance'],
+      roles: ['Curator', 'Restorer', 'Security', 'Guide', 'Administrator', 'Maintenance'],
       form: {
         name: '',
-        email: '',
-        phone: '',
-        address: '',
-        position: '',
-        department: '',
+        role: '',
         hireDate: '',
-        salary: null,
-        isActive: true
+        certificationLevel: ''
       }
     };
   },
@@ -190,15 +143,10 @@ export default {
         if (response?.data?.success && response.data?.data) {
           const staff = response.data.data;
           this.form = {
-            name: staff.name || `${staff.firstName} ${staff.lastName}`,
-            email: staff.email || '',
-            phone: staff.phone || '',
-            address: staff.address || '',
-            position: staff.position || staff.jobTitle || '',
-            department: staff.department || '',
-            hireDate: staff.hireDate || staff.startDate || '',
-            salary: staff.salary || 0,
-            isActive: staff.isActive !== false
+            name: staff.name || '',
+            role: staff.role || '',
+            hireDate: staff.hireDate ? staff.hireDate.split('T')[0] : '',
+            certificationLevel: staff.certificationLevel || ''
           };
         }
       } catch (error) {
@@ -209,14 +157,23 @@ export default {
     async handleSubmit() {
       this.isSubmitting = true;
       try {
+        // Build DTO matching backend CreateStaffDto/UpdateStaffDto
+        const submitData = {
+          name: this.form.name,
+          role: this.form.role,
+          hireDate: this.form.hireDate,
+          certificationLevel: this.form.certificationLevel || null
+        };
+
         if (this.isEditMode) {
-          await this.$api.staff?.updateStaff?.(this.$route.params.id, this.form);
+          await this.$api.staff?.updateStaff?.(this.$route.params.id, submitData);
         } else {
-          await this.$api.staff?.createStaff?.(this.form);
+          await this.$api.staff?.createStaff?.(submitData);
         }
         this.$router.push('/staff');
       } catch (error) {
         console.error('Failed to save staff:', error);
+        alert('Failed to save staff. Please check all required fields.');
       } finally {
         this.isSubmitting = false;
       }

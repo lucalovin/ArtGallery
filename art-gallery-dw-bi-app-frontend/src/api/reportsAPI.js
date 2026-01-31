@@ -68,7 +68,7 @@ export const reportsAPI = {
    * @returns {Promise} Axios response promise with KPI data
    */
   getDashboardKPIs: () => {
-    return apiClient.get('/reports/dashboard/kpis');
+    return apiClient.get('/reports/kpis');
   },
 
   /**
@@ -94,12 +94,36 @@ export const reportsAPI = {
   },
 
   /**
-   * Get visitor analytics
-   * @param {Object} params - Query parameters
-   * @returns {Promise} Axios response promise with visitor analytics
+   * Get visitor trends
+   * @param {Object} params - Query parameters (startDate, endDate)
+   * @returns {Promise} Axios response promise with visitor trend data
    */
-  getVisitorAnalytics: (params = {}) => {
-    return apiClient.get('/reports/visitors/analytics', { params });
+  getVisitorTrends: (params = {}) => {
+    return apiClient.get('/reports/visitor-trends', { params });
+  },
+
+  /**
+   * Get artwork distribution by category
+   * @returns {Promise} Axios response promise with artwork distribution data
+   */
+  getArtworkDistribution: () => {
+    return apiClient.get('/reports/artwork-distribution');
+  },
+
+  /**
+   * Get exhibition performance data
+   * @returns {Promise} Axios response promise with exhibition performance data
+   */
+  getExhibitionPerformance: () => {
+    return apiClient.get('/reports/exhibition-performance');
+  },
+
+  /**
+   * Get full dashboard data
+   * @returns {Promise} Axios response promise with dashboard data
+   */
+  getDashboard: () => {
+    return apiClient.get('/reports/dashboard');
   }
 };
 

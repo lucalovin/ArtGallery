@@ -6,15 +6,15 @@
   <div class="visitor-management-page">
     <header class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Visitor Management</h1>
-        <p class="text-gray-500 mt-1">Manage gallery visitors and memberships</p>
+        <h1 class="text-3xl font-bold text-gray-900">Visitor Directory</h1>
+        <p class="text-gray-500 mt-1">View gallery visitors and their memberships</p>
       </div>
       <router-link
-        to="/visitors/new"
+        to="/reviews/new"
         class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
       >
         <span class="mr-2">➕</span>
-        Add Visitor
+        Add Review (New Visitor)
       </router-link>
     </header>
 
@@ -22,19 +22,19 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <p class="text-sm text-gray-500">Total Visitors</p>
-        <p class="text-2xl font-bold text-gray-900">{{ stats.total.toLocaleString() }}</p>
+        <p class="text-2xl font-bold text-gray-900">{{ stats.total }}</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <p class="text-sm text-gray-500">Members</p>
-        <p class="text-2xl font-bold text-primary-600">{{ stats.members.toLocaleString() }}</p>
+        <p class="text-2xl font-bold text-primary-600">{{ stats.members }}</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-sm text-gray-500">Today's Visits</p>
-        <p class="text-2xl font-bold text-green-600">{{ stats.today.toLocaleString() }}</p>
+        <p class="text-sm text-gray-500">Standard</p>
+        <p class="text-2xl font-bold text-green-600">{{ stats.standard }}</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-sm text-gray-500">This Month</p>
-        <p class="text-2xl font-bold text-blue-600">{{ stats.month.toLocaleString() }}</p>
+        <p class="text-sm text-gray-500">VIP</p>
+        <p class="text-2xl font-bold text-blue-600">{{ stats.vip }}</p>
       </div>
     </div>
 
@@ -55,8 +55,10 @@
           class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
         >
           <option value="">All Types</option>
-          <option value="member">Members Only</option>
-          <option value="guest">Guests Only</option>
+          <option value="Standard">Standard</option>
+          <option value="VIP">VIP</option>
+          <option value="Student">Student</option>
+          <option value="none">No Membership</option>
         </select>
       </div>
     </div>
@@ -75,9 +77,9 @@
           <tr>
             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Visitor</th>
             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Phone</th>
             <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Membership</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Visits</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Last Visit</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Join Date</th>
             <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
           </tr>
         </thead>
@@ -86,25 +88,30 @@
             <td class="px-6 py-4">
               <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-medium">
-                  {{ visitor.name.charAt(0) }}
+                  {{ (visitor.name || '?').charAt(0) }}
                 </div>
                 <span class="font-medium text-gray-900">{{ visitor.name }}</span>
               </div>
             </td>
-            <td class="px-6 py-4 text-gray-600">{{ visitor.email }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ visitor.email || '-' }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ visitor.phone || '-' }}</td>
             <td class="px-6 py-4">
               <span 
                 class="px-2 py-1 text-xs font-medium rounded-full"
-                :class="visitor.isMember ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'"
+                :class="visitor.membershipType ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'"
               >
-                {{ visitor.isMember ? visitor.membershipType : 'Guest' }}
+                {{ visitor.membershipType || 'None' }}
               </span>
             </td>
-            <td class="px-6 py-4 text-gray-600">{{ visitor.visitCount }}</td>
-            <td class="px-6 py-4 text-gray-600">{{ formatDate(visitor.lastVisit) }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ formatDate(visitor.joinDate) }}</td>
             <td class="px-6 py-4 text-right">
               <button @click="editVisitor(visitor)" class="p-1 hover:text-primary-600">✏️</button>
               <button @click="deleteVisitor(visitor)" class="p-1 hover:text-red-600">🗑️</button>
+            </td>
+          </tr>
+          <tr v-if="filteredVisitors.length === 0">
+            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+              No visitors found. Visitors are created when adding reviews.
             </td>
           </tr>
         </tbody>
@@ -138,9 +145,9 @@ export default {
     stats() {
       return {
         total: this.visitors.length,
-        members: this.visitors.filter(v => v.isMember).length,
-        today: this.visitors.filter(v => v.lastVisit === new Date().toISOString().split('T')[0]).length,
-        month: this.visitors.length
+        members: this.visitors.filter(v => v.membershipType && v.membershipType !== 'None').length,
+        standard: this.visitors.filter(v => v.membershipType === 'Standard').length,
+        vip: this.visitors.filter(v => v.membershipType === 'VIP').length
       };
     },
 
@@ -150,15 +157,15 @@ export default {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         result = result.filter(v => 
-          v.name.toLowerCase().includes(query) || 
-          v.email.toLowerCase().includes(query)
+          (v.name && v.name.toLowerCase().includes(query)) || 
+          (v.email && v.email.toLowerCase().includes(query))
         );
       }
       
-      if (this.membershipFilter === 'member') {
-        result = result.filter(v => v.isMember);
-      } else if (this.membershipFilter === 'guest') {
-        result = result.filter(v => !v.isMember);
+      if (this.membershipFilter === 'none') {
+        result = result.filter(v => !v.membershipType);
+      } else if (this.membershipFilter) {
+        result = result.filter(v => v.membershipType === this.membershipFilter);
       }
       
       return result;

@@ -56,6 +56,7 @@ public class DwDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("ARTIST_KEY");
             entity.Property(e => e.ArtistNk).HasColumnName("ARTIST_NK").IsRequired();
+            entity.Property(e => e.Name).HasColumnName("NAME").HasMaxLength(200);
             entity.Property(e => e.FirstName).HasColumnName("FIRST_NAME").HasMaxLength(100);
             entity.Property(e => e.LastName).HasColumnName("LAST_NAME").HasMaxLength(100);
             entity.Property(e => e.FullName).HasColumnName("FULL_NAME").HasMaxLength(200);

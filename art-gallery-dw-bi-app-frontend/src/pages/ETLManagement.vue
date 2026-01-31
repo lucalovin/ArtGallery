@@ -66,14 +66,16 @@ export default {
         const response = await this.$api.etl.getStatus();
         if (response.data?.success && response.data?.data) {
           const status = response.data.data;
-          this.lastSync = status.lastSync?.timestamp;
+          this.lastSync = status.lastSync?.syncDate || status.lastSync?.timestamp;
           
-          // Update data sources if provided
-          if (status.dataSources) {
-            this.dataSources = this.dataSources.map(source => {
-              const backendSource = status.dataSources.find(s => s.id === source.id);
-              return backendSource ? { ...source, ...backendSource } : source;
-            });
+          // Use data sources from backend if provided
+          if (status.dataSources && Array.isArray(status.dataSources)) {
+            this.dataSources = status.dataSources.map(source => ({
+              id: source.id,
+              name: source.name,
+              status: source.status || 'connected',
+              recordCount: source.recordCount || 0
+            }));
           }
 
           // Update sync stats

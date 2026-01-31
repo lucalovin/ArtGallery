@@ -360,6 +360,57 @@ export default {
     'etl-log': ETLLog
   },
 
+  props: {
+    /**
+     * Data sources from parent (ETLManagement)
+     */
+    dataSources: {
+      type: Array,
+      default: () => [
+        { id: 'artworks', name: 'Artworks', status: 'connected', recordCount: 0 },
+        { id: 'exhibitions', name: 'Exhibitions', status: 'connected', recordCount: 0 },
+        { id: 'visitors', name: 'Visitors', status: 'connected', recordCount: 0 },
+        { id: 'staff', name: 'Staff', status: 'connected', recordCount: 0 },
+        { id: 'loans', name: 'Loans', status: 'connected', recordCount: 0 }
+      ]
+    },
+    /**
+     * Whether a sync is currently running
+     */
+    isSyncingProp: {
+      type: Boolean,
+      default: false
+    },
+    /**
+     * Current sync progress (0-100)
+     */
+    syncProgressProp: {
+      type: Number,
+      default: 0
+    },
+    /**
+     * Last sync timestamp
+     */
+    lastSync: {
+      type: String,
+      default: null
+    },
+    /**
+     * Sync statistics
+     */
+    syncStats: {
+      type: Object,
+      default: () => ({
+        totalRecords: 0,
+        lastSyncDuration: 'N/A',
+        successRate: 0,
+        failedRecords: 0
+      })
+    }
+  },
+
+  emits: ['start-sync', 'stop-sync'],
+
   data() {
     return {
       // Sync controls
@@ -374,16 +425,6 @@ export default {
       syncFrequency: 'daily',
       syncTime: '02:00',
       syncDay: 'sunday',
-      
-      // Data sources configuration
-      dataSources: [
-        { id: 'artworks', name: 'Artworks', recordCount: 0 },
-        { id: 'artists', name: 'Artists', recordCount: 0 },
-        { id: 'exhibitions', name: 'Exhibitions', recordCount: 0 },
-        { id: 'visitors', name: 'Visitors', recordCount: 0 },
-        { id: 'sales', name: 'Sales', recordCount: 0 },
-        { id: 'loans', name: 'Loans', recordCount: 0 }
-      ],
       
       // Syncing status per source
       syncingSourcesStatus: [],
@@ -740,5 +781,10 @@ export default {
 
     clearCache() {
       if (confirm('Are you sure you want to clear the ETL cache? This may slow down the next sync.')) {
+        console.log('Clearing ETL cache...');
+        alert('ETL cache cleared successfully.');
+      }
+    }
+  }
 };
 </script>

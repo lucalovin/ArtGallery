@@ -38,6 +38,10 @@ const StaffManagement = () => import('@/pages/StaffManagement.vue');
 const AddEditStaff = () => import('@/pages/AddEditStaff.vue');
 const LoanManagement = () => import('@/pages/LoanManagement.vue');
 const AddEditLoan = () => import('@/pages/AddEditLoan.vue');
+const InsuranceManagement = () => import('@/pages/InsuranceManagement.vue');
+const AddEditInsurance = () => import('@/pages/AddEditInsurance.vue');
+const ReviewManagement = () => import('@/pages/ReviewManagement.vue');
+const AddEditReview = () => import('@/pages/AddEditReview.vue');
 const ETLManagement = () => import('@/pages/ETLManagement.vue');
 const ETLMappingPage = () => import('@/pages/ETLMappingPage.vue');
 const ETLHistoryPage = () => import('@/pages/ETLHistoryPage.vue');
@@ -201,27 +205,53 @@ const routes = [
   },
 
   // ========================================
-  // VISITOR ROUTES
+  // REVIEW ROUTES (Primary entity for visitor feedback)
+  // ========================================
+  {
+    path: '/reviews',
+    name: 'ReviewManagement',
+    component: ReviewManagement,
+    meta: {
+      title: 'Gallery Reviews',
+      description: 'Manage visitor reviews for artworks and exhibitions',
+      icon: 'star'
+    }
+  },
+  {
+    path: '/reviews/new',
+    name: 'AddReview',
+    component: AddEditReview,
+    meta: {
+      title: 'Add New Review',
+      description: 'Create a new gallery review',
+      icon: 'star',
+      isForm: true
+    }
+  },
+  {
+    path: '/reviews/:id/edit',
+    name: 'EditReview',
+    component: AddEditReview,
+    props: true,
+    meta: {
+      title: 'Edit Review',
+      description: 'Update review information',
+      icon: 'pencil',
+      isForm: true
+    }
+  },
+
+  // ========================================
+  // VISITOR ROUTES (View/Edit visitors - created via reviews)
   // ========================================
   {
     path: '/visitors',
     name: 'VisitorManagement',
     component: VisitorManagement,
     meta: {
-      title: 'Visitor Management',
-      description: 'Manage gallery visitors and memberships',
+      title: 'Visitor Directory',
+      description: 'View gallery visitors and their memberships',
       icon: 'users'
-    }
-  },
-  {
-    path: '/visitors/new',
-    name: 'AddVisitor',
-    component: AddEditVisitor,
-    meta: {
-      title: 'Add New Visitor',
-      description: 'Register a new visitor',
-      icon: 'user-plus',
-      isForm: true
     }
   },
   {
@@ -306,6 +336,43 @@ const routes = [
     meta: {
       title: 'Edit Loan',
       description: 'Update loan agreement',
+      icon: 'pencil',
+      isForm: true
+    }
+  },
+
+  // ========================================
+  // INSURANCE ROUTES
+  // ========================================
+  {
+    path: '/insurance',
+    name: 'InsuranceManagement',
+    component: InsuranceManagement,
+    meta: {
+      title: 'Insurance Management',
+      description: 'Manage insurance policies',
+      icon: 'shield-check'
+    }
+  },
+  {
+    path: '/insurance/new',
+    name: 'AddInsurance',
+    component: AddEditInsurance,
+    meta: {
+      title: 'Add Insurance Policy',
+      description: 'Create a new insurance policy',
+      icon: 'plus',
+      isForm: true
+    }
+  },
+  {
+    path: '/insurance/:id/edit',
+    name: 'EditInsurance',
+    component: AddEditInsurance,
+    props: true,
+    meta: {
+      title: 'Edit Insurance Policy',
+      description: 'Update insurance policy',
       icon: 'pencil',
       isForm: true
     }

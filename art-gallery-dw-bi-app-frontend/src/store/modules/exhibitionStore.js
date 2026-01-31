@@ -68,8 +68,9 @@ export default {
      * Set all exhibitions
      */
     SET_EXHIBITIONS(state, exhibitions) {
-      state.exhibitions = exhibitions;
-      state.pagination.totalItems = exhibitions.length;
+      // Ensure exhibitions is always an array
+      state.exhibitions = Array.isArray(exhibitions) ? exhibitions : [];
+      state.pagination.totalItems = state.exhibitions.length;
     },
 
     /**
@@ -82,6 +83,10 @@ export default {
       exhibition.createdAt = new Date().toISOString();
       exhibition.updatedAt = new Date().toISOString();
       
+      // Ensure exhibitions is an array before pushing
+      if (!Array.isArray(state.exhibitions)) {
+        state.exhibitions = [];
+      }
       state.exhibitions.push(exhibition);
       state.pagination.totalItems = state.exhibitions.length;
     },
@@ -233,11 +238,19 @@ export default {
         commit('CLEAR_ERROR');
         
         const response = await exhibitionAPI.getAll();
-        commit('SET_EXHIBITIONS', response.data);
+        // API returns { success: true, data: { items: [...], totalCount: N } }
+        let exhibitions = [];
+        if (response.data?.success && response.data?.data) {
+          const data = response.data.data;
+          exhibitions = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+        } else if (Array.isArray(response.data)) {
+          exhibitions = response.data;
+        }
         
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(response.data));
+        commit('SET_EXHIBITIONS', exhibitions);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(exhibitions));
         
-        return response.data;
+        return exhibitions;
       } catch (error) {
         console.warn('API unavailable, loading from localStorage:', error.message);
         // Fallback to localStorage when API fails
@@ -372,7 +385,9 @@ export default {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          const exhibitions = JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          // Ensure parsed data is an array
+          const exhibitions = Array.isArray(parsed) ? parsed : [];
           commit('SET_EXHIBITIONS', exhibitions);
           
           if (import.meta.env.DEV) {

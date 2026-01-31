@@ -13,6 +13,11 @@ public class DimArtist : BaseEntity
     public int ArtistNk { get; set; }
 
     /// <summary>
+    /// Artist's display name (for compatibility with DW schema).
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
     /// Artist's first name.
     /// </summary>
     public string FirstName { get; set; } = string.Empty;

@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILoanService, LoanService>();
         services.AddScoped<IInsuranceService, InsuranceService>();
         services.AddScoped<IRestorationService, RestorationService>();
+        services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<IEtlService, EtlService>();
         services.AddScoped<IReportService, ReportService>();
 
@@ -83,6 +84,8 @@ public static class ServiceCollectionExtensions
         // Infrastructure Services (Oracle-specific)
         services.AddScoped<IDwAnalyticsService, DwAnalyticsService>();
         services.AddScoped<IOracleProcedureService, OracleProcedureService>();
+        services.AddScoped<IEntityCountService, EntityCountService>();
+        services.AddScoped<ICodeBasedEtlService, CodeBasedEtlService>();
 
         return services;
     }

@@ -3,7 +3,7 @@
  * Art Gallery Management System
  * 
  * Provides API methods for ETL and Data Warehouse operations.
- * Ready for .NET 10 backend integration.
+ * Matches backend EtlController endpoints.
  */
 
 import apiClient from './client';
@@ -13,15 +13,25 @@ import apiClient from './client';
  */
 export const etlAPI = {
   /**
-   * Trigger ETL process to refresh Data Warehouse
+   * Trigger ETL sync operation (maps to POST /api/etl/sync)
+   * @param {Object} dto - Sync configuration { syncType: 'full'|'incremental', sourceTables: [] }
    * @returns {Promise} Axios response promise with operation details
    */
-  triggerRefresh: () => {
-    return apiClient.post('/etl/refresh');
+  triggerRefresh: (dto = { syncType: 'full', sourceTables: [] }) => {
+    return apiClient.post('/etl/sync', dto);
   },
 
   /**
-   * Get current ETL status
+   * Run OLTP to DW propagation using Oracle PL/SQL procedures
+   * @param {Object} request - { source: 'OLTP', target: 'DW', operation: 'full_load'|'incremental' }
+   * @returns {Promise} Axios response promise with propagation result
+   */
+  runPropagation: (request = { source: 'OLTP', target: 'DW', operation: 'full_load' }) => {
+    return apiClient.post('/etl/run-propagation', request);
+  },
+
+  /**
+   * Get current ETL status (maps to GET /api/etl/status)
    * @returns {Promise} Axios response promise with status details
    */
   getStatus: () => {
@@ -29,29 +39,82 @@ export const etlAPI = {
   },
 
   /**
-   * Get ETL operation history
-   * @param {Object} params - Query parameters (limit, offset)
-   * @returns {Promise} Axios response promise with operation history
+   * Get ETL sync history (maps to GET /api/etl/syncs)
+   * @param {Object} params - Query parameters { pageNumber, pageSize }
+   * @returns {Promise} Axios response promise with sync history
    */
   getHistory: (params = {}) => {
-    return apiClient.get('/etl/history', { params });
+    return apiClient.get('/etl/syncs', { params });
   },
 
   /**
-   * Get specific ETL operation by ID
-   * @param {number|string} operationId - ETL operation ID
-   * @returns {Promise} Axios response promise with operation details
+   * Get specific ETL sync record by ID (maps to GET /api/etl/syncs/{id})
+   * @param {number|string} syncId - ETL sync record ID
+   * @returns {Promise} Axios response promise with sync details
    */
-  getOperation: (operationId) => {
-    return apiClient.get(`/etl/operations/${operationId}`);
+  getOperation: (syncId) => {
+    return apiClient.get(`/etl/syncs/${syncId}`);
   },
 
   /**
-   * Get Data Warehouse validation report
+   * Get ETL field mappings configuration (maps to GET /api/etl/mappings)
+   * @returns {Promise} Axios response promise with mapping data
+   */
+  getMappings: () => {
+    return apiClient.get('/etl/mappings');
+  },
+
+  /**
+   * Update ETL field mappings (maps to PUT /api/etl/mappings)
+   * @param {Array} mappings - Array of mapping configurations
+   * @returns {Promise} Axios response promise
+   */
+  updateMappings: (mappings) => {
+    return apiClient.put('/etl/mappings', mappings);
+  },
+
+  /**
+   * Get ETL statistics (maps to GET /api/etl/statistics)
+   * @returns {Promise} Axios response promise with statistics data
+   */
+  getStatistics: () => {
+    return apiClient.get('/etl/statistics');
+  },
+
+  /**
+   * Validate data consistency between OLTP and DW (maps to POST /api/etl/validate)
+   * @returns {Promise} Axios response promise with validation result
+   */
+  validateConsistency: () => {
+    return apiClient.post('/etl/validate');
+  },
+
+  /**
+   * Validate referential integrity in DW (maps to POST /api/etl/validate-integrity)
+   * @returns {Promise} Axios response promise with integrity result
+   */
+  validateIntegrity: () => {
+    return apiClient.post('/etl/validate-integrity');
+  },
+
+  /**
+   * Get Data Warehouse validation report (combines validate endpoints)
    * @returns {Promise} Axios response promise with validation data
    */
-  getValidationReport: () => {
-    return apiClient.get('/etl/validation');
+  getValidationReport: async () => {
+    const [consistency, integrity] = await Promise.all([
+      apiClient.post('/etl/validate'),
+      apiClient.post('/etl/validate-integrity')
+    ]);
+    return {
+      data: {
+        success: true,
+        data: {
+          consistencyValid: consistency.data?.data,
+          integrityResult: integrity.data?.data
+        }
+      }
+    };
   },
 
   /**
@@ -59,42 +122,7 @@ export const etlAPI = {
    * @returns {Promise} Axios response promise with comparison data
    */
   getComparison: () => {
-    return apiClient.get('/etl/comparison');
-  },
-
-  /**
-   * Get DW dimension data
-   * @param {string} dimension - Dimension name (artwork, artist, exhibition, location, date)
-   * @returns {Promise} Axios response promise with dimension data
-   */
-  getDimension: (dimension) => {
-    return apiClient.get(`/dw/dimensions/${dimension}`);
-  },
-
-  /**
-   * Get DW fact table data
-   * @param {Object} params - Query parameters for filtering
-   * @returns {Promise} Axios response promise with fact data
-   */
-  getFactData: (params = {}) => {
-    return apiClient.get('/dw/facts/exhibition-activity', { params });
-  },
-
-  /**
-   * Get DW statistics
-   * @returns {Promise} Axios response promise with DW statistics
-   */
-  getDWStatistics: () => {
-    return apiClient.get('/dw/statistics');
-  },
-
-  /**
-   * Cancel ongoing ETL operation
-   * @param {number|string} operationId - ETL operation ID to cancel
-   * @returns {Promise} Axios response promise
-   */
-  cancelOperation: (operationId) => {
-    return apiClient.post(`/etl/operations/${operationId}/cancel`);
+    return apiClient.get('/etl/statistics');
   }
 };
 

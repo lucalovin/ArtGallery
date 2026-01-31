@@ -35,11 +35,44 @@ public class TriggerSyncDto
 public class EtlStatusDto
 {
     public bool IsRunning { get; set; }
+    public string Status { get; set; } = "idle";
     public EtlSyncResponseDto? LastSync { get; set; }
     public int TotalSyncs { get; set; }
     public int SuccessfulSyncs { get; set; }
     public int FailedSyncs { get; set; }
     public double SuccessRate { get; set; }
+    
+    /// <summary>
+    /// List of data sources with their record counts
+    /// </summary>
+    public List<EtlDataSourceDto> DataSources { get; set; } = new();
+    
+    /// <summary>
+    /// Statistics summary
+    /// </summary>
+    public EtlStatsDto? Stats { get; set; }
+}
+
+/// <summary>
+/// DTO for data source info in ETL status.
+/// </summary>
+public class EtlDataSourceDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Status { get; set; } = "connected";
+    public int RecordCount { get; set; }
+}
+
+/// <summary>
+/// DTO for ETL stats summary.
+/// </summary>
+public class EtlStatsDto
+{
+    public int TotalRecords { get; set; }
+    public string Duration { get; set; } = "N/A";
+    public double SuccessRate { get; set; }
+    public int FailedRecords { get; set; }
 }
 
 /// <summary>

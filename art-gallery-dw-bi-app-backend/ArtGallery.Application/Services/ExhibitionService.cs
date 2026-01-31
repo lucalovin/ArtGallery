@@ -148,10 +148,11 @@ public class ExhibitionService : IExhibitionService
         var artwork = await _artworkRepository.GetByIdAsync(artworkId)
             ?? throw new NotFoundException(nameof(Artwork), artworkId);
 
-        var exists = await _exhibitionArtworkRepository.AnyAsync(
+        // Use CountAsync instead of AnyAsync for Oracle compatibility (ORA-00904: "FALSE" invalid identifier)
+        var existsCount = await _exhibitionArtworkRepository.CountAsync(
             ea => ea.ExhibitionId == exhibitionId && ea.ArtworkId == artworkId);
 
-        if (exists)
+        if (existsCount > 0)
             throw new ConflictException($"Artwork {artworkId} is already in exhibition {exhibitionId}");
 
         var exhibitionArtwork = new ExhibitionArtwork

@@ -309,24 +309,11 @@ export default {
       // Chart Colors
       categoryColors: chartColorPalettes.standard,
 
-      // Artwork Categories
-      artworkCategories: [
-        { name: 'Paintings', count: 245 },
-        { name: 'Sculptures', count: 87 },
-        { name: 'Photography', count: 134 },
-        { name: 'Digital Art', count: 56 },
-        { name: 'Mixed Media', count: 32 },
-        { name: 'Prints', count: 78 }
-      ],
+      // Artwork Categories (populated from API)
+      artworkCategories: [],
 
-      // Top Exhibitions
-      topExhibitions: [
-        { id: 1, name: 'Modern Masters', visitors: 12450, revenue: 245000, trend: 15 },
-        { id: 2, name: 'Contemporary Visions', visitors: 9870, revenue: 187000, trend: 8 },
-        { id: 3, name: 'Sculpture Garden', visitors: 8234, revenue: 156000, trend: -3 },
-        { id: 4, name: 'Digital Frontiers', visitors: 7650, revenue: 134000, trend: 22 },
-        { id: 5, name: 'Classical Revival', visitors: 6890, revenue: 128000, trend: 5 }
-      ],
+      // Top Exhibitions (populated from API)
+      topExhibitions: [],
 
       // Transaction Columns
       transactionColumns: [
@@ -338,14 +325,8 @@ export default {
         { key: 'status', label: 'Status', sortable: true }
       ],
 
-      // Sample Transactions
-      transactions: [
-        { id: 'TRX-001', date: '2026-01-17', type: 'sale', description: 'Artwork: Sunset Dreams', amount: 45000, status: 'completed' },
-        { id: 'TRX-002', date: '2026-01-17', type: 'ticket', description: 'Modern Masters Exhibition', amount: 150, status: 'completed' },
-        { id: 'TRX-003', date: '2026-01-16', type: 'membership', description: 'Premium Annual Membership', amount: 500, status: 'completed' },
-        { id: 'TRX-004', date: '2026-01-16', type: 'sale', description: 'Artwork: Urban Landscape', amount: 28000, status: 'pending' },
-        { id: 'TRX-005', date: '2026-01-15', type: 'ticket', description: 'Sculpture Garden Tour', amount: 75, status: 'completed' }
-      ],
+      // Transactions (populated from API - loans/activities)
+      transactions: [],
 
       // Chart Options
       revenueChartOptions: {
@@ -529,38 +510,67 @@ export default {
 
     async loadDashboardData() {
       this.isLoading = true;
+      this.isLoadingTable = true;
       try {
-        // Fetch KPI data from backend API
-        const kpiResponse = await this.$api.reports.getDashboardKPIs();
+        // Fetch all dashboard data in parallel
+        const [kpiResponse, exhibitionResponse, artworkDistResponse, loansResponse] = await Promise.all([
+          this.$api.reports.getDashboardKPIs(),
+          this.$api.reports.getExhibitionPerformance?.() || Promise.resolve(null),
+          this.$api.reports.getArtworkDistribution?.() || Promise.resolve(null),
+          this.$api.loans.getAll?.() || Promise.resolve(null)
+        ]);
+
+        // Update KPI data
         if (kpiResponse.data?.success && kpiResponse.data?.data) {
           const kpis = kpiResponse.data.data;
-          // Update KPI values with real data
           if (kpis.totalRevenue !== undefined) this.kpiData[0].value = kpis.totalRevenue;
           if (kpis.totalVisitors !== undefined) this.kpiData[1].value = kpis.totalVisitors;
           if (kpis.artworksSold !== undefined) this.kpiData[2].value = kpis.artworksSold;
           if (kpis.activeExhibitions !== undefined) this.kpiData[3].value = kpis.activeExhibitions;
-          // Update change percentages if provided
           if (kpis.revenueChange !== undefined) {
             this.kpiData[0].change = Math.abs(kpis.revenueChange);
             this.kpiData[0].changeType = kpis.revenueChange >= 0 ? 'increase' : 'decrease';
           }
         }
 
-        // Fetch exhibition performance for top exhibitions
-        const exhibitionResponse = await this.$api.reports.getExhibitionPerformance?.();
+        // Update exhibition performance
         if (exhibitionResponse?.data?.success && exhibitionResponse.data?.data) {
           this.topExhibitions = exhibitionResponse.data.data.slice(0, 5).map((ex, i) => ({
             id: ex.id || i + 1,
-            name: ex.exhibitionName || ex.name,
+            name: ex.exhibitionName || ex.name || 'Exhibition',
             visitors: ex.visitorCount || ex.visitors || 0,
             revenue: ex.revenue || 0,
             trend: ex.trend || 0
           }));
         }
+
+        // Update artwork distribution (categories)
+        if (artworkDistResponse?.data?.success && artworkDistResponse.data?.data) {
+          this.artworkCategories = artworkDistResponse.data.data.map(cat => ({
+            name: cat.category || cat.medium || cat.name || 'Other',
+            count: cat.count || cat.artworkCount || 0
+          }));
+        }
+
+        // Update transactions from loans (showing recent loan activity)
+        if (loansResponse?.data?.success && loansResponse.data?.data) {
+          const loansData = loansResponse.data.data.items || loansResponse.data.data;
+          if (Array.isArray(loansData)) {
+            this.transactions = loansData.slice(0, 10).map((loan, i) => ({
+              id: `LOAN-${loan.id || i + 1}`,
+              date: loan.startDate ? loan.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
+              type: 'loan',
+              description: `${loan.artworkTitle || 'Artwork'} → ${loan.exhibitorName || 'Exhibitor'}`,
+              amount: loan.insuranceValue || 0,
+              status: loan.endDate ? 'completed' : 'active'
+            }));
+          }
+        }
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
       } finally {
         this.isLoading = false;
+        this.isLoadingTable = false;
       }
     },
 

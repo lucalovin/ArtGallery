@@ -222,7 +222,7 @@ export default {
       quickActions: [
         { route: '/artworks/new', icon: '➕', label: 'Add Artwork' },
         { route: '/exhibitions/new', icon: '📅', label: 'New Exhibition' },
-        { route: '/visitors/new', icon: '👤', label: 'Add Visitor' },
+        { route: '/reviews/new', icon: '⭐', label: 'New Review' },
         { route: '/loans/new', icon: '📋', label: 'New Loan' },
         { route: '/etl', icon: '🔄', label: 'Sync Data' },
         { route: '/reports', icon: '📊', label: 'View Reports' }
@@ -302,7 +302,9 @@ export default {
 
         // Set recent artworks from API
         if (artworksRes.status === 'fulfilled' && artworksRes.value?.data?.success) {
-          const artworks = artworksRes.value.data.data || [];
+          const responseData = artworksRes.value.data.data;
+          // Handle paginated response with 'items' array
+          const artworks = Array.isArray(responseData?.items) ? responseData.items : (Array.isArray(responseData) ? responseData : []);
           this.recentArtworks = artworks.slice(0, 4).map(a => ({
             id: a.id,
             title: a.title,
@@ -315,7 +317,9 @@ export default {
 
         // Set upcoming exhibitions from API
         if (exhibitionsRes.status === 'fulfilled' && exhibitionsRes.value?.data?.success) {
-          const exhibitions = exhibitionsRes.value.data.data || [];
+          const responseData = exhibitionsRes.value.data.data;
+          // Handle paginated response with 'items' array
+          const exhibitions = Array.isArray(responseData?.items) ? responseData.items : (Array.isArray(responseData) ? responseData : []);
           this.upcomingExhibitions = exhibitions.slice(0, 3).map(e => ({
             id: e.id,
             title: e.title || e.exhibitionName,

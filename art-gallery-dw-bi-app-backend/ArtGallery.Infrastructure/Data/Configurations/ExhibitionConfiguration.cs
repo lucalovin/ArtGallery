@@ -11,32 +11,32 @@ public class ExhibitionConfiguration : IEntityTypeConfiguration<Exhibition>
 {
     public void Configure(EntityTypeBuilder<Exhibition> builder)
     {
-        builder.ToTable("Exhibition");
+        builder.ToTable("EXHIBITION");
 
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id)
-            .HasColumnName("exhibition_id");
+            .HasColumnName("EXHIBITION_ID");
 
         builder.Property(e => e.Title)
             .IsRequired()
             .HasMaxLength(128)
-            .HasColumnName("title");
+            .HasColumnName("TITLE");
 
         builder.Property(e => e.StartDate)
             .IsRequired()
-            .HasColumnName("start_date");
+            .HasColumnName("START_DATE");
 
         builder.Property(e => e.EndDate)
             .IsRequired()
-            .HasColumnName("end_date");
+            .HasColumnName("END_DATE");
 
         builder.Property(e => e.ExhibitorId)
             .IsRequired()
-            .HasColumnName("exhibitor_id");
+            .HasColumnName("EXHIBITOR_ID");
 
         builder.Property(e => e.Description)
             .HasMaxLength(512)
-            .HasColumnName("description");
+            .HasColumnName("DESCRIPTION");
 
         // Foreign key relationship
         builder.HasOne(e => e.Exhibitor)
