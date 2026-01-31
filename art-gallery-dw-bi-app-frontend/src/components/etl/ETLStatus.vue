@@ -218,7 +218,8 @@ export default {
   },
 
   mounted() {
-    // Simulate metrics updates
+    // Start fetching real metrics
+    this.fetchMetrics();
     this.startMetricsUpdates();
   },
 
@@ -229,6 +230,22 @@ export default {
   },
 
   methods: {
+    async fetchMetrics() {
+      try {
+        const response = await this.$api.etl.getStatus();
+        if (response.data?.success && response.data?.data?.metrics) {
+          const serverMetrics = response.data.data.metrics;
+          this.metrics = {
+            cpuUsage: serverMetrics.cpuUsage ?? this.metrics.cpuUsage,
+            memoryUsage: serverMetrics.memoryUsage ?? this.metrics.memoryUsage,
+            queueSize: serverMetrics.queueSize ?? this.metrics.queueSize
+          };
+        }
+      } catch (error) {
+        console.error('Failed to fetch metrics:', error);
+        // Keep current metrics values on error
+      }
+    },
     getConnectionIndicatorClasses(status) {
       const base = 'w-3 h-3 rounded-full';
       const statusClasses = {
@@ -282,13 +299,9 @@ export default {
     },
 
     startMetricsUpdates() {
-      // Simulate real-time metrics updates
+      // Poll for real metrics every 5 seconds
       this.metricsInterval = setInterval(() => {
-        this.metrics = {
-          cpuUsage: Math.max(5, Math.min(95, this.metrics.cpuUsage + (Math.random() - 0.5) * 10)),
-          memoryUsage: Math.max(20, Math.min(90, this.metrics.memoryUsage + (Math.random() - 0.5) * 5)),
-          queueSize: Math.max(0, Math.floor(this.metrics.queueSize + (Math.random() - 0.5) * 2))
-        };
+        this.fetchMetrics();
       }, 5000);
     }
   }

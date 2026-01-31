@@ -52,62 +52,82 @@ export default {
   methods: {
     async loadReportData() {
       this.isLoading = true;
-      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      try {
+        // Fetch KPI data from API
+        const kpiResponse = await this.$api.reports?.getDashboardKPIs?.();
+        if (kpiResponse?.data?.success && kpiResponse.data?.data) {
+          const kpis = kpiResponse.data.data;
+          this.kpiData = [
+            { id: 1, label: 'Total Visitors', value: kpis.totalVisitors || 0, trend: kpis.visitorTrend || 0, icon: '👥', color: 'primary' },
+            { id: 2, label: 'Revenue', value: kpis.totalRevenue || 0, trend: kpis.revenueTrend || 0, icon: '💰', color: 'success', format: 'currency' },
+            { id: 3, label: 'Avg. Visit Duration', value: kpis.avgVisitDuration || 0, trend: kpis.durationTrend || 0, icon: '⏱️', color: 'info', format: 'decimal' },
+            { id: 4, label: 'Member Conversion', value: kpis.memberConversion || 0, trend: kpis.conversionTrend || 0, icon: '🎯', color: 'secondary', format: 'percentage' }
+          ];
+        }
 
-      // KPI Data
-      this.kpiData = [
-        { id: 1, label: 'Total Visitors', value: 45230, trend: 12.5, icon: '👥', color: 'primary' },
-        { id: 2, label: 'Revenue', value: 892500, trend: 8.3, icon: '💰', color: 'success', format: 'currency' },
-        { id: 3, label: 'Avg. Visit Duration', value: 2.4, trend: -3.2, icon: '⏱️', color: 'info', format: 'decimal' },
-        { id: 4, label: 'Member Conversion', value: 15.8, trend: 5.7, icon: '🎯', color: 'secondary', format: 'percentage' }
-      ];
+        // Fetch visitor trends from API
+        const trendsResponse = await this.$api.reports?.getVisitorTrends?.();
+        if (trendsResponse?.data?.success && trendsResponse.data?.data) {
+          const trends = trendsResponse.data.data;
+          this.visitorTrends = {
+            labels: trends.map(t => t.month || t.label),
+            datasets: [
+              {
+                label: 'Visitors',
+                data: trends.map(t => t.visitorCount || t.value),
+                borderColor: chartColors.purple,
+                backgroundColor: withOpacity(chartColors.purple, 0.1),
+                fill: true
+              }
+            ]
+          };
+        }
 
-      // Visitor Trends (Line Chart)
-      this.visitorTrends = {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [
-          {
-            label: 'Visitors',
-            data: [3200, 3800, 4100, 4500, 5200, 6100, 5800, 5400, 4800, 4200, 3600, 4500],
-            borderColor: chartColors.purple,
-            backgroundColor: withOpacity(chartColors.purple, 0.1),
-            fill: true
-          }
-        ]
-      };
+        // Fetch artwork distribution from API
+        const distributionResponse = await this.$api.reports?.getArtworkDistribution?.();
+        if (distributionResponse?.data?.success && distributionResponse.data?.data) {
+          const dist = distributionResponse.data.data;
+          this.categoryDistribution = {
+            labels: dist.map(d => d.category || d.label),
+            datasets: [
+              {
+                data: dist.map(d => d.count || d.value),
+                backgroundColor: chartColorPalettes.purple
+              }
+            ]
+          };
+        }
 
-      // Revenue Data (Bar Chart)
-      this.revenueData = {
-        labels: ['Tickets', 'Memberships', 'Gift Shop', 'Events', 'Loans', 'Donations'],
-        datasets: [
-          {
-            label: 'Revenue ($)',
-            data: [345000, 125000, 89000, 156000, 98000, 79500],
-            backgroundColor: chartColorPalettes.purple
-          }
-        ]
-      };
+        // Fetch exhibition performance from API
+        const exhibitionResponse = await this.$api.reports?.getExhibitionPerformance?.();
+        if (exhibitionResponse?.data?.success && exhibitionResponse.data?.data) {
+          this.exhibitionPerformance = exhibitionResponse.data.data.slice(0, 4).map((ex, i) => ({
+            id: ex.id || i + 1,
+            name: ex.exhibitionName || ex.name,
+            visitors: ex.visitorCount || ex.visitors || 0,
+            revenue: ex.revenue || 0,
+            rating: ex.rating || 0
+          }));
+        }
 
-      // Category Distribution (Doughnut Chart)
-      this.categoryDistribution = {
-        labels: ['Paintings', 'Sculptures', 'Photography', 'Drawings', 'Mixed Media', 'Digital Art'],
-        datasets: [
-          {
-            data: [420, 185, 210, 165, 142, 125],
-            backgroundColor: chartColorPalettes.purple
-          }
-        ]
-      };
+        // Set default revenue data (could also be fetched from API)
+        this.revenueData = {
+          labels: ['Tickets', 'Memberships', 'Gift Shop', 'Events', 'Loans', 'Donations'],
+          datasets: [
+            {
+              label: 'Revenue ($)',
+              data: [345000, 125000, 89000, 156000, 98000, 79500],
+              backgroundColor: chartColorPalettes.purple
+            }
+          ]
+        };
 
-      // Exhibition Performance
-      this.exhibitionPerformance = [
-        { id: 1, name: 'Modern Masters', visitors: 12450, revenue: 156250, rating: 4.8 },
-        { id: 2, name: 'Renaissance Revival', visitors: 8920, revenue: 111500, rating: 4.6 },
-        { id: 3, name: 'Contemporary Visions', visitors: 7650, revenue: 95625, rating: 4.4 },
-        { id: 4, name: 'Photography Now', visitors: 6200, revenue: 77500, rating: 4.5 }
-      ];
-
-      this.isLoading = false;
+      } catch (error) {
+        console.error('Failed to load report data:', error);
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     handlePeriodChange(period) {

@@ -39,39 +39,92 @@ export default {
     return {
       isSyncing: false,
       syncProgress: 0,
-      lastSync: '2024-01-20T14:30:00',
+      lastSync: null,
       dataSources: [
-        { id: 'artworks', name: 'Artworks', status: 'connected', recordCount: 1247 },
-        { id: 'exhibitions', name: 'Exhibitions', status: 'connected', recordCount: 85 },
-        { id: 'visitors', name: 'Visitors', status: 'connected', recordCount: 15420 },
-        { id: 'staff', name: 'Staff', status: 'connected', recordCount: 42 },
-        { id: 'loans', name: 'Loans', status: 'connected', recordCount: 156 }
+        { id: 'artworks', name: 'Artworks', status: 'connected', recordCount: 0 },
+        { id: 'exhibitions', name: 'Exhibitions', status: 'connected', recordCount: 0 },
+        { id: 'visitors', name: 'Visitors', status: 'connected', recordCount: 0 },
+        { id: 'staff', name: 'Staff', status: 'connected', recordCount: 0 },
+        { id: 'loans', name: 'Loans', status: 'connected', recordCount: 0 }
       ],
       syncStats: {
-        totalRecords: 16950,
-        lastSyncDuration: '2m 34s',
-        successRate: 99.8,
-        failedRecords: 3
+        totalRecords: 0,
+        lastSyncDuration: 'N/A',
+        successRate: 0,
+        failedRecords: 0
       }
     };
   },
 
+  created() {
+    this.fetchETLStatus();
+  },
+
   methods: {
-    startSync(sourceId) {
+    async fetchETLStatus() {
+      try {
+        const response = await this.$api.etl.getStatus();
+        if (response.data?.success && response.data?.data) {
+          const status = response.data.data;
+          this.lastSync = status.lastSync?.timestamp;
+          
+          // Update data sources if provided
+          if (status.dataSources) {
+            this.dataSources = this.dataSources.map(source => {
+              const backendSource = status.dataSources.find(s => s.id === source.id);
+              return backendSource ? { ...source, ...backendSource } : source;
+            });
+          }
+
+          // Update sync stats
+          if (status.stats) {
+            this.syncStats = {
+              totalRecords: status.stats.totalRecords || 0,
+              lastSyncDuration: status.stats.duration || 'N/A',
+              successRate: status.stats.successRate || 0,
+              failedRecords: status.stats.failedRecords || 0
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch ETL status:', error);
+      }
+    },
+
+    async startSync(sourceId) {
       this.isSyncing = true;
       this.syncProgress = 0;
 
-      const interval = setInterval(() => {
-        this.syncProgress += Math.random() * 15;
-        if (this.syncProgress >= 100) {
-          this.syncProgress = 100;
-          clearInterval(interval);
-          setTimeout(() => {
-            this.isSyncing = false;
-            this.lastSync = new Date().toISOString();
-          }, 500);
+      try {
+        const response = await this.$api.etl.triggerRefresh();
+        if (response.data?.success) {
+          // Poll for progress
+          const pollInterval = setInterval(async () => {
+            try {
+              const statusResponse = await this.$api.etl.getStatus();
+              if (statusResponse.data?.data) {
+                const status = statusResponse.data.data;
+                this.syncProgress = status.progress || this.syncProgress + 10;
+                
+                if (status.status === 'completed' || status.status === 'idle' || this.syncProgress >= 100) {
+                  this.syncProgress = 100;
+                  clearInterval(pollInterval);
+                  this.lastSync = new Date().toISOString();
+                  await this.fetchETLStatus();
+                  setTimeout(() => {
+                    this.isSyncing = false;
+                  }, 500);
+                }
+              }
+            } catch (err) {
+              console.error('Poll error:', err);
+            }
+          }, 1000);
         }
-      }, 300);
+      } catch (error) {
+        console.error('Sync failed:', error);
+        this.isSyncing = false;
+      }
     },
 
     stopSync() {

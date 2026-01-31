@@ -530,8 +530,33 @@ export default {
     async loadDashboardData() {
       this.isLoading = true;
       try {
-        // In production, fetch from API
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Fetch KPI data from backend API
+        const kpiResponse = await this.$api.reports.getDashboardKPIs();
+        if (kpiResponse.data?.success && kpiResponse.data?.data) {
+          const kpis = kpiResponse.data.data;
+          // Update KPI values with real data
+          if (kpis.totalRevenue !== undefined) this.kpiData[0].value = kpis.totalRevenue;
+          if (kpis.totalVisitors !== undefined) this.kpiData[1].value = kpis.totalVisitors;
+          if (kpis.artworksSold !== undefined) this.kpiData[2].value = kpis.artworksSold;
+          if (kpis.activeExhibitions !== undefined) this.kpiData[3].value = kpis.activeExhibitions;
+          // Update change percentages if provided
+          if (kpis.revenueChange !== undefined) {
+            this.kpiData[0].change = Math.abs(kpis.revenueChange);
+            this.kpiData[0].changeType = kpis.revenueChange >= 0 ? 'increase' : 'decrease';
+          }
+        }
+
+        // Fetch exhibition performance for top exhibitions
+        const exhibitionResponse = await this.$api.reports.getExhibitionPerformance?.();
+        if (exhibitionResponse?.data?.success && exhibitionResponse.data?.data) {
+          this.topExhibitions = exhibitionResponse.data.data.slice(0, 5).map((ex, i) => ({
+            id: ex.id || i + 1,
+            name: ex.exhibitionName || ex.name,
+            visitors: ex.visitorCount || ex.visitors || 0,
+            revenue: ex.revenue || 0,
+            trend: ex.trend || 0
+          }));
+        }
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
       } finally {
@@ -542,14 +567,8 @@ export default {
     async refreshData() {
       this.isLoading = true;
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Update KPIs with random variations
-        this.kpiData = this.kpiData.map(kpi => ({
-          ...kpi,
-          value: kpi.format === 'currency' 
-            ? kpi.value * (0.95 + Math.random() * 0.1)
-            : Math.floor(kpi.value * (0.95 + Math.random() * 0.1))
-        }));
+        // Refresh from backend API
+        await this.loadDashboardData();
       } catch (error) {
         console.error('Failed to refresh data:', error);
       } finally {

@@ -54,25 +54,41 @@ export default {
 
     async loadHistory() {
       this.isLoading = true;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      this.historyData = [
-        { id: 1, timestamp: '2024-01-20T14:30:00', source: 'All Sources', status: 'success', recordsProcessed: 16950, duration: '2m 34s', errors: 0 },
-        { id: 2, timestamp: '2024-01-20T12:00:00', source: 'Artworks', status: 'success', recordsProcessed: 1247, duration: '45s', errors: 0 },
-        { id: 3, timestamp: '2024-01-20T08:00:00', source: 'All Sources', status: 'partial', recordsProcessed: 16947, duration: '2m 48s', errors: 3 },
-        { id: 4, timestamp: '2024-01-19T18:00:00', source: 'Visitors', status: 'success', recordsProcessed: 15420, duration: '1m 12s', errors: 0 },
-        { id: 5, timestamp: '2024-01-19T12:00:00', source: 'All Sources', status: 'failed', recordsProcessed: 0, duration: '5s', errors: 1 }
-      ];
-      
-      this.isLoading = false;
+      try {
+        const response = await this.$api.etl.getHistory({ limit: 50 });
+        if (response.data?.success && response.data?.data) {
+          this.historyData = response.data.data.map((item, index) => ({
+            id: item.id || index + 1,
+            timestamp: item.timestamp || item.startTime,
+            source: item.source || 'All Sources',
+            status: item.status || 'unknown',
+            recordsProcessed: item.recordsProcessed || 0,
+            duration: item.duration || 'N/A',
+            errors: item.errors || 0
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load history:', error);
+        this.historyData = [];
+      } finally {
+        this.isLoading = false;
+      }
     },
 
-    retrySync(syncId) {
+    async retrySync(syncId) {
       console.log('Retrying sync:', syncId);
+      try {
+        await this.$api.etl.triggerRefresh();
+        // Reload history after trigger
+        setTimeout(() => this.loadHistory(), 2000);
+      } catch (error) {
+        console.error('Retry failed:', error);
+      }
     },
 
     exportLogs() {
       console.log('Exporting logs...');
+      // TODO: Implement log export
     }
   }
 };

@@ -185,23 +185,41 @@ export default {
 
   methods: {
     async loadStaff() {
-      this.form = {
-        name: 'Dr. Sarah Mitchell',
-        email: 'sarah.m@gallery.com',
-        phone: '+1 555-0456',
-        address: '123 Art Street',
-        position: 'Head Curator',
-        department: 'Curatorial',
-        hireDate: '2018-03-15',
-        salary: 85000,
-        isActive: true
-      };
+      try {
+        const response = await this.$api.staff?.getStaffById?.(this.$route.params.id);
+        if (response?.data?.success && response.data?.data) {
+          const staff = response.data.data;
+          this.form = {
+            name: staff.name || `${staff.firstName} ${staff.lastName}`,
+            email: staff.email || '',
+            phone: staff.phone || '',
+            address: staff.address || '',
+            position: staff.position || staff.jobTitle || '',
+            department: staff.department || '',
+            hireDate: staff.hireDate || staff.startDate || '',
+            salary: staff.salary || 0,
+            isActive: staff.isActive !== false
+          };
+        }
+      } catch (error) {
+        console.error('Failed to load staff:', error);
+      }
     },
 
     async handleSubmit() {
       this.isSubmitting = true;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      this.$router.push('/staff');
+      try {
+        if (this.isEditMode) {
+          await this.$api.staff?.updateStaff?.(this.$route.params.id, this.form);
+        } else {
+          await this.$api.staff?.createStaff?.(this.form);
+        }
+        this.$router.push('/staff');
+      } catch (error) {
+        console.error('Failed to save staff:', error);
+      } finally {
+        this.isSubmitting = false;
+      }
     },
 
     goBack() {

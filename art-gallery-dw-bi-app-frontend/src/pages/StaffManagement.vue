@@ -136,24 +136,39 @@ export default {
   methods: {
     async loadStaff() {
       this.isLoading = true;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      this.staff = [
-        { id: 1, name: 'Dr. Sarah Mitchell', position: 'Head Curator', department: 'Curatorial', email: 'sarah.m@gallery.com', hireDate: '2018-03-15', isActive: true },
-        { id: 2, name: 'James Wilson', position: 'Security Manager', department: 'Security', email: 'james.w@gallery.com', hireDate: '2019-07-22', isActive: true },
-        { id: 3, name: 'Emily Chen', position: 'Education Director', department: 'Education', email: 'emily.c@gallery.com', hireDate: '2020-01-10', isActive: true },
-        { id: 4, name: 'Michael Brown', position: 'Administrator', department: 'Administration', email: 'michael.b@gallery.com', hireDate: '2017-11-05', isActive: true },
-        { id: 5, name: 'Lisa Garcia', position: 'Assistant Curator', department: 'Curatorial', email: 'lisa.g@gallery.com', hireDate: '2021-04-18', isActive: true },
-        { id: 6, name: 'Robert Taylor', position: 'Maintenance Lead', department: 'Maintenance', email: 'robert.t@gallery.com', hireDate: '2016-09-01', isActive: false }
-      ];
-      this.isLoading = false;
+      try {
+        const response = await this.$api.staff?.getStaff?.();
+        if (response?.data?.success && response.data?.data) {
+          this.staff = response.data.data.map(s => ({
+            id: s.id,
+            name: s.name || `${s.firstName} ${s.lastName}`,
+            position: s.position || s.jobTitle,
+            department: s.department,
+            email: s.email,
+            hireDate: s.hireDate || s.startDate,
+            isActive: s.isActive !== false
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load staff:', error);
+        // Keep empty array on error
+        this.staff = [];
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     editStaff(staff) {
       this.$router.push({ name: 'EditStaff', params: { id: staff.id } });
     },
 
-    deleteStaff(staff) {
-      this.staff = this.staff.filter(s => s.id !== staff.id);
+    async deleteStaff(staff) {
+      try {
+        await this.$api.staff?.deleteStaff?.(staff.id);
+        this.staff = this.staff.filter(s => s.id !== staff.id);
+      } catch (error) {
+        console.error('Failed to delete staff:', error);
+      }
     },
 
     formatDate(date) {

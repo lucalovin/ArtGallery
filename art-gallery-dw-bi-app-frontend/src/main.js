@@ -4,6 +4,7 @@
  * This file initializes the Vue.js 3 application with:
  * - Vue Router 4 for navigation
  * - Vuex 4 for state management
+ * - API Services for backend communication
  * - Global styles (TailwindCSS)
  * 
  */
@@ -19,6 +20,9 @@ import router from './router';
 
 // Vuex store configuration (Vuex 4)
 import store from './store';
+
+// API Services plugin
+import { apiPlugin } from './api';
 
 // Global styles with TailwindCSS
 import './assets/styles/tailwind.css';
@@ -46,6 +50,18 @@ app.use(router);
  * - reportsStore: Manages BI report data
  */
 app.use(store);
+
+/**
+ * Register API Services Plugin
+ * Provides access to backend APIs via this.$api
+ * - this.$api.etl - ETL operations
+ * - this.$api.reports - Reports and KPIs
+ * - this.$api.analytics - DW Analytics queries
+ * - this.$api.artworks - Artwork CRUD
+ * - this.$api.exhibitions - Exhibition CRUD
+ * - this.$api.staff - Staff CRUD
+ */
+app.use(apiPlugin);
 
 /**
  * Global Error Handler

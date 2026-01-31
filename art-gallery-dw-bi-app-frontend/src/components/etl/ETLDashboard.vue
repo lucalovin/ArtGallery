@@ -514,42 +514,50 @@ export default {
 
     async fetchInitialData() {
       try {
-        // Fetch record counts for each data source
-        // In production, this would call the API
-        this.dataSources = this.dataSources.map(source => ({
-          ...source,
-          recordCount: Math.floor(Math.random() * 1000) + 100,
-          pendingChanges: Math.floor(Math.random() * 50)
-        }));
-
-        // Fetch ETL status
-        this.etlStatus = {
-          ...this.etlStatus,
-          lastSync: {
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            status: 'success',
-            recordsProcessed: 1547
+        // Fetch ETL status from backend API
+        const statusResponse = await this.$api.etl.getStatus();
+        if (statusResponse.data?.success && statusResponse.data?.data) {
+          const status = statusResponse.data.data;
+          this.etlStatus = {
+            ...this.etlStatus,
+            oltpConnection: status.oltpConnection || 'connected',
+            dwConnection: status.dwConnection || 'connected',
+            status: status.status || 'idle',
+            lastSync: status.lastSync || null
+          };
+          
+          // Update data sources with real counts if available
+          if (status.dataSources) {
+            this.dataSources = this.dataSources.map(source => {
+              const backendSource = status.dataSources.find(s => s.id === source.id);
+              return backendSource ? { ...source, ...backendSource } : source;
+            });
           }
-        };
+        }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
+        // Keep default values on error
       }
     },
 
     async fetchLogs() {
       this.isLoadingLogs = true;
       try {
-        // Simulate fetching logs
-        await new Promise(resolve => setTimeout(resolve, 500));
-        this.recentLogs = [
-          { id: 1, timestamp: new Date().toISOString(), level: 'info', message: 'ETL sync completed successfully', source: 'artworks' },
-          { id: 2, timestamp: new Date(Date.now() - 3600000).toISOString(), level: 'info', message: 'Processing 245 artwork records', source: 'artworks' },
-          { id: 3, timestamp: new Date(Date.now() - 7200000).toISOString(), level: 'warning', message: 'Slow query detected during visitor sync', source: 'visitors' },
-          { id: 4, timestamp: new Date(Date.now() - 10800000).toISOString(), level: 'info', message: 'Full sync initiated by admin', source: 'system' },
-          { id: 5, timestamp: new Date(Date.now() - 14400000).toISOString(), level: 'error', message: 'Connection timeout - retrying', source: 'exhibitions' }
-        ];
+        // Fetch ETL history/logs from backend API
+        const response = await this.$api.etl.getHistory({ limit: 10 });
+        if (response.data?.success && response.data?.data) {
+          this.recentLogs = response.data.data.map((log, index) => ({
+            id: log.id || index + 1,
+            timestamp: log.timestamp || log.startTime,
+            level: log.status === 'failed' ? 'error' : (log.status === 'warning' ? 'warning' : 'info'),
+            message: log.message || `ETL operation: ${log.status}`,
+            source: log.source || 'system'
+          }));
+        }
       } catch (error) {
         console.error('Failed to fetch logs:', error);
+        // Fallback to empty logs on error
+        this.recentLogs = [];
       } finally {
         this.isLoadingLogs = false;
       }
@@ -578,48 +586,79 @@ export default {
           name: source.name,
           status: 'pending',
           recordsProcessed: 0,
-          totalRecords: source.recordCount
+          totalRecords: source.recordCount || 0
         };
       });
 
       try {
-        // Simulate sync process
-        for (let i = 0; i < this.syncingSourcesStatus.length; i++) {
-          const source = this.syncingSourcesStatus[i];
-          source.status = 'syncing';
-          this.currentOperation = `Syncing ${source.name}...`;
-
-          // Simulate processing records
-          const steps = 10;
-          for (let step = 1; step <= steps; step++) {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            source.recordsProcessed = Math.floor((step / steps) * source.totalRecords);
-            this.syncProgress = Math.floor(((i * steps + step) / (this.syncingSourcesStatus.length * steps)) * 100);
+        // Call the backend ETL refresh API
+        this.currentOperation = 'Triggering ETL refresh...';
+        const response = await this.$api.etl.triggerRefresh();
+        
+        if (response.data?.success) {
+          // Update progress based on response
+          this.syncProgress = 50;
+          this.currentOperation = 'Processing data...';
+          
+          // Poll for status updates
+          let attempts = 0;
+          const maxAttempts = 30;
+          
+          while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const statusResponse = await this.$api.etl.getStatus();
+            
+            if (statusResponse.data?.data) {
+              const status = statusResponse.data.data;
+              
+              if (status.status === 'completed' || status.status === 'idle') {
+                this.syncProgress = 100;
+                this.currentOperation = 'Sync completed successfully!';
+                
+                // Update ETL status
+                this.etlStatus.lastSync = {
+                  timestamp: new Date().toISOString(),
+                  status: 'success',
+                  recordsProcessed: status.recordsProcessed || 0
+                };
+                
+                // Mark all sources as completed
+                this.syncingSourcesStatus.forEach(source => {
+                  source.status = 'completed';
+                  source.recordsProcessed = source.totalRecords;
+                });
+                
+                break;
+              } else if (status.status === 'failed') {
+                throw new Error(status.message || 'ETL sync failed');
+              } else {
+                // Update progress
+                this.syncProgress = Math.min(90, status.progress || this.syncProgress + 5);
+                this.currentOperation = status.currentOperation || 'Processing...';
+              }
+            }
+            
+            attempts++;
           }
-
-          source.status = 'completed';
-          source.recordsProcessed = source.totalRecords;
+          
+          // Refresh logs after sync
+          await this.fetchLogs();
+          
+        } else {
+          throw new Error(response.data?.message || 'Failed to trigger ETL sync');
         }
-
-        this.currentOperation = 'Sync completed successfully!';
-        this.etlStatus.lastSync = {
-          timestamp: new Date().toISOString(),
-          status: 'success',
-          recordsProcessed: this.syncingSourcesStatus.reduce((sum, s) => sum + s.totalRecords, 0)
-        };
-
-        // Add log entry
+      } catch (error) {
+        console.error('Sync failed:', error);
+        this.currentOperation = `Sync failed: ${error.message}`;
+        
+        // Add error log
         this.recentLogs.unshift({
           id: Date.now(),
           timestamp: new Date().toISOString(),
-          level: 'info',
-          message: `ETL sync completed: ${this.syncingSourcesStatus.length} sources, ${this.etlStatus.lastSync.recordsProcessed} records`,
+          level: 'error',
+          message: `ETL sync failed: ${error.message}`,
           source: 'system'
         });
-
-      } catch (error) {
-        console.error('Sync failed:', error);
-        this.currentOperation = 'Sync failed!';
       } finally {
         setTimeout(() => {
           this.isSyncing = false;
@@ -666,13 +705,33 @@ export default {
       const connection = this.dataConnections.find(c => c.id === connectionId);
       if (connection) {
         connection.status = 'testing';
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        connection.status = 'connected';
+        try {
+          // Call ETL status to test connections
+          const response = await this.$api.etl.getStatus();
+          if (response.data?.success) {
+            connection.status = 'connected';
+          } else {
+            connection.status = 'error';
+          }
+        } catch (error) {
+          console.error('Connection test failed:', error);
+          connection.status = 'error';
+        }
       }
     },
 
-    validateData() {
-      alert('Data validation started. This will check data integrity between OLTP and DW.');
+    async validateData() {
+      try {
+        const response = await this.$api.etl.getValidationReport();
+        if (response.data?.success) {
+          alert(`Validation complete!\n${JSON.stringify(response.data.data, null, 2)}`);
+        } else {
+          alert('Validation completed with issues. Check the console for details.');
+        }
+      } catch (error) {
+        console.error('Validation failed:', error);
+        alert('Failed to run validation. Please try again.');
+      }
     },
 
     generateReport() {
@@ -681,17 +740,5 @@ export default {
 
     clearCache() {
       if (confirm('Are you sure you want to clear the ETL cache? This may slow down the next sync.')) {
-        alert('ETL cache cleared successfully.');
-      }
-    },
-
-    viewDWSchema() {
-      this.$router.push({ name: 'dw-schema' });
-    },
-
-    viewAllLogs() {
-      this.$router.push({ name: 'etl-logs' });
-    }
-  }
 };
 </script>

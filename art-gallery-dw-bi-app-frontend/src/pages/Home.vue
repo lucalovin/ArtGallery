@@ -284,36 +284,60 @@ export default {
       this.isLoading = true;
       
       try {
-        // Simulate API calls - in real app, use Vuex actions
-        await this.simulateDataLoad();
-        
-        // Update KPIs
-        this.kpiData[0].value = 1247;
-        this.kpiData[1].value = 8;
-        this.kpiData[2].value = 15420;
-        this.kpiData[3].value = 284500;
+        // Fetch real data from APIs
+        const [artworksRes, exhibitionsRes, kpiRes] = await Promise.allSettled([
+          this.$api.artworks?.getArtworks?.({ limit: 4 }) || Promise.resolve(null),
+          this.$api.exhibitions?.getExhibitions?.({ limit: 3 }) || Promise.resolve(null),
+          this.$api.reports?.getDashboardKPIs?.() || Promise.resolve(null)
+        ]);
 
-        // Set recent artworks
-        this.recentArtworks = [
-          { id: 1, title: 'Starry Night', artist: 'Vincent van Gogh', year: 1889, status: 'On Display', imageUrl: '' },
-          { id: 2, title: 'The Persistence of Memory', artist: 'Salvador Dalí', year: 1931, status: 'In Storage', imageUrl: '' },
-          { id: 3, title: 'Girl with a Pearl Earring', artist: 'Johannes Vermeer', year: 1665, status: 'On Loan', imageUrl: '' },
-          { id: 4, title: 'The Birth of Venus', artist: 'Sandro Botticelli', year: 1485, status: 'On Display', imageUrl: '' }
-        ];
+        // Update KPIs from API
+        if (kpiRes.status === 'fulfilled' && kpiRes.value?.data?.success) {
+          const kpis = kpiRes.value.data.data;
+          if (kpis.totalArtworks !== undefined) this.kpiData[0].value = kpis.totalArtworks;
+          if (kpis.activeExhibitions !== undefined) this.kpiData[1].value = kpis.activeExhibitions;
+          if (kpis.totalVisitors !== undefined) this.kpiData[2].value = kpis.totalVisitors;
+          if (kpis.totalRevenue !== undefined) this.kpiData[3].value = kpis.totalRevenue;
+        }
 
-        // Set upcoming exhibitions
-        this.upcomingExhibitions = [
-          { id: 1, title: 'Modern Masters', startDate: '2024-02-15', endDate: '2024-05-30' },
-          { id: 2, title: 'Renaissance Revival', startDate: '2024-03-01', endDate: '2024-06-15' },
-          { id: 3, title: 'Contemporary Visions', startDate: '2024-04-10', endDate: '2024-07-20' }
-        ];
+        // Set recent artworks from API
+        if (artworksRes.status === 'fulfilled' && artworksRes.value?.data?.success) {
+          const artworks = artworksRes.value.data.data || [];
+          this.recentArtworks = artworks.slice(0, 4).map(a => ({
+            id: a.id,
+            title: a.title,
+            artist: a.artistName || a.artist,
+            year: a.year || a.creationYear,
+            status: a.status || 'On Display',
+            imageUrl: a.imageUrl || ''
+          }));
+        }
 
-        // Set ETL status
-        this.etlStatus = {
-          lastSync: '2 hours ago',
-          isHealthy: true,
-          recordsSynced: 45230
-        };
+        // Set upcoming exhibitions from API
+        if (exhibitionsRes.status === 'fulfilled' && exhibitionsRes.value?.data?.success) {
+          const exhibitions = exhibitionsRes.value.data.data || [];
+          this.upcomingExhibitions = exhibitions.slice(0, 3).map(e => ({
+            id: e.id,
+            title: e.title || e.exhibitionName,
+            startDate: e.startDate,
+            endDate: e.endDate
+          }));
+        }
+
+        // Fetch ETL status
+        try {
+          const etlRes = await this.$api.etl?.getStatus?.();
+          if (etlRes?.data?.success) {
+            const status = etlRes.data.data;
+            this.etlStatus = {
+              lastSync: status.lastSync?.timestamp ? this.formatTimeAgo(new Date(status.lastSync.timestamp)) : 'Never',
+              isHealthy: status.status === 'idle' || status.status === 'completed',
+              recordsSynced: status.lastSync?.recordsProcessed || 0
+            };
+          }
+        } catch (etlError) {
+          console.error('ETL status fetch failed:', etlError);
+        }
 
       } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -322,8 +346,17 @@ export default {
       }
     },
 
-    simulateDataLoad() {
-      return new Promise(resolve => setTimeout(resolve, 800));
+    formatTimeAgo(date) {
+      const now = new Date();
+      const diff = now - date;
+      const minutes = Math.floor(diff / (1000 * 60));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes} minutes ago`;
+      if (hours < 24) return `${hours} hours ago`;
+      return `${days} days ago`;
     },
 
     viewArtwork(id) {
