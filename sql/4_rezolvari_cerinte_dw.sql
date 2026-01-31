@@ -659,67 +659,140 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 
 -----10
--- 1. Top 10 Artiști după Număr de Opere
-SELECT TOP 10 
-    d.artist_name,
-    COUNT(f.artwork_id) as artwork_count,
-    SUM(f.estimated_value) as total_value
-FROM fact_artworks f
-JOIN dim_artist d ON f.artist_key = d.artist_key
-GROUP BY d.artist_name
-ORDER BY artwork_count DESC;
+-- ============================================================================
+-- Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
+-- Implemented in DwAnalyticsService.cs and accessible via AnalyticsController
+-- ============================================================================
 
--- 2. Valoare Totală pe Categorii
-SELECT 
-    d.medium_type,
-    d.collection_type,
-    COUNT(f.artwork_id) as artwork_count,
-    SUM(f.estimated_value) as total_value,
-    AVG(f.estimated_value) as avg_value
-FROM fact_artworks f
-JOIN dim_medium d ON f.medium_key = d.medium_key
-GROUP BY d.medium_type, d.collection_type;
+-- 1. Top 10 Artiști după Număr de Opere Expuse
+-- Cerință în limbaj natural (română):
+-- "Afișați primii 10 artiști în funcție de numărul de opere din colecție, 
+--  împreună cu valoarea totală și medie estimată a operelor lor."
+--
+-- Natural Language Request (English):
+-- "Show me the top 10 artists with the most artworks in the collection,
+--  along with their total and average estimated artwork value."
 
--- 3. Performanța Expozițiilor (Vizitatori pe Lună)
-SELECT 
-    dt.month_name,
-    dt.year,
-    COUNT(DISTINCT f.exhibition_id) as exhibition_count,
-    SUM(f.actual_visitors) as total_visitors,
-    AVG(f.actual_visitors) as avg_visitors_per_exhibition
-FROM fact_exhibitions f
-JOIN dim_time dt ON f.start_date_key = dt.date_key
-WHERE dt.date BETWEEN DATEADD(MONTH, -12, GETDATE()) AND GETDATE()
-GROUP BY dt.year, dt.month_name, dt.month_number
-ORDER BY dt.year, dt.month_number;
+SELECT * FROM (
+    SELECT
+        da.NAME as artist_name,
+        COUNT(DISTINCT daw.ARTWORK_KEY) as artwork_count,
+        SUM(NVL(f.ESTIMATED_VALUE, 0)) as total_value,
+        AVG(NVL(f.ESTIMATED_VALUE, 0)) as average_value
+    FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+    JOIN ART_GALLERY_DW.DIM_ARTIST da ON f.ARTIST_KEY = da.ARTIST_KEY
+    JOIN ART_GALLERY_DW.DIM_ARTWORK daw ON f.ARTWORK_KEY = daw.ARTWORK_KEY
+    GROUP BY da.NAME
+    ORDER BY artwork_count DESC
+)
+WHERE ROWNUM <= 10;
 
--- 4. Distribuția Vizitatorilor pe Membership
-SELECT 
-    dm.membership_type,
-    COUNT(f.visitor_id) as visitor_count,
-    SUM(f.total_visits) as total_visits,
-    CAST(COUNT(f.visitor_id) * 100.0 / SUM(COUNT(f.visitor_id)) OVER() AS DECIMAL(5,2)) as percentage
-FROM fact_visitors f
-JOIN dim_membership dm ON f.membership_key = dm.membership_key
-GROUP BY dm.membership_type;
 
--- 5. Trend Achiziții Anuale (Ultimi 5 Ani)
-SELECT 
-    dt.year,
-    COUNT(f.artwork_id) as acquisitions_count,
-    SUM(f.estimated_value) as total_acquisition_value,
-    AVG(f.estimated_value) as avg_acquisition_value,
-    LAG(SUM(f.estimated_value)) OVER (ORDER BY dt.year) as prev_year_value,
+-- 2. Valoarea Colecției pe Tip de Mediu și Colecție
+-- Cerință în limbaj natural (română):
+-- "Prezentați o analiză a valorii totale a colecției descompusă pe tipuri de mediu 
+--  (pictură, sculptură, etc.) și pe colecții, incluzând numărul de opere și 
+--  valoarea medie pe fiecare categorie."
+--
+-- Natural Language Request (English):
+-- "Provide a breakdown of the collection's total value by art medium and collection type,
+--  including the number of artworks and average value for each category."
+
+SELECT
+    NVL(daw.MEDIUM, 'Unknown') as medium_type,
+    NVL(dc.NAME, 'Unknown') as collection_name,
+    COUNT(DISTINCT f.ARTWORK_KEY) as artwork_count,
+    SUM(NVL(f.ESTIMATED_VALUE, 0)) as total_value,
+    AVG(NVL(f.ESTIMATED_VALUE, 0)) as average_value
+FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+JOIN ART_GALLERY_DW.DIM_ARTWORK daw ON f.ARTWORK_KEY = daw.ARTWORK_KEY
+LEFT JOIN ART_GALLERY_DW.DIM_COLLECTION dc ON f.COLLECTION_KEY = dc.COLLECTION_KEY
+GROUP BY daw.MEDIUM, dc.NAME
+ORDER BY total_value DESC;
+
+
+-- 3. Activitatea Lunară a Expozițiilor (Ultimele 12 Luni)
+-- Cerință în limbaj natural (română):
+-- "Analizați performanța expozițiilor lunar pentru ultimul an: afișați pentru fiecare lună 
+--  numărul de expoziții active, numărul de opere expuse, valoarea totală a operelor 
+--  și evaluarea medie primită de vizitatori."
+--
+-- Natural Language Request (English):
+-- "Analyze monthly exhibition performance for the past year: show the number of active
+--  exhibitions, artworks exhibited, total artwork value, and average visitor rating
+--  for each month."
+
+SELECT
+    dd.MONTH_NAME as month_name,
+    dd.CALENDAR_YEAR as year,
+    COUNT(DISTINCT f.EXHIBITION_KEY) as exhibition_count,
+    COUNT(DISTINCT f.ARTWORK_KEY) as artworks_exhibited,
+    SUM(NVL(f.ESTIMATED_VALUE, 0)) as total_artwork_value,
+    AVG(f.AVG_RATING) as average_rating
+FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+JOIN ART_GALLERY_DW.DIM_DATE dd ON f.DATE_KEY = dd.DATE_KEY
+WHERE dd.CALENDAR_DATE >= ADD_MONTHS(SYSDATE, -12)
+GROUP BY dd.CALENDAR_YEAR, dd.MONTH_NAME, dd.CALENDAR_MONTH
+ORDER BY dd.CALENDAR_YEAR, dd.CALENDAR_MONTH;
+
+
+-- 4. Distribuția Operelor pe Locații și Galerii
+-- Cerință în limbaj natural (română):
+-- "Prezentați distribuția operelor de artă în diferitele locații ale galeriei: 
+--  pentru fiecare locație și sală afișați numărul de opere, valoarea totală 
+--  și procentul pe care îl reprezintă din întreaga colecție expusă."
+--
+-- Natural Language Request (English):
+-- "Show the distribution of artworks across different gallery locations:
+--  for each location and room, display the number of artworks, total value,
+--  and percentage they represent of the entire exhibited collection."
+
+SELECT
+    NVL(dl.NAME, 'Unknown') as location_name,
+    NVL(dl.GALLERY_ROOM, 'N/A') as gallery_room,
+    NVL(dl.TYPE, 'Unknown') as location_type,
+    COUNT(DISTINCT f.ARTWORK_KEY) as artworks_count,
+    SUM(NVL(f.ESTIMATED_VALUE, 0)) as total_value,
+    ROUND(COUNT(DISTINCT f.ARTWORK_KEY) * 100.0 / 
+        NULLIF(SUM(COUNT(DISTINCT f.ARTWORK_KEY)) OVER(), 0), 2) as percentage
+FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+JOIN ART_GALLERY_DW.DIM_LOCATION dl ON f.LOCATION_KEY = dl.LOCATION_KEY
+GROUP BY dl.NAME, dl.GALLERY_ROOM, dl.TYPE
+ORDER BY artworks_count DESC;
+
+
+-- 5. Trendul Anual al Activității Expoziționale (Ultimii 5 Ani)
+-- Cerință în limbaj natural (română):
+-- "Afișați evoluția activității expoziționale pe ultimii 5 ani: pentru fiecare an 
+--  prezentați numărul de expoziții organizate, numărul de opere expuse, valoarea 
+--  totală și medie a operelor, precum și rata de creștere an-la-an (YoY) a valorii."
+--
+-- Natural Language Request (English):
+-- "Show the trend of exhibition activity over the past 5 years: for each year
+--  display the number of exhibitions held, artworks exhibited, total and average
+--  artwork value, and year-over-year growth rate."
+
+SELECT
+    dd.CALENDAR_YEAR as year,
+    COUNT(DISTINCT f.EXHIBITION_KEY) as exhibitions_count,
+    COUNT(DISTINCT f.ARTWORK_KEY) as artworks_count,
+    SUM(NVL(f.ESTIMATED_VALUE, 0)) as total_artwork_value,
+    AVG(NVL(f.ESTIMATED_VALUE, 0)) as average_artwork_value,
+    LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR) as previous_year_value,
     CASE 
-        WHEN LAG(SUM(f.estimated_value)) OVER (ORDER BY dt.year) IS NOT NULL
-        THEN ((SUM(f.estimated_value) - LAG(SUM(f.estimated_value)) OVER (ORDER BY dt.year)) * 100.0 / LAG(SUM(f.estimated_value)) OVER (ORDER BY dt.year))
+        WHEN LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR) IS NOT NULL 
+             AND LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR) > 0
+        THEN ROUND(
+            ((SUM(NVL(f.ESTIMATED_VALUE, 0)) - 
+              LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR)) * 100.0 / 
+              LAG(SUM(NVL(f.ESTIMATED_VALUE, 0))) OVER (ORDER BY dd.CALENDAR_YEAR)), 2)
         ELSE NULL
     END as yoy_growth_rate
-FROM fact_artworks f
-JOIN dim_time dt ON f.acquisition_date_key = dt.date_key
-WHERE dt.year >= YEAR(GETDATE()) - 5
-GROUP BY dt.year
-ORDER BY dt.year;
+FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
+JOIN ART_GALLERY_DW.DIM_DATE dd ON f.DATE_KEY = dd.DATE_KEY
+WHERE dd.CALENDAR_YEAR >= EXTRACT(YEAR FROM SYSDATE) - 5
+GROUP BY dd.CALENDAR_YEAR
+ORDER BY dd.CALENDAR_YEAR;
 
 
 
