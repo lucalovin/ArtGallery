@@ -66,7 +66,7 @@
       <!-- Revenue Over Time Chart -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Revenue Trends</h3>
+          <h3 class="text-lg font-semibold text-gray-900">Insurance Coverage Value</h3>
           <select v-model="revenueChartType" class="form-input text-sm w-auto">
             <option value="line">Line Chart</option>
             <option value="bar">Bar Chart</option>
@@ -83,10 +83,8 @@
       <!-- Visitor Statistics Chart -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Visitor Statistics</h3>
+          <h3 class="text-lg font-semibold text-gray-900">New Visitor Registrations</h3>
           <select v-model="visitorMetric" class="form-input text-sm w-auto">
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
         </div>
@@ -161,9 +159,9 @@
 
     <!-- Additional Analytics Section -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-      <!-- Sales by Artist -->
+      <!-- Artworks by Collection -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Sales by Artist</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Artworks by Collection</h3>
         <horizontal-bar-chart
           :chart-data="salesByArtistData"
           :options="horizontalBarOptions"
@@ -171,9 +169,9 @@
         />
       </div>
 
-      <!-- Revenue by Source -->
+      <!-- Exhibition Visitors -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Revenue Sources</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Exhibition Distribution</h3>
         <pie-chart
           :chart-data="revenueSourceData"
           :options="pieOptions"
@@ -181,9 +179,9 @@
         />
       </div>
 
-      <!-- Monthly Comparison -->
+      <!-- Monthly Loan Activity -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">YoY Comparison</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Quarterly Coverage</h3>
         <grouped-bar-chart
           :chart-data="yoyComparisonData"
           :options="groupedBarOptions"
@@ -195,19 +193,18 @@
     <!-- Data Table Section -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900">Recent Transactions</h3>
+        <h3 class="text-lg font-semibold text-gray-900">Recent Loan Activity</h3>
         <div class="flex items-center space-x-3">
           <input
             type="text"
             v-model="tableSearch"
-            placeholder="Search transactions..."
+            placeholder="Search loans..."
             class="form-input text-sm w-64"
           />
           <select v-model="tableFilter" class="form-input text-sm">
-            <option value="all">All Types</option>
-            <option value="sale">Sales</option>
-            <option value="ticket">Tickets</option>
-            <option value="membership">Memberships</option>
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
           </select>
         </div>
       </div>
@@ -257,7 +254,7 @@ export default {
       isLoadingTable: false,
       selectedPeriod: '30d',
       revenueChartType: 'line',
-      visitorMetric: 'daily',
+      visitorMetric: 'monthly',
       tableSearch: '',
       tableFilter: 'all',
 
@@ -265,21 +262,21 @@ export default {
       kpiData: [
         {
           id: 1,
-          title: 'Total Revenue',
+          title: 'Insurance Coverage',
           value: 0,
           change: 0,
           changeType: 'neutral',
-          icon: 'currency-dollar',
+          icon: '🛡️',
           color: 'green',
           format: 'currency'
         },
         {
           id: 2,
-          title: 'Total Visitors',
+          title: 'Registered Visitors',
           value: 0,
           change: 0,
           changeType: 'neutral',
-          icon: 'users',
+          icon: '👥',
           color: 'blue',
           format: 'number'
         },
@@ -289,7 +286,7 @@ export default {
           value: 0,
           change: 0,
           changeType: 'neutral',
-          icon: 'photograph',
+          icon: '🖼️',
           color: 'purple',
           format: 'number'
         },
@@ -299,7 +296,7 @@ export default {
           value: 0,
           change: 0,
           changeType: 'neutral',
-          icon: 'calendar',
+          icon: '🎨',
           color: 'yellow',
           format: 'number'
         }
@@ -322,11 +319,11 @@ export default {
 
       // Transaction Columns
       transactionColumns: [
-        { key: 'id', label: 'ID', sortable: true },
-        { key: 'date', label: 'Date', sortable: true },
+        { key: 'id', label: 'Loan ID', sortable: true },
+        { key: 'date', label: 'Start Date', sortable: true },
         { key: 'type', label: 'Type', sortable: true },
-        { key: 'description', label: 'Description', sortable: false },
-        { key: 'amount', label: 'Amount', sortable: true, format: 'currency' },
+        { key: 'description', label: 'Artwork → Exhibitor', sortable: false },
+        { key: 'amount', label: 'Insured Value', sortable: true, format: 'currency' },
         { key: 'status', label: 'Status', sortable: true }
       ],
 
@@ -401,10 +398,13 @@ export default {
         return { labels: [], datasets: [] };
       }
       return {
-        labels: this.revenueData.map(r => r.period || r.month || r.label),
+        labels: this.revenueData.map(r => {
+          const date = new Date(r.period);
+          return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        }),
         datasets: [{
-          label: 'Revenue',
-          data: this.revenueData.map(r => r.amount || r.revenue || r.value || 0),
+          label: 'Coverage Value ($)',
+          data: this.revenueData.map(r => r.totalRevenue || 0),
           borderColor: chartColors.blue,
           backgroundColor: withOpacity(chartColors.blue, 0.1),
           fill: true,
@@ -419,10 +419,13 @@ export default {
         return { labels: [], datasets: [] };
       }
       return {
-        labels: this.visitorTrendsData.map(v => v.period || v.month || v.label),
+        labels: this.visitorTrendsData.map(v => {
+          const date = new Date(v.date);
+          return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        }),
         datasets: [{
-          label: 'Visitors',
-          data: this.visitorTrendsData.map(v => v.visitorCount || v.count || v.value || 0),
+          label: 'New Registrations',
+          data: this.visitorTrendsData.map(v => v.visitorCount || 0),
           backgroundColor: chartColors.emerald
         }]
       };
@@ -441,8 +444,7 @@ export default {
       };
     },
 
-    // Sales by Artist - uses artworkCategories as a proxy showing artwork values by medium/category
-    // This shows distribution of artwork insurance values by category
+    // Artworks by Collection - uses artworkCategories data
     salesByArtistData() {
       if (!this.artworkCategories || this.artworkCategories.length === 0) {
         return { labels: [], datasets: [] };
@@ -457,24 +459,21 @@ export default {
       };
     },
 
-    // Revenue sources - derived from exhibition performance showing visitor distribution
+    // Exhibition distribution - shows visitor estimates from exhibitions
     revenueSourceData() {
       if (!this.topExhibitions || this.topExhibitions.length === 0) {
         return { labels: [], datasets: [] };
       }
-      const totalVisitors = this.topExhibitions.reduce((sum, ex) => sum + (ex.visitors || 0), 0);
       return {
         labels: this.topExhibitions.slice(0, 5).map(ex => ex.name),
         datasets: [{
-          data: this.topExhibitions.slice(0, 5).map(ex => 
-            totalVisitors > 0 ? Math.round((ex.visitors / totalVisitors) * 100) : 0
-          ),
+          data: this.topExhibitions.slice(0, 5).map(ex => ex.visitors || 0),
           backgroundColor: chartColorPalettes.standard.slice(0, 5)
         }]
       };
     },
 
-    // YoY comparison - derived from revenue data if available, grouped by quarter
+    // Quarterly coverage - derived from revenue data grouped by quarter
     yoyComparisonData() {
       if (!this.revenueData || this.revenueData.length === 0) {
         return { labels: [], datasets: [] };
@@ -482,19 +481,20 @@ export default {
       // Group revenue data into quarterly summaries
       const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
       const currentYear = new Date().getFullYear();
-      const currentYearData = quarters.map(() => 0);
+      const quarterData = [0, 0, 0, 0];
       
-      this.revenueData.forEach((r, index) => {
-        const quarterIndex = Math.floor(index / 3) % 4;
-        currentYearData[quarterIndex] += r.amount || r.revenue || r.value || 0;
+      this.revenueData.forEach(r => {
+        const date = new Date(r.period);
+        const quarterIndex = Math.floor(date.getMonth() / 3);
+        quarterData[quarterIndex] += r.totalRevenue || 0;
       });
       
       return {
         labels: quarters,
         datasets: [
           {
-            label: String(currentYear),
-            data: currentYearData,
+            label: `${currentYear} Coverage`,
+            data: quarterData,
             backgroundColor: chartColors.blue
           }
         ]
@@ -550,29 +550,21 @@ export default {
         // Update KPI data
         if (kpiResponse.data?.success && kpiResponse.data?.data) {
           const kpis = kpiResponse.data.data;
-          if (kpis.totalRevenue !== undefined) this.kpiData[0].value = kpis.totalRevenue;
+          if (kpis.totalInsuranceCoverage !== undefined) this.kpiData[0].value = kpis.totalInsuranceCoverage;
           if (kpis.totalVisitors !== undefined) this.kpiData[1].value = kpis.totalVisitors;
-          // Use total artworks in collection instead of "sold"
+          // Use total artworks in collection
           if (kpis.totalArtworks !== undefined) this.kpiData[2].value = kpis.totalArtworks;
           if (kpis.activeExhibitions !== undefined) this.kpiData[3].value = kpis.activeExhibitions;
-          if (kpis.revenueChange !== undefined) {
-            this.kpiData[0].change = Math.abs(kpis.revenueChange);
-            this.kpiData[0].changeType = kpis.revenueChange >= 0 ? 'increase' : 'decrease';
-          }
-          if (kpis.visitorChange !== undefined) {
-            this.kpiData[1].change = Math.abs(kpis.visitorChange);
-            this.kpiData[1].changeType = kpis.visitorChange >= 0 ? 'increase' : 'decrease';
-          }
         }
 
         // Update exhibition performance
         if (exhibitionResponse?.data?.success && exhibitionResponse.data?.data) {
           this.topExhibitions = exhibitionResponse.data.data.slice(0, 5).map((ex, i) => ({
-            id: ex.id || i + 1,
-            name: ex.exhibitionName || ex.name || 'Exhibition',
-            visitors: ex.visitorCount || ex.visitors || 0,
-            revenue: ex.revenue || 0,
-            trend: ex.trend || 0
+            id: ex.exhibitionId || ex.id || i + 1,
+            name: ex.title || ex.exhibitionName || ex.name || 'Exhibition',
+            visitors: ex.actualVisitors || ex.expectedVisitors || ex.visitorCount || ex.visitors || 0,
+            revenue: ex.budget || ex.revenue || 0,
+            trend: ex.performanceRatio ? Math.round((ex.performanceRatio - 1) * 100) : 0
           }));
         }
 

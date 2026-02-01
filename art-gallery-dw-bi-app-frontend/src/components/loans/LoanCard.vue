@@ -38,7 +38,7 @@
       <div class="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
         <div class="text-center">
           <p class="text-xs text-gray-500 mb-1">From</p>
-          <p class="font-medium text-sm text-gray-900">{{ loan.lenderName || 'Our Gallery' }}</p>
+          <p class="font-medium text-sm text-gray-900">Our Gallery</p>
         </div>
         <div class="flex-shrink-0 px-3">
           <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,7 +47,7 @@
         </div>
         <div class="text-center">
           <p class="text-xs text-gray-500 mb-1">To</p>
-          <p class="font-medium text-sm text-gray-900">{{ loan.borrowerName || 'External Institution' }}</p>
+          <p class="font-medium text-sm text-gray-900">{{ loan.exhibitorName || 'External Institution' }}</p>
         </div>
       </div>
 
@@ -68,21 +68,9 @@
         <p class="text-sm" :class="durationClasses">{{ durationInfo }}</p>
       </div>
 
-      <!-- Insurance & Fees -->
-      <div class="grid grid-cols-2 gap-3 text-sm mb-4">
-        <div v-if="loan.insuranceValue">
-          <span class="text-gray-500">Insurance:</span>
-          <span class="font-medium ml-1" v-currency="loan.insuranceValue"></span>
-        </div>
-        <div v-if="loan.loanFee">
-          <span class="text-gray-500">Fee:</span>
-          <span class="font-medium ml-1" v-currency="loan.loanFee"></span>
-        </div>
-      </div>
-
-      <!-- Purpose/Notes -->
-      <div v-if="loan.purpose" class="text-sm text-gray-600 mb-4 line-clamp-2">
-        {{ loan.purpose }}
+      <!-- Conditions/Notes -->
+      <div v-if="loan.conditions" class="text-sm text-gray-600 mb-4 line-clamp-2">
+        <span class="text-gray-500">Conditions:</span> {{ loan.conditions }}
       </div>
     </div>
 
@@ -150,18 +138,20 @@ export default {
 
   computed: {
     loanStatus() {
+      // Use status from API if available, otherwise compute it
+      if (this.loan.status) {
+        return this.loan.status;
+      }
+      
       const now = new Date();
       const startDate = new Date(this.loan.startDate);
-      const endDate = new Date(this.loan.endDate);
+      const endDate = this.loan.endDate ? new Date(this.loan.endDate) : null;
 
-      if (this.loan.returnedDate) {
-        return 'Returned';
-      }
       if (now < startDate) {
         return 'Pending';
       }
-      if (now > endDate) {
-        return 'Overdue';
+      if (endDate && now > endDate) {
+        return 'Returned';
       }
       return 'Active';
     },
@@ -197,7 +187,7 @@ export default {
     },
 
     formattedEndDate() {
-      if (!this.loan.endDate) return 'N/A';
+      if (!this.loan.endDate) return 'Ongoing';
       return new Date(this.loan.endDate).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -208,15 +198,28 @@ export default {
     durationInfo() {
       const now = new Date();
       const startDate = new Date(this.loan.startDate);
-      const endDate = new Date(this.loan.endDate);
+      const endDate = this.loan.endDate ? new Date(this.loan.endDate) : null;
 
-      if (this.loan.returnedDate) {
+      if (this.loan.status === 'Returned') {
         return 'Loan completed';
       }
 
       if (now < startDate) {
         const daysUntil = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
         return `Starts in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
+      }
+
+      if (!endDate) {
+        return 'Ongoing loan';
+      }
+
+      // Use API-provided daysRemaining if available
+      if (this.loan.daysRemaining !== null && this.loan.daysRemaining !== undefined) {
+        if (this.loan.daysRemaining <= 0) {
+          const daysOverdue = Math.abs(this.loan.daysRemaining);
+          return daysOverdue > 0 ? `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue` : 'Due today';
+        }
+        return `${this.loan.daysRemaining} day${this.loan.daysRemaining !== 1 ? 's' : ''} remaining`;
       }
 
       if (now > endDate) {

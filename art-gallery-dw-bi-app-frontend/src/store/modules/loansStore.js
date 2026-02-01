@@ -8,6 +8,67 @@
 
 import { loansAPI } from '@/api/loansAPI';
 
+/**
+ * Computes loan status based on dates
+ * @param {Date} startDate - Loan start date
+ * @param {Date|null} endDate - Loan end date (optional)
+ * @returns {string} Status: 'Pending', 'Active', or 'Returned'
+ */
+function computeLoanStatus(startDate, endDate) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  
+  if (today < start) {
+    return 'Pending';
+  }
+  
+  if (endDate) {
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+    if (today > end) {
+      return 'Returned';
+    }
+  }
+  
+  return 'Active';
+}
+
+/**
+ * Computes days remaining until loan ends
+ * @param {Date|null} endDate - Loan end date
+ * @returns {number|null} Days remaining or null if no end date
+ */
+function computeDaysRemaining(endDate) {
+  if (!endDate) return null;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  
+  const diffMs = end - today;
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  
+  return diffDays >= 0 ? diffDays : 0;
+}
+
+/**
+ * Enriches a loan object with computed status and daysRemaining
+ * @param {Object} loan - Loan object from API
+ * @returns {Object} Enriched loan object
+ */
+function enrichLoan(loan) {
+  return {
+    ...loan,
+    status: loan.status || computeLoanStatus(loan.startDate, loan.endDate),
+    daysRemaining: loan.daysRemaining !== undefined ? loan.daysRemaining : computeDaysRemaining(loan.endDate)
+  };
+}
+
 export default {
   namespaced: true,
 
@@ -82,9 +143,11 @@ export default {
         commit('CLEAR_ERROR');
         
         const loans = await loansAPI.getAll();
-        commit('SET_LOANS', loans);
+        // Enrich loans with computed status and daysRemaining if not provided by API
+        const enrichedLoans = loans.map(loan => enrichLoan(loan));
+        commit('SET_LOANS', enrichedLoans);
         
-        return loans;
+        return enrichedLoans;
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;
@@ -99,9 +162,10 @@ export default {
         commit('CLEAR_ERROR');
         
         const loan = await loansAPI.getById(id);
-        commit('SET_SELECTED_LOAN', loan);
+        const enrichedLoan = enrichLoan(loan);
+        commit('SET_SELECTED_LOAN', enrichedLoan);
         
-        return loan;
+        return enrichedLoan;
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;
@@ -116,9 +180,10 @@ export default {
         commit('CLEAR_ERROR');
         
         const createdLoan = await loansAPI.create(loan);
-        commit('ADD_LOAN', createdLoan);
+        const enrichedLoan = enrichLoan(createdLoan);
+        commit('ADD_LOAN', enrichedLoan);
         
-        return createdLoan;
+        return enrichedLoan;
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;
@@ -133,9 +198,10 @@ export default {
         commit('CLEAR_ERROR');
         
         const updatedLoan = await loansAPI.update(loan.id, loan);
-        commit('UPDATE_LOAN', updatedLoan);
+        const enrichedLoan = enrichLoan(updatedLoan);
+        commit('UPDATE_LOAN', enrichedLoan);
         
-        return updatedLoan;
+        return enrichedLoan;
       } catch (error) {
         commit('SET_ERROR', error.message);
         throw error;

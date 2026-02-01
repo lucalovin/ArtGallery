@@ -82,7 +82,7 @@
             <div class="flex items-start justify-between mb-4">
               <div>
                 <h1 class="text-3xl font-bold text-gray-900">{{ artwork.title }}</h1>
-                <p class="text-xl text-gray-500 mt-1">{{ artwork.artist }}</p>
+                <p class="text-xl text-gray-500 mt-1">{{ artistDisplayName }}</p>
               </div>
               
               <div class="flex items-center space-x-2">
@@ -107,23 +107,23 @@
             <div class="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <p class="text-sm text-gray-500">Year Created</p>
-                <p class="font-medium text-gray-900">{{ artwork.year }}</p>
+                <p class="font-medium text-gray-900">{{ artwork.yearCreated || artwork.year || 'N/A' }}</p>
               </div>
               <div>
                 <p class="text-sm text-gray-500">Category</p>
-                <p class="font-medium text-gray-900">{{ artwork.category }}</p>
+                <p class="font-medium text-gray-900">{{ artwork.medium || artwork.category || 'N/A' }}</p>
               </div>
               <div>
                 <p class="text-sm text-gray-500">Medium</p>
                 <p class="font-medium text-gray-900">{{ artwork.medium || 'N/A' }}</p>
               </div>
               <div>
-                <p class="text-sm text-gray-500">Dimensions</p>
-                <p class="font-medium text-gray-900">{{ artwork.dimensions || 'N/A' }}</p>
+                <p class="text-sm text-gray-500">Collection</p>
+                <p class="font-medium text-gray-900">{{ artwork.collectionName || artwork.dimensions || 'N/A' }}</p>
               </div>
               <div>
-                <p class="text-sm text-gray-500">Acquisition Date</p>
-                <p class="font-medium text-gray-900">{{ formatDate(artwork.acquisitionDate) }}</p>
+                <p class="text-sm text-gray-500">Location</p>
+                <p class="font-medium text-gray-900">{{ artwork.locationName || artwork.location || 'N/A' }}</p>
               </div>
               <div>
                 <p class="text-sm text-gray-500">Estimated Value</p>
@@ -318,6 +318,9 @@
 
 <script>
 import { mapState, mapActions } from 'vuex';
+import { insuranceAPI } from '@/api/insuranceAPI';
+import { exhibitionAPI } from '@/api/exhibitionAPI';
+import apiClient from '@/api/client';
 
 /**
  * ArtworkDetail Page Component
@@ -344,7 +347,12 @@ export default {
         { id: 'exhibitions', label: 'Exhibitions', icon: '🎨' },
         { id: 'insurance', label: 'Insurance', icon: '🛡️' },
         { id: 'restoration', label: 'Restoration', icon: '🔧' }
-      ]
+      ],
+      // Tab data loaded from APIs
+      artworkExhibitions: [],
+      artworkInsurance: null,
+      artworkRestorations: [],
+      artworkProvenance: []
     };
   },
 
@@ -355,10 +363,11 @@ export default {
 
     artwork() {
       const found = this.artworks.find(a => a.id === parseInt(this.id));
-      return found || {
+      const base = found || {
         id: null,
         title: '',
         artist: '',
+        artistName: '',
         year: null,
         category: '',
         medium: '',
@@ -369,12 +378,21 @@ export default {
         imageUrl: '',
         acquisitionDate: null,
         estimatedValue: null,
-        tags: [],
-        provenance: [],
-        exhibitions: [],
-        insurance: null,
-        restorations: []
+        tags: []
       };
+      
+      // Merge with loaded tab data
+      return {
+        ...base,
+        provenance: this.artworkProvenance,
+        exhibitions: this.artworkExhibitions,
+        insurance: this.artworkInsurance,
+        restorations: this.artworkRestorations
+      };
+    },
+
+    artistDisplayName() {
+      return this.artwork.artistName || this.artwork.artist || 'Unknown Artist';
     }
   },
 
@@ -402,15 +420,134 @@ export default {
         }
         
         // Check if artwork exists
-        if (!this.artwork.id) {
+        const artworkId = parseInt(this.id);
+        const artworkExists = this.artworks.find(a => a.id === artworkId);
+        
+        if (!artworkExists) {
           this.error = true;
+          return;
         }
+        
+        // Load tab data in parallel
+        await this.loadTabData(artworkId);
       } catch (err) {
         console.error('Error loading artwork:', err);
         this.error = true;
       } finally {
         this.isLoading = false;
       }
+    },
+
+    async loadTabData(artworkId) {
+      try {
+        // Load all tab data in parallel
+        const [insuranceData, restorationData, exhibitionData] = await Promise.allSettled([
+          this.loadInsuranceData(artworkId),
+          this.loadRestorationData(artworkId),
+          this.loadExhibitionData(artworkId)
+        ]);
+
+        // Process results (ignore errors for individual tabs)
+        if (insuranceData.status === 'fulfilled') {
+          this.artworkInsurance = insuranceData.value;
+        }
+        if (restorationData.status === 'fulfilled') {
+          this.artworkRestorations = restorationData.value;
+        }
+        if (exhibitionData.status === 'fulfilled') {
+          this.artworkExhibitions = exhibitionData.value;
+        }
+      } catch (err) {
+        console.warn('Error loading tab data:', err);
+        // Don't fail the page if tab data can't be loaded
+      }
+    },
+
+    async loadInsuranceData(artworkId) {
+      try {
+        const response = await insuranceAPI.getAll({ PageSize: 100 });
+        const data = response.data?.data?.items || response.data?.data || [];
+        
+        // Filter insurance records for this artwork
+        const artworkInsurance = data.filter(ins => ins.artworkId === artworkId);
+        
+        if (artworkInsurance.length > 0) {
+          // Return the most recent insurance as the primary one
+          const insurance = artworkInsurance[0];
+          return {
+            policyNumber: insurance.policyId?.toString() || 'N/A',
+            company: insurance.policyProvider || 'N/A',
+            coverage: insurance.insuredAmount || 0,
+            expiryDate: insurance.expiryDate || null
+          };
+        }
+        return null;
+      } catch (err) {
+        console.warn('Error loading insurance data:', err);
+        return null;
+      }
+    },
+
+    async loadRestorationData(artworkId) {
+      try {
+        const response = await apiClient.get('/restoration', { params: { PageSize: 100 } });
+        const data = response.data?.data?.items || response.data?.data || [];
+        
+        // Filter restoration records for this artwork
+        const artworkRestorations = data.filter(rest => rest.artworkId === artworkId);
+        
+        return artworkRestorations.map(rest => ({
+          id: rest.id,
+          type: 'Restoration',
+          description: rest.description || 'General restoration work',
+          specialist: rest.staffName || 'Unknown',
+          date: rest.endDate || rest.startDate,
+          status: rest.endDate ? 'Completed' : 'In Progress'
+        }));
+      } catch (err) {
+        console.warn('Error loading restoration data:', err);
+        return [];
+      }
+    },
+
+    async loadExhibitionData(artworkId) {
+      try {
+        // Get all exhibitions and filter those that might include this artwork
+        const response = await exhibitionAPI.getAll({ PageSize: 100 });
+        const data = response.data?.data?.items || response.data?.data || [];
+        
+        // For each exhibition, check if the artwork is included
+        const artworkExhibitions = [];
+        
+        for (const exhibition of data) {
+          try {
+            const artworksResponse = await apiClient.get(`/exhibitions/${exhibition.id}/artworks`);
+            const exhibitionArtworks = artworksResponse.data?.data || [];
+            
+            if (exhibitionArtworks.some(a => a.artworkId === artworkId)) {
+              artworkExhibitions.push({
+                id: exhibition.id,
+                title: exhibition.title,
+                venue: exhibition.exhibitorName || 'Unknown Venue',
+                dates: this.formatDateRange(exhibition.startDate, exhibition.endDate)
+              });
+            }
+          } catch (e) {
+            // Skip exhibitions we can't get artworks for
+          }
+        }
+        
+        return artworkExhibitions;
+      } catch (err) {
+        console.warn('Error loading exhibition data:', err);
+        return [];
+      }
+    },
+
+    formatDateRange(startDate, endDate) {
+      const start = startDate ? new Date(startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+      const end = endDate ? new Date(endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+      return start && end ? `${start} - ${end}` : start || end || 'N/A';
     },
 
     goBack() {

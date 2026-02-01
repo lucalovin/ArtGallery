@@ -214,10 +214,10 @@ export default {
     return {
       isLoading: true,
       kpiData: [
-        { id: 1, label: 'Total Artworks', value: 0, icon: '🖼️', color: 'primary', trend: 5.2, format: 'number' },
-        { id: 2, label: 'Active Exhibitions', value: 0, icon: '🎨', color: 'secondary', trend: 12.5, format: 'number' },
-        { id: 3, label: 'Monthly Visitors', value: 0, icon: '👥', color: 'info', trend: -2.3, format: 'number' },
-        { id: 4, label: 'Total Revenue', value: 0, icon: '💰', color: 'success', trend: 8.7, format: 'currency' }
+        { id: 1, label: 'Total Artworks', value: 0, icon: '🖼️', color: 'primary', trend: 0, format: 'number' },
+        { id: 2, label: 'Active Exhibitions', value: 0, icon: '🎨', color: 'secondary', trend: 0, format: 'number' },
+        { id: 3, label: 'Registered Visitors', value: 0, icon: '👥', color: 'info', trend: 0, format: 'number' },
+        { id: 4, label: 'Insurance Coverage', value: 0, icon: '🛡️', color: 'success', trend: 0, format: 'currency' }
       ],
       quickActions: [
         { route: '/artworks/new', icon: '➕', label: 'Add Artwork' },
@@ -297,7 +297,7 @@ export default {
           if (kpis.totalArtworks !== undefined) this.kpiData[0].value = kpis.totalArtworks;
           if (kpis.activeExhibitions !== undefined) this.kpiData[1].value = kpis.activeExhibitions;
           if (kpis.totalVisitors !== undefined) this.kpiData[2].value = kpis.totalVisitors;
-          if (kpis.totalRevenue !== undefined) this.kpiData[3].value = kpis.totalRevenue;
+          if (kpis.totalInsuranceCoverage !== undefined) this.kpiData[3].value = kpis.totalInsuranceCoverage;
         }
 
         // Set recent artworks from API
@@ -334,13 +334,18 @@ export default {
           if (etlRes?.data?.success) {
             const status = etlRes.data.data;
             this.etlStatus = {
-              lastSync: status.lastSync?.timestamp ? this.formatTimeAgo(new Date(status.lastSync.timestamp)) : 'Never',
-              isHealthy: status.status === 'idle' || status.status === 'completed',
-              recordsSynced: status.lastSync?.recordsProcessed || 0
+              lastSync: status.lastSync?.syncDate ? this.formatTimeAgo(new Date(status.lastSync.syncDate)) : 'Never',
+              isHealthy: status.status === 'idle' || status.status === 'completed' || status.lastSync?.status === 'Completed',
+              recordsSynced: status.lastSync?.recordsProcessed || status.stats?.totalRecords || 0
             };
           }
         } catch (etlError) {
           console.error('ETL status fetch failed:', etlError);
+          this.etlStatus = {
+            lastSync: 'Error',
+            isHealthy: false,
+            recordsSynced: 0
+          };
         }
 
       } catch (error) {

@@ -208,15 +208,15 @@
                 <span class="font-medium text-gray-900">{{ artwork.title }}</span>
               </div>
             </td>
-            <td class="px-6 py-4 text-gray-600">{{ artwork.artist }}</td>
-            <td class="px-6 py-4 text-gray-600">{{ artwork.year }}</td>
-            <td class="px-6 py-4 text-gray-600">{{ artwork.category }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ artwork.artistName || artwork.artist || 'Unknown Artist' }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ artwork.yearCreated || artwork.year || 'N/A' }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ artwork.medium || artwork.category || 'N/A' }}</td>
             <td class="px-6 py-4">
               <span 
                 class="px-2 py-1 text-xs font-medium rounded-full"
-                :class="getStatusClass(artwork.status)"
+                :class="getStatusClass(artwork.status || artwork.collectionName)"
               >
-                {{ artwork.status }}
+                {{ artwork.status || artwork.collectionName || 'Available' }}
               </span>
             </td>
             <td class="px-6 py-4 text-right">
@@ -345,8 +345,9 @@ export default {
       pageSize: 12,
       showDeleteModal: false,
       artworkToDelete: null,
-      categories: ['Painting', 'Sculpture', 'Photography', 'Drawing', 'Print', 'Mixed Media', 'Digital Art'],
-      statuses: ['On Display', 'In Storage', 'On Loan', 'Under Restoration']
+      // Default static values - will be merged with dynamic values from data
+      defaultCategories: ['Painting', 'Sculpture', 'Photography', 'Drawing', 'Print', 'Mixed Media', 'Digital Art'],
+      defaultStatuses: ['On Display', 'In Storage', 'On Loan', 'Under Restoration']
     };
   },
 
@@ -355,33 +356,73 @@ export default {
       artworks: state => state.artwork?.artworks || []
     }),
 
+    // Dynamic categories from artworks' medium field
+    categories() {
+      const mediums = this.artworks
+        .map(a => a.medium || a.category)
+        .filter(Boolean);
+      const uniqueMediums = [...new Set(mediums)].sort();
+      // Merge with defaults, keeping unique values
+      return [...new Set([...this.defaultCategories, ...uniqueMediums])].sort();
+    },
+
+    // Dynamic statuses from artworks' status or collectionName field
+    statuses() {
+      const artworkStatuses = this.artworks
+        .map(a => a.status || a.collectionName)
+        .filter(Boolean);
+      const uniqueStatuses = [...new Set(artworkStatuses)].sort();
+      // Merge with defaults, keeping unique values
+      return [...new Set([...this.defaultStatuses, ...uniqueStatuses])].sort();
+    },
+
     filteredArtworks() {
       let result = [...this.artworks];
 
-      // Search filter
+      // Search filter - check both artist (local) and artistName (API) properties
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         result = result.filter(artwork => 
           artwork.title?.toLowerCase().includes(query) ||
           artwork.artist?.toLowerCase().includes(query) ||
+          artwork.artistName?.toLowerCase().includes(query) ||
           artwork.description?.toLowerCase().includes(query)
         );
       }
 
-      // Category filter
+      // Category filter - check both category and medium properties
       if (this.selectedCategory) {
-        result = result.filter(artwork => artwork.category === this.selectedCategory);
+        result = result.filter(artwork => 
+          artwork.category === this.selectedCategory ||
+          artwork.medium === this.selectedCategory
+        );
       }
 
-      // Status filter
+      // Status filter - check both status and collectionName properties
       if (this.selectedStatus) {
-        result = result.filter(artwork => artwork.status === this.selectedStatus);
+        result = result.filter(artwork => 
+          artwork.status === this.selectedStatus ||
+          artwork.collectionName === this.selectedStatus
+        );
       }
 
       // Sort
       result.sort((a, b) => {
-        const aVal = a[this.sortBy];
-        const bVal = b[this.sortBy];
+        let aVal = a[this.sortBy];
+        let bVal = b[this.sortBy];
+        
+        // Handle artist sort - check both artist and artistName fields
+        if (this.sortBy === 'artist') {
+          aVal = a.artistName || a.artist || '';
+          bVal = b.artistName || b.artist || '';
+        }
+        
+        // Handle year sort - check both year and yearCreated fields
+        if (this.sortBy === 'year') {
+          aVal = a.yearCreated || a.year || 0;
+          bVal = b.yearCreated || b.year || 0;
+        }
+        
         if (aVal < bVal) return -1;
         if (aVal > bVal) return 1;
         return 0;

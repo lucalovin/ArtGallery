@@ -59,10 +59,10 @@ export default {
         if (kpiResponse?.data?.success && kpiResponse.data?.data) {
           const kpis = kpiResponse.data.data;
           this.kpiData = [
-            { id: 1, label: 'Total Visitors', value: kpis.totalVisitors || 0, trend: kpis.visitorTrend || 0, icon: '👥', color: 'primary' },
-            { id: 2, label: 'Revenue', value: kpis.totalRevenue || 0, trend: kpis.revenueTrend || 0, icon: '💰', color: 'success', format: 'currency' },
-            { id: 3, label: 'Avg. Visit Duration', value: kpis.avgVisitDuration || 0, trend: kpis.durationTrend || 0, icon: '⏱️', color: 'info', format: 'decimal' },
-            { id: 4, label: 'Member Conversion', value: kpis.memberConversion || 0, trend: kpis.conversionTrend || 0, icon: '🎯', color: 'secondary', format: 'percentage' }
+            { id: 1, label: 'Registered Visitors', value: kpis.totalVisitors || 0, trend: 0, icon: '👥', color: 'primary' },
+            { id: 2, label: 'Insurance Coverage', value: kpis.totalInsuranceCoverage || 0, trend: 0, icon: '🛡️', color: 'success', format: 'currency' },
+            { id: 3, label: 'Active Loans', value: kpis.activeLoans || 0, trend: 0, icon: '📋', color: 'info', format: 'number' },
+            { id: 4, label: 'Total Artworks', value: kpis.totalArtworks || 0, trend: 0, icon: '🖼️', color: 'secondary', format: 'number' }
           ];
         }
 
@@ -71,11 +71,14 @@ export default {
         if (trendsResponse?.data?.success && trendsResponse.data?.data) {
           const trends = trendsResponse.data.data;
           this.visitorTrends = {
-            labels: trends.map(t => t.month || t.label),
+            labels: trends.map(t => {
+              const date = new Date(t.date);
+              return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            }),
             datasets: [
               {
-                label: 'Visitors',
-                data: trends.map(t => t.visitorCount || t.value),
+                label: 'New Registrations',
+                data: trends.map(t => t.visitorCount || 0),
                 borderColor: chartColors.purple,
                 backgroundColor: withOpacity(chartColors.purple, 0.1),
                 fill: true
@@ -103,24 +106,27 @@ export default {
         const exhibitionResponse = await this.$api.reports?.getExhibitionPerformance?.();
         if (exhibitionResponse?.data?.success && exhibitionResponse.data?.data) {
           this.exhibitionPerformance = exhibitionResponse.data.data.slice(0, 4).map((ex, i) => ({
-            id: ex.id || i + 1,
-            name: ex.exhibitionName || ex.name,
-            visitors: ex.visitorCount || ex.visitors || 0,
-            revenue: ex.revenue || 0,
-            rating: ex.rating || 0
+            id: ex.exhibitionId || i + 1,
+            name: ex.title || ex.name,
+            visitors: ex.actualVisitors || ex.expectedVisitors || 0,
+            revenue: ex.budget || 0,
+            rating: ex.performanceRatio ? (ex.performanceRatio * 5).toFixed(1) : 0
           }));
         }
 
-        // Fetch revenue data from API
+        // Fetch revenue data from API (insurance coverage over time)
         const revenueResponse = await this.$api.reports?.getRevenueByPeriod?.({ period: 'monthly' });
         if (revenueResponse?.data?.success && revenueResponse.data?.data) {
           const revenueItems = revenueResponse.data.data;
           this.revenueData = {
-            labels: revenueItems.map(r => r.period || r.month || r.label),
+            labels: revenueItems.map(r => {
+              const date = new Date(r.period);
+              return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            }),
             datasets: [
               {
-                label: 'Revenue ($)',
-                data: revenueItems.map(r => r.amount || r.revenue || r.value || 0),
+                label: 'Coverage Value ($)',
+                data: revenueItems.map(r => r.totalRevenue || 0),
                 backgroundColor: chartColorPalettes.purple
               }
             ]

@@ -78,7 +78,10 @@ public class MappingProfile : Profile
         // Loan mappings
         CreateMap<Loan, LoanResponseDto>()
             .ForMember(dest => dest.ArtworkTitle, opt => opt.MapFrom(src => src.Artwork != null ? src.Artwork.Title : null))
-            .ForMember(dest => dest.ExhibitorName, opt => opt.MapFrom(src => src.Exhibitor != null ? src.Exhibitor.Name : null));
+            .ForMember(dest => dest.ArtistName, opt => opt.MapFrom(src => src.Artwork != null && src.Artwork.Artist != null ? src.Artwork.Artist.Name : null))
+            .ForMember(dest => dest.ExhibitorName, opt => opt.MapFrom(src => src.Exhibitor != null ? src.Exhibitor.Name : null))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => ComputeLoanStatus(src.StartDate, src.EndDate)))
+            .ForMember(dest => dest.DaysRemaining, opt => opt.MapFrom(src => ComputeDaysRemaining(src.EndDate)));
         CreateMap<CreateLoanDto, Loan>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.Artwork, opt => opt.Ignore())
@@ -111,5 +114,33 @@ public class MappingProfile : Profile
 
         // ETL mappings
         CreateMap<EtlSync, EtlSyncResponseDto>();
+    }
+
+    /// <summary>
+    /// Computes the loan status based on start and end dates.
+    /// </summary>
+    private static string ComputeLoanStatus(DateTime startDate, DateTime? endDate)
+    {
+        var today = DateTime.UtcNow.Date;
+        
+        if (today < startDate)
+            return "Pending";
+        
+        if (endDate.HasValue && today > endDate.Value)
+            return "Returned";
+        
+        return "Active";
+    }
+
+    /// <summary>
+    /// Computes the number of days remaining until the loan ends.
+    /// </summary>
+    private static int? ComputeDaysRemaining(DateTime? endDate)
+    {
+        if (!endDate.HasValue)
+            return null;
+        
+        var daysRemaining = (endDate.Value.Date - DateTime.UtcNow.Date).Days;
+        return daysRemaining >= 0 ? daysRemaining : 0;
     }
 }

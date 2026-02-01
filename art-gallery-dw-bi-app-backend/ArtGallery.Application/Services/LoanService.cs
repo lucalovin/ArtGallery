@@ -24,6 +24,7 @@ public class LoanService : ILoanService
     {
         IQueryable<Loan> query = _repository.Query()
             .Include(l => l.Artwork)
+                .ThenInclude(a => a!.Artist)
             .Include(l => l.Exhibitor);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -52,6 +53,7 @@ public class LoanService : ILoanService
     {
         var loan = await _repository.Query()
             .Include(l => l.Artwork)
+                .ThenInclude(a => a!.Artist)
             .Include(l => l.Exhibitor)
             .FirstOrDefaultAsync(l => l.Id == id);
         return loan == null ? null : _mapper.Map<LoanResponseDto>(loan);
@@ -65,6 +67,7 @@ public class LoanService : ILoanService
         
         var createdLoan = await _repository.Query()
             .Include(l => l.Artwork)
+                .ThenInclude(a => a!.Artist)
             .Include(l => l.Exhibitor)
             .FirstAsync(l => l.Id == loan.Id);
         return _mapper.Map<LoanResponseDto>(createdLoan);
@@ -74,6 +77,7 @@ public class LoanService : ILoanService
     {
         var loan = await _repository.Query()
             .Include(l => l.Artwork)
+                .ThenInclude(a => a!.Artist)
             .Include(l => l.Exhibitor)
             .FirstOrDefaultAsync(l => l.Id == id)
             ?? throw new NotFoundException(nameof(Loan), id);
@@ -103,6 +107,7 @@ public class LoanService : ILoanService
         var today = DateTime.UtcNow.Date;
         var loans = await _repository.Query()
             .Include(l => l.Artwork)
+                .ThenInclude(a => a!.Artist)
             .Include(l => l.Exhibitor)
             .Where(l => l.EndDate == null || l.EndDate >= today)
             .ToListAsync();
@@ -114,6 +119,7 @@ public class LoanService : ILoanService
         var today = DateTime.UtcNow.Date;
         var loans = await _repository.Query()
             .Include(l => l.Artwork)
+                .ThenInclude(a => a!.Artist)
             .Include(l => l.Exhibitor)
             .Where(l => l.EndDate != null && l.EndDate < today)
             .ToListAsync();

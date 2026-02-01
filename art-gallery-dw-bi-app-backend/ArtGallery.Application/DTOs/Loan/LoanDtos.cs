@@ -32,11 +32,14 @@ public class LoanResponseDto
     public int Id { get; set; }
     public int ArtworkId { get; set; }
     public string? ArtworkTitle { get; set; }
+    public string? ArtistName { get; set; }
     public int ExhibitorId { get; set; }
     public string? ExhibitorName { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? Conditions { get; set; }
+    public string Status { get; set; } = "Active";
+    public int? DaysRemaining { get; set; }
 }
 
 /// <summary>

@@ -90,11 +90,11 @@
 
       <!-- Year and Dimensions -->
       <div class="flex items-center text-sm text-gray-500 space-x-4 mb-3">
-        <span v-if="artwork.year" class="flex items-center">
+        <span v-if="artworkYear" class="flex items-center">
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          {{ artwork.year }}
+          {{ artworkYear }}
         </span>
         <span v-if="dimensions" class="flex items-center">
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,9 +160,15 @@ export default {
   computed: {
     /**
      * Get artist display name
-     * Handles both object and string artist data
+     * Handles both object and string artist data, and also artistName from API
      */
     artistName() {
+      // Check for artistName property from backend API first
+      if (this.artwork.artistName) {
+        return this.artwork.artistName;
+      }
+      
+      // Fallback to artist property for local data
       if (!this.artwork.artist) return 'Unknown Artist';
       
       if (typeof this.artwork.artist === 'object') {
@@ -170,6 +176,14 @@ export default {
       }
       
       return this.artwork.artist;
+    },
+
+    /**
+     * Get artwork year
+     * Handles both year and yearCreated properties
+     */
+    artworkYear() {
+      return this.artwork.yearCreated || this.artwork.year || null;
     },
 
     /**

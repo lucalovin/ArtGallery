@@ -175,9 +175,9 @@ export default {
     filteredExhibitions() {
       let result = [...this.exhibitions];
 
-      // Status filter
+      // Status filter - calculate status based on dates
       if (this.activeStatus !== 'all') {
-        result = result.filter(e => e.status === this.activeStatus);
+        result = result.filter(e => this.getExhibitionStatus(e) === this.activeStatus);
       }
 
       // Search filter
@@ -203,6 +203,25 @@ export default {
       deleteExhibitionAction: 'exhibition/deleteExhibition'
     }),
 
+    /**
+     * Calculate exhibition status based on start and end dates
+     * @param {Object} exhibition - Exhibition object with startDate and endDate
+     * @returns {string} 'current', 'upcoming', or 'past'
+     */
+    getExhibitionStatus(exhibition) {
+      const now = new Date();
+      const startDate = new Date(exhibition.startDate);
+      const endDate = new Date(exhibition.endDate);
+      
+      if (now < startDate) {
+        return 'upcoming';
+      } else if (now > endDate) {
+        return 'past';
+      } else {
+        return 'current';
+      }
+    },
+
     async loadExhibitions() {
       this.isLoading = true;
       try {
@@ -216,7 +235,7 @@ export default {
 
     getStatusCount(status) {
       if (status === 'all') return this.exhibitions.length;
-      return this.exhibitions.filter(e => e.status === status).length;
+      return this.exhibitions.filter(e => this.getExhibitionStatus(e) === status).length;
     },
 
     viewExhibition(exhibition) {

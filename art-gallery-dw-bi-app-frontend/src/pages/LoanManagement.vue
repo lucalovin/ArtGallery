@@ -33,8 +33,8 @@
         <p class="text-2xl font-bold text-orange-600">{{ stats.returningSoon }}</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-sm text-gray-500">Total Value</p>
-        <p class="text-2xl font-bold text-green-600">{{ formatCurrency(stats.totalValue) }}</p>
+        <p class="text-sm text-gray-500">Total Loans</p>
+        <p class="text-2xl font-bold text-green-600">{{ stats.total }}</p>
       </div>
     </div>
 
@@ -75,9 +75,9 @@
             </div>
             <div>
               <h3 class="font-semibold text-gray-900">{{ loan.artworkTitle }}</h3>
-              <p class="text-sm text-gray-500">{{ loan.artist }}</p>
+              <p class="text-sm text-gray-500">{{ loan.artistName || 'Unknown Artist' }}</p>
               <div class="flex items-center mt-2 space-x-4 text-sm text-gray-600">
-                <span>📍 {{ loan.borrowerName }}</span>
+                <span>📍 {{ loan.exhibitorName || 'Unknown Exhibitor' }}</span>
                 <span>📅 {{ formatDateRange(loan.startDate, loan.endDate) }}</span>
               </div>
             </div>
@@ -97,26 +97,28 @@
           </div>
         </div>
 
-        <!-- Insurance & Value Info -->
-        <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p class="text-gray-500">Insured Value</p>
-            <p class="font-medium text-gray-900">{{ formatCurrency(loan.insuredValue) }}</p>
-          </div>
-          <div>
-            <p class="text-gray-500">Insurance Provider</p>
-            <p class="font-medium text-gray-900">{{ loan.insuranceProvider }}</p>
-          </div>
-          <div>
-            <p class="text-gray-500">Loan Fee</p>
-            <p class="font-medium text-gray-900">{{ formatCurrency(loan.loanFee) }}</p>
-          </div>
+        <!-- Loan Details -->
+        <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <div>
             <p class="text-gray-500">Days Remaining</p>
-            <p class="font-medium" :class="loan.daysRemaining < 30 ? 'text-orange-600' : 'text-gray-900'">
-              {{ loan.daysRemaining }} days
+            <p class="font-medium" :class="loan.daysRemaining !== null && loan.daysRemaining < 30 ? 'text-orange-600' : 'text-gray-900'">
+              {{ loan.daysRemaining !== null ? loan.daysRemaining + ' days' : 'No end date' }}
             </p>
           </div>
+          <div>
+            <p class="text-gray-500">Start Date</p>
+            <p class="font-medium text-gray-900">{{ formatDate(loan.startDate) }}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">End Date</p>
+            <p class="font-medium text-gray-900">{{ loan.endDate ? formatDate(loan.endDate) : 'Ongoing' }}</p>
+          </div>
+        </div>
+
+        <!-- Conditions -->
+        <div v-if="loan.conditions" class="mt-3 pt-3 border-t border-gray-100">
+          <p class="text-sm text-gray-500">Conditions</p>
+          <p class="text-sm text-gray-700">{{ loan.conditions }}</p>
         </div>
       </div>
     </div>
@@ -154,8 +156,8 @@ export default {
       return {
         active: this.loans.filter(l => l.status === 'Active').length,
         pending: this.loans.filter(l => l.status === 'Pending').length,
-        returningSoon: this.loans.filter(l => l.status === 'Active' && l.daysRemaining < 30).length,
-        totalValue: this.loans.reduce((sum, l) => sum + (l.insuredValue || 0), 0)
+        returningSoon: this.loans.filter(l => l.status === 'Active' && l.daysRemaining !== null && l.daysRemaining < 30).length,
+        total: this.loans.length
       };
     },
 
@@ -204,9 +206,16 @@ export default {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
     },
 
+    formatDate(dateStr) {
+      if (!dateStr) return 'N/A';
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    },
+
     formatDateRange(start, end) {
       const opts = { month: 'short', year: 'numeric' };
-      return `${new Date(start).toLocaleDateString('en-US', opts)} - ${new Date(end).toLocaleDateString('en-US', opts)}`;
+      const startStr = start ? new Date(start).toLocaleDateString('en-US', opts) : 'N/A';
+      const endStr = end ? new Date(end).toLocaleDateString('en-US', opts) : 'Ongoing';
+      return `${startStr} - ${endStr}`;
     },
 
     getStatusClass(status) {
