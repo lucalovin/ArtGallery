@@ -1,0 +1,167 @@
+version: "3.8"
+
+services:
+  oracle-db:
+    image: container-registry.oracle.com/database/enterprise:19.3.0.0
+
+    container_name: Oracle-DWBI-DB-19c
+
+    ports:
+      - "1523:1521" # Port SQL (SQL Developer, SQL*Plus, aplicații)
+      - "5503:5500" # Port Enterprise Manager (interfață web)
+
+    environment:
+      - ORACLE_SID=ORCLCDB # Container Database (CDB)
+      - ORACLE_PDB=ORCLPDB # Pluggable Database (PDB)
+      - ORACLE_PWD=admin # Parolă pentru SYS, SYSTEM, PDBADMIN
+      - ORACLE_CHARACTERSET=AL32UTF8 # Unicode complet (suportă diacritice)
+
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+
+    shm_size: 1gb
+
+volumes:
+  oracle-data:
+    driver: local # Stocare locală pe mașina gazdă
+
+# ============================================================================
+# PROCES INIȚIAL - PAȘI OBLIGATORII ÎNAINTE DE "docker-compose up"
+# ============================================================================
+#
+# PASUL 1: Autentificare pe Oracle Container Registry
+# -------------------------------------------------------
+# Deschide terminal și execută:
+#
+#   docker login container-registry.oracle.com
+#
+# Username: adresa ta de email Oracle
+# Password: (Token generat - vezi PASUL 2)
+#
+#
+# PASUL 2: Generare Auth Token
+# -------------------------------------------------------
+# 1. Intră pe: https://container-registry.oracle.com
+# 2. Login cu contul Oracle (creează cont dacă nu ai)
+# 3. Mergi la: Profile (dreapta sus) → User Settings
+# 4. Click pe "Auth Tokens" (stânga)
+# 5. Click "Generate Token"
+# 6. Copiază token-ul generat (nu îl mai poți vedea după!)
+# 7. Folosește token-ul ca "Password" la PASUL 1
+#
+# EXEMPLU TOKEN: kwTwrCeTCXThqM3Nx9d (nu funcționează - e de exemplu)
+#
+#
+# PASUL 3: Acceptare Licență Oracle
+# -------------------------------------------------------
+# 1. Intră pe: https://container-registry.oracle.com
+# 2. Caută "Database" → click pe "Enterprise"
+# 3. Selectează limba "English"
+# 4. Click "Continue" → Acceptă licența
+#
+#
+# PASUL 4: Pornire Container
+# -------------------------------------------------------
+# Execută în directorul unde este docker-compose.yml:
+#
+#   docker-compose up -d
+#
+# ATENȚIE:
+# - Prima pornire durează 5-30 minute (instalare + configurare DB)
+# - Baza de date trebuie să fie "healthy" înainte de conectare
+# - Verifică statusul cu: docker-compose logs -f
+# - Caută în log mesajul: "DATABASE IS READY TO USE!"
+#
+# ============================================================================
+
+# ============================================================================
+# COMENZI DOCKER UTILE
+# ============================================================================
+#
+# docker-compose up -d          # Pornește containerul în fundal (detached)
+# docker-compose down           # Oprește și șterge containerul (păstrează datele)
+# docker-compose down -v        # ATENȚIE: Șterge TOATE datele permanent!
+# docker-compose logs -f        # Afișează log-uri în timp real
+# docker-compose start          # Pornește un container oprit
+# docker-compose stop           # Oprește containerul (păstrează starea)
+# docker-compose restart        # Repornește containerul
+#
+# docker exec -it Oracle-DB-19c bash           # Intră în terminal container
+# docker exec -it Oracle-DB-19c sqlplus /nolog # Deschide SQL*Plus
+#
+# ============================================================================
+
+# ============================================================================
+# CONECTARE LA BAZA DE DATE - SQL*Plus (din container)
+# ============================================================================
+#
+# Conectare ca SYS (super-admin):
+#
+#   docker exec -it Oracle-DB-19c sqlplus sys/admin@ORCLCDB as sysdba
+#
+# Conectare ca SYSTEM:
+#
+#   docker exec -it Oracle-DB-19c sqlplus system/admin@ORCLCDB
+#
+# Conectare la PDB (Pluggable Database):
+#
+#   docker exec -it Oracle-DB-19c sqlplus sys/admin@ORCLPDB1 as sysdba
+#
+# ============================================================================
+
+# ============================================================================
+# CONECTARE SQL DEVELOPER - Configurare SYS (Administrator)
+# ============================================================================
+#
+# Connection Name:  Oracle 19c - SYS (Admin)
+# Username:         sys
+# Password:         admin              ⚠️ Parolă schimbată la "admin"
+# Role:             SYSDBA             ⚠️ OBLIGATORIU să selectezi SYSDBA!
+# Save Password:    ✓ (bifează)
+#
+# Connection Type:  Basic
+# Hostname:         localhost
+# Port:             1523               ⚠️ ATENȚIE: 1523 (nu 1521)
+# SID:              ORCLCDB            (Container Database)
+#
+# Test Connection → Success ✓
+# Save → Connect
+#
+# ============================================================================
+
+# ============================================================================
+# CREARE UTILIZATOR PERSONALIZAT (pentru proiect)
+# ============================================================================
+#
+# Conectează-te ca SYS și execută în SQL Developer:
+#
+# -- Conectare la PDB
+# ALTER SESSION SET CONTAINER = ORCLPDB1;
+#
+# -- Creare utilizator
+# CREATE USER ART_GALLERY_DW IDENTIFIED BY ART_GALLERY_DW;
+#
+# -- Acordare privilegii
+# GRANT CONNECT, RESOURCE, DBA TO ART_GALLERY_DW;
+# GRANT UNLIMITED TABLESPACE TO ART_GALLERY_DW;
+#
+# APOI creează o conexiune nouă în SQL Developer:
+#
+# Connection Name:  Art Gallery DW
+# Username:         ART_GALLERY_DW
+# Password:         ART_GALLERY_DW
+# Hostname:         localhost
+# Port:             1523
+# Service Name:     ORCLPDB           ⚠️ ATENȚIE: Service Name (nu SID)
+#
+# ============================================================================
+
+# ============================================================================
+# ERORI
+# ============================================================================
+#
+##### Eroare 1: Port already allocated
+##### Solutie: Schimbă portul 1523 in 1524 sau 5503 in 5504 în docker-compose.yml și repornește containerul
+# Error response from daemon: driver failed programming external connectivity on endpoint
+# Oracle-DWBI-DB-19c (0832a61458e6d1344390dff7e5390e0a623a188643892c93b883f2af1fee7fbb):
+# Bind for 0.0.0.0:5502 failed: port is already allocated
