@@ -651,14 +651,10 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 -- Implemented in DwAnalyticsService.cs and accessible via AnalyticsController
 -- ============================================================================
 
--- 1. Top 10 Artiști după Număr de Opere Expuse
--- Cerință în limbaj natural (română):
+-- 1. Top 10 Artiști după număr de opere expuse
+-- Cerință în limbaj natural:
 -- "Afișați primii 10 artiști în funcție de numărul de opere din colecție, 
 --  împreună cu valoarea totală și medie estimată a operelor lor."
---
--- Natural Language Request (English):
--- "Show me the top 10 artists with the most artworks in the collection,
---  along with their total and average estimated artwork value."
 
 SELECT * FROM (
     SELECT
@@ -675,15 +671,11 @@ SELECT * FROM (
 WHERE ROWNUM <= 10;
 
 
--- 2. Valoarea Colecției pe Tip de Mediu și Colecție
--- Cerință în limbaj natural (română):
+-- 2. Valoarea colecției pe tip de mediu și colecție
+-- Cerință în limbaj natural:
 -- "Prezentați o analiză a valorii totale a colecției descompusă pe tipuri de mediu 
 --  (pictură, sculptură, etc.) și pe colecții, incluzând numărul de opere și 
 --  valoarea medie pe fiecare categorie."
---
--- Natural Language Request (English):
--- "Provide a breakdown of the collection's total value by art medium and collection type,
---  including the number of artworks and average value for each category."
 
 SELECT
     NVL(daw.MEDIUM, 'Unknown') as medium_type,
@@ -698,16 +690,11 @@ GROUP BY daw.MEDIUM, dc.NAME
 ORDER BY total_value DESC;
 
 
--- 3. Activitatea Lunară a Expozițiilor (Ultimele 12 Luni)
--- Cerință în limbaj natural (română):
+-- 3. Activitatea lunară a expozițiilor (ultimele 12 luni)
+-- Cerință în limbaj natural:
 -- "Analizați performanța expozițiilor lunar pentru ultimul an: afișați pentru fiecare lună 
 --  numărul de expoziții active, numărul de opere expuse, valoarea totală a operelor 
 --  și evaluarea medie primită de vizitatori."
---
--- Natural Language Request (English):
--- "Analyze monthly exhibition performance for the past year: show the number of active
---  exhibitions, artworks exhibited, total artwork value, and average visitor rating
---  for each month."
 
 SELECT
     dd.MONTH_NAME as month_name,
@@ -723,16 +710,12 @@ GROUP BY dd.CALENDAR_YEAR, dd.MONTH_NAME, dd.CALENDAR_MONTH
 ORDER BY dd.CALENDAR_YEAR, dd.CALENDAR_MONTH;
 
 
--- 4. Distribuția Operelor pe Locații și Galerii
--- Cerință în limbaj natural (română):
+-- 4. Distribuția operelor pe locații și galerii
+-- Cerință în limbaj natural:
 -- "Prezentați distribuția operelor de artă în diferitele locații ale galeriei: 
 --  pentru fiecare locație și sală afișați numărul de opere, valoarea totală 
 --  și procentul pe care îl reprezintă din întreaga colecție expusă."
---
--- Natural Language Request (English):
--- "Show the distribution of artworks across different gallery locations:
---  for each location and room, display the number of artworks, total value,
---  and percentage they represent of the entire exhibited collection."
+
 
 SELECT
     NVL(dl.NAME, 'Unknown') as location_name,
@@ -748,17 +731,12 @@ GROUP BY dl.NAME, dl.GALLERY_ROOM, dl.TYPE
 ORDER BY artworks_count DESC;
 
 
--- 5. Trendul Anual al Activității Expoziționale (Ultimii 5 Ani)
--- Cerință în limbaj natural (română):
+-- 5. Trendul anual al activității expoziționale (ultimii 5 ani)
+-- Cerință în limbaj natural:
 -- "Afișați evoluția activității expoziționale pe ultimii 5 ani: pentru fiecare an 
 --  prezentați numărul de expoziții organizate, numărul de opere expuse, valoarea 
 --  totală și medie a operelor, precum și rata de creștere an-la-an (YoY) a valorii."
 --
--- Natural Language Request (English):
--- "Show the trend of exhibition activity over the past 5 years: for each year
---  display the number of exhibitions held, artworks exhibited, total and average
---  artwork value, and year-over-year growth rate."
-
 SELECT
     dd.CALENDAR_YEAR as year,
     COUNT(DISTINCT f.EXHIBITION_KEY) as exhibitions_count,
