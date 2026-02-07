@@ -5,10 +5,10 @@
 -- Implemented in DwAnalyticsService.cs and accessible via AnalyticsController
 -- ============================================================================
 
--- 1. Top 10 Arti?ti dup? num?r de opere expuse
--- Cerin?? în limbaj natural:
--- "Afi?a?i primii 10 arti?ti în func?ie de num?rul de opere din colec?ie, 
---  împreun? cu valoarea total? ?i medie estimat? a operelor lor."
+-- 1. Top 10 Artisti dupa numar de opere expuse
+-- Cerinta in limbaj natural:
+-- "Afisati primii 10 artisti in functie de numarul de opere din colectie, 
+--  impreuna cu valoarea totala si medie estimata a operelor lor."
 
 SELECT * FROM (
     SELECT
@@ -25,10 +25,10 @@ SELECT * FROM (
 WHERE ROWNUM <= 10;
 
 
--- 2. Valoarea colec?iei pe tip de mediu ?i colec?ie
--- Cerin?? în limbaj natural:
--- "Prezenta?i o analiz? a valorii totale a colec?iei descompus? pe tipuri de mediu 
---  (pictur?, sculptur?, etc.) ?i pe colec?ii, incluzând num?rul de opere ?i 
+-- 2. Valoarea colectiei pe tip de mediu si colectie
+-- Cerinta in limbaj natural:
+-- "Prezentati o analiza a valorii totale a colectiei descompusa pe tipuri de mediu 
+--  (pictura, sculptura, etc.) si pe colectii, incluzand numarul de opere si 
 --  valoarea medie pe fiecare categorie."
 
 SELECT
@@ -44,11 +44,11 @@ GROUP BY daw.MEDIUM, dc.NAME
 ORDER BY total_value DESC;
 
 
--- 3. Activitatea lunar? a expozi?iilor (ultimele 12 luni)
--- Cerin?? în limbaj natural:
--- "Analiza?i performan?a expozi?iilor lunar pentru ultimul an: afi?a?i pentru fiecare lun? 
---  num?rul de expozi?ii active, num?rul de opere expuse, valoarea total? a operelor 
---  ?i evaluarea medie primit? de vizitatori."
+-- 3. Activitatea lunara a expozitiilor (ultimele 12 luni)
+-- Cerinta in limbaj natural:
+-- "Analizati performanta expozitiilor lunar pentru ultimul an: afisati pentru fiecare luna 
+--  numarul de expozitii active, numarul de opere expuse, valoarea totala a operelor 
+--  si evaluarea medie primita de vizitatori."
 
 SELECT
     dd.MONTH_NAME as month_name,
@@ -64,11 +64,11 @@ GROUP BY dd.CALENDAR_YEAR, dd.MONTH_NAME, dd.CALENDAR_MONTH
 ORDER BY dd.CALENDAR_YEAR, dd.CALENDAR_MONTH;
 
 
--- 4. Distribu?ia operelor pe loca?ii ?i galerii
--- Cerin?? în limbaj natural:
--- "Prezenta?i distribu?ia operelor de art? în diferitele loca?ii ale galeriei: 
---  pentru fiecare loca?ie ?i sal? afi?a?i num?rul de opere, valoarea total? 
---  ?i procentul pe care îl reprezint? din întreaga colec?ie expus?."
+-- 4. Distributia operelor pe locatii si galerii
+-- Cerinta in limbaj natural:
+-- "Prezentati distributia operelor de arta in diferitele locatii ale galeriei: 
+--  pentru fiecare locatie si sala afisati numarul de opere, valoarea totala 
+--  si procentul pe care il reprezinta din intreaga colectie expusa."
 
 
 SELECT
@@ -85,11 +85,11 @@ GROUP BY dl.NAME, dl.GALLERY_ROOM, dl.TYPE
 ORDER BY artworks_count DESC;
 
 
--- 5. Trendul anual al activit??ii expozi?ionale (ultimii 5 ani)
--- Cerin?? în limbaj natural:
--- "Afi?a?i evolu?ia activit??ii expozi?ionale pe ultimii 5 ani: pentru fiecare an 
---  prezenta?i num?rul de expozi?ii organizate, num?rul de opere expuse, valoarea 
---  total? ?i medie a operelor, precum ?i rata de cre?tere an-la-an (YoY) a valorii."
+-- 5. Trendul anual al activitatii expozitionale (ultimii 5 ani)
+-- Cerinta in limbaj natural:
+-- "Afisati evolutia activitatii expozitionale pe ultimii 5 ani: pentru fiecare an 
+--  prezentati numarul de expozitii organizate, numarul de opere expuse, valoarea 
+--  totala si medie a operelor, precum si rata de crestere an-la-an (YoY) a valorii."
 --
 SELECT
     dd.CALENDAR_YEAR as year,
