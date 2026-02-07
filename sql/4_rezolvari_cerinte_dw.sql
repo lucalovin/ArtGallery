@@ -255,7 +255,7 @@ LEFT JOIN (
   GROUP BY gr.exhibition_id, gr.artwork_id
 ) rv
   ON rv.exhibition_id = ex.exhibition_id
- AND (rv.artwork_id = aw.artwork_id OR rv.artwork_id IS NULL);
+ AND rv.artwork_id = aw.artwork_id;
 
 COMMIT;
 
@@ -277,50 +277,42 @@ ALTER TABLE FACT_EXHIBITION_ACTIVITY
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_date
   FOREIGN KEY (DATE_KEY)
-  REFERENCES DIM_DATE (DATE_KEY)
-  RELY DISABLE NOVALIDATE;
-
+  REFERENCES DIM_DATE (DATE_KEY);
+  
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_exhibition
   FOREIGN KEY (EXHIBITION_KEY)
-  REFERENCES DIM_EXHIBITION (EXHIBITION_KEY)
-  RELY DISABLE NOVALIDATE;
-
+  REFERENCES DIM_EXHIBITION (EXHIBITION_KEY);
+  
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_exhibitor
   FOREIGN KEY (EXHIBITOR_KEY)
-  REFERENCES DIM_EXHIBITOR (EXHIBITOR_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_EXHIBITOR (EXHIBITOR_KEY);
 
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_artwork
   FOREIGN KEY (ARTWORK_KEY)
-  REFERENCES DIM_ARTWORK (ARTWORK_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_ARTWORK (ARTWORK_KEY);
 
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_artist
   FOREIGN KEY (ARTIST_KEY)
-  REFERENCES DIM_ARTIST (ARTIST_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_ARTIST (ARTIST_KEY);
 
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_collection
   FOREIGN KEY (COLLECTION_KEY)
-  REFERENCES DIM_COLLECTION (COLLECTION_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_COLLECTION (COLLECTION_KEY);
 
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_location
   FOREIGN KEY (LOCATION_KEY)
-  REFERENCES DIM_LOCATION (LOCATION_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_LOCATION (LOCATION_KEY);
 
 ALTER TABLE FACT_EXHIBITION_ACTIVITY
   ADD CONSTRAINT fk_fact_policy
   FOREIGN KEY (POLICY_KEY)
-  REFERENCES DIM_POLICY (POLICY_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_POLICY (POLICY_KEY);
 
 -- ============================================================================
 -- CHEI EXTERNE (FOREIGN KEYS) - DIMENSIUNI
@@ -330,59 +322,50 @@ ALTER TABLE FACT_EXHIBITION_ACTIVITY
 ALTER TABLE DIM_COLLECTION
   ADD CONSTRAINT fk_dim_collection_created_date
   FOREIGN KEY (CREATED_DATE_KEY)
-  REFERENCES DIM_DATE (DATE_KEY)
-  RELY DISABLE NOVALIDATE;
-
+  REFERENCES DIM_DATE (DATE_KEY);
+ 
 -- Legaturi DIM_EXHIBITION
 ALTER TABLE DIM_EXHIBITION
   ADD CONSTRAINT fk_dim_exhibition_start_date
   FOREIGN KEY (START_DATE_KEY)
-  REFERENCES DIM_DATE (DATE_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_DATE (DATE_KEY);
 
 ALTER TABLE DIM_EXHIBITION
   ADD CONSTRAINT fk_dim_exhibition_end_date
   FOREIGN KEY (END_DATE_KEY)
-  REFERENCES DIM_DATE (DATE_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_DATE (DATE_KEY);
 
 ALTER TABLE DIM_EXHIBITION
   ADD CONSTRAINT fk_dim_exhibition_exhibitor
   FOREIGN KEY (EXHIBITOR_KEY)
-  REFERENCES DIM_EXHIBITOR (EXHIBITOR_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_EXHIBITOR (EXHIBITOR_KEY);
 
 -- Legaturi DIM_ARTWORK
 ALTER TABLE DIM_ARTWORK
   ADD CONSTRAINT fk_dim_artwork_artist
   FOREIGN KEY (ARTIST_KEY)
-  REFERENCES DIM_ARTIST (ARTIST_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_ARTIST (ARTIST_KEY);
 
 ALTER TABLE DIM_ARTWORK
   ADD CONSTRAINT fk_dim_artwork_collection
   FOREIGN KEY (COLLECTION_KEY)
-  REFERENCES DIM_COLLECTION (COLLECTION_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_COLLECTION (COLLECTION_KEY);
 
 ALTER TABLE DIM_ARTWORK
   ADD CONSTRAINT fk_dim_artwork_location
   FOREIGN KEY (LOCATION_KEY)
-  REFERENCES DIM_LOCATION (LOCATION_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_LOCATION (LOCATION_KEY);
 
 -- Legaturi DIM_POLICY
 ALTER TABLE DIM_POLICY
   ADD CONSTRAINT fk_dim_policy_start_date
   FOREIGN KEY (START_DATE_KEY)
-  REFERENCES DIM_DATE (DATE_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_DATE (DATE_KEY);
 
 ALTER TABLE DIM_POLICY
   ADD CONSTRAINT fk_dim_policy_end_date
   FOREIGN KEY (END_DATE_KEY)
-  REFERENCES DIM_DATE (DATE_KEY)
-  RELY DISABLE NOVALIDATE;
+  REFERENCES DIM_DATE (DATE_KEY);
 
 -- ============================================================================
 -- CONSTRANGERI DE INTEGRITATE (CHECK)
@@ -413,7 +396,7 @@ ALTER TABLE FACT_EXHIBITION_ACTIVITY
   
 -----6
 -- ============================================================================
--- 1. Index BITMAP pe tipul locației (Rămâne neschimbat, e corect)
+-- 1. Index BITMAP pe tipul loca?iei (R?m�ne neschimbat, e corect)
 -- Cardinalitate redusa (Exhibit, Storage)
 -- ============================================================================
 
@@ -433,7 +416,7 @@ GROUP BY l.NAME;
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 -- ============================================================================
--- 2. Index BITMAP pe indicatorul de împrumut (LOAN_FLAG)
+-- 2. Index BITMAP pe indicatorul de �mprumut (LOAN_FLAG)
 -- Are doar 2 valori (0 si 1), ideal pentru BITMAP
 -- ============================================================================
 
@@ -651,10 +634,10 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 -- Implemented in DwAnalyticsService.cs and accessible via AnalyticsController
 -- ============================================================================
 
--- 1. Top 10 Artiști după număr de opere expuse
--- Cerință în limbaj natural:
--- "Afișați primii 10 artiști în funcție de numărul de opere din colecție, 
---  împreună cu valoarea totală și medie estimată a operelor lor."
+-- 1. Top 10 Arti?ti dup? num?r de opere expuse
+-- Cerin?? �n limbaj natural:
+-- "Afi?a?i primii 10 arti?ti �n func?ie de num?rul de opere din colec?ie, 
+--  �mpreun? cu valoarea total? ?i medie estimat? a operelor lor."
 
 SELECT * FROM (
     SELECT
@@ -671,10 +654,10 @@ SELECT * FROM (
 WHERE ROWNUM <= 10;
 
 
--- 2. Valoarea colecției pe tip de mediu și colecție
--- Cerință în limbaj natural:
--- "Prezentați o analiză a valorii totale a colecției descompusă pe tipuri de mediu 
---  (pictură, sculptură, etc.) și pe colecții, incluzând numărul de opere și 
+-- 2. Valoarea colec?iei pe tip de mediu ?i colec?ie
+-- Cerin?? �n limbaj natural:
+-- "Prezenta?i o analiz? a valorii totale a colec?iei descompus? pe tipuri de mediu 
+--  (pictur?, sculptur?, etc.) ?i pe colec?ii, incluz�nd num?rul de opere ?i 
 --  valoarea medie pe fiecare categorie."
 
 SELECT
@@ -690,11 +673,11 @@ GROUP BY daw.MEDIUM, dc.NAME
 ORDER BY total_value DESC;
 
 
--- 3. Activitatea lunară a expozițiilor (ultimele 12 luni)
--- Cerință în limbaj natural:
--- "Analizați performanța expozițiilor lunar pentru ultimul an: afișați pentru fiecare lună 
---  numărul de expoziții active, numărul de opere expuse, valoarea totală a operelor 
---  și evaluarea medie primită de vizitatori."
+-- 3. Activitatea lunar? a expozi?iilor (ultimele 12 luni)
+-- Cerin?? �n limbaj natural:
+-- "Analiza?i performan?a expozi?iilor lunar pentru ultimul an: afi?a?i pentru fiecare lun? 
+--  num?rul de expozi?ii active, num?rul de opere expuse, valoarea total? a operelor 
+--  ?i evaluarea medie primit? de vizitatori."
 
 SELECT
     dd.MONTH_NAME as month_name,
@@ -710,11 +693,11 @@ GROUP BY dd.CALENDAR_YEAR, dd.MONTH_NAME, dd.CALENDAR_MONTH
 ORDER BY dd.CALENDAR_YEAR, dd.CALENDAR_MONTH;
 
 
--- 4. Distribuția operelor pe locații și galerii
--- Cerință în limbaj natural:
--- "Prezentați distribuția operelor de artă în diferitele locații ale galeriei: 
---  pentru fiecare locație și sală afișați numărul de opere, valoarea totală 
---  și procentul pe care îl reprezintă din întreaga colecție expusă."
+-- 4. Distribu?ia operelor pe loca?ii ?i galerii
+-- Cerin?? �n limbaj natural:
+-- "Prezenta?i distribu?ia operelor de art? �n diferitele loca?ii ale galeriei: 
+--  pentru fiecare loca?ie ?i sal? afi?a?i num?rul de opere, valoarea total? 
+--  ?i procentul pe care �l reprezint? din �ntreaga colec?ie expus?."
 
 
 SELECT
@@ -731,11 +714,11 @@ GROUP BY dl.NAME, dl.GALLERY_ROOM, dl.TYPE
 ORDER BY artworks_count DESC;
 
 
--- 5. Trendul anual al activității expoziționale (ultimii 5 ani)
--- Cerință în limbaj natural:
--- "Afișați evoluția activității expoziționale pe ultimii 5 ani: pentru fiecare an 
---  prezentați numărul de expoziții organizate, numărul de opere expuse, valoarea 
---  totală și medie a operelor, precum și rata de creștere an-la-an (YoY) a valorii."
+-- 5. Trendul anual al activit??ii expozi?ionale (ultimii 5 ani)
+-- Cerin?? �n limbaj natural:
+-- "Afi?a?i evolu?ia activit??ii expozi?ionale pe ultimii 5 ani: pentru fiecare an 
+--  prezenta?i num?rul de expozi?ii organizate, num?rul de opere expuse, valoarea 
+--  total? ?i medie a operelor, precum ?i rata de cre?tere an-la-an (YoY) a valorii."
 --
 SELECT
     dd.CALENDAR_YEAR as year,
