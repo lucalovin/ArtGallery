@@ -1,8 +1,8 @@
 -- USER: ART_GALLETY_OLTP
 
 -- ============================================================================
--- 9a. PLANUL DE EXECU?IE ALES DE OPTIMIZORUL BAZAT PE COST (CBO)
---    (varianta de baz?, f?r? optimiz?ri explicite)
+-- 9a. PLANUL DE EXECUTIE ALES DE OPTIMIZORUL BAZAT PE COST (CBO)
+--    (varianta de baza, fara optimizari explicite)
 -- ============================================================================
 
 
@@ -38,7 +38,7 @@ ANALYZE TABLE DIM_EXHIBITION COMPUTE STATISTICS;
 ANALYZE TABLE DIM_ARTIST COMPUTE STATISTICS;
 ANALYZE TABLE DIM_DATE COMPUTE STATISTICS;
 
--- Pas 1: Generarea planului de execu?ie pentru cererea de baz?
+-- Pas 1: Generarea planului de executie pentru cererea de baza
 EXPLAIN PLAN
 SET STATEMENT_ID = 'cerinta9_baza'
 FOR
@@ -67,55 +67,55 @@ ORDER BY
   ex.TITLE,
   total_insured_amount DESC;
 
--- Pas 2: Afi?area planului de execu?ie
+-- Pas 2: Afisarea planului de executie
 SELECT plan_table_output
 FROM table(dbms_xplan.display('plan_table', 'cerinta9_baza', 'serial'));
 
 -- ============================================================================
--- EXPLICAREA ETAPELOR PLANULUI DE EXECU?IE (estimat):
+-- EXPLICAREA ETAPELOR PLANULUI DE EXECUTIE (estimat):
 -- ============================================================================
 --
--- Planul de execu?ie generat de CBO va parcurge, în mod tipic, urm?toarele
--- etape (citite de la cea mai indentat? opera?ie spre r?d?cin?):
+-- Planul de executie generat de CBO va parcurge, in mod tipic, urmatoarele
+-- etape (citite de la cea mai indentata operatie spre radacina):
 --
 -- 1. TABLE ACCESS FULL pe FACT_EXHIBITION_ACTIVITY
---    - Optimizorul scaneaz? integral tabela de fapte (full table scan)
---    - Aceasta este cea mai costisitoare opera?ie, deoarece tabela de
---      fapte con?ine cel mai mare volum de date
+--    - Optimizorul scaneaza integral tabela de fapte (full table scan)
+--    - Aceasta este cea mai costisitoare operatie, deoarece tabela de
+--      fapte contine cel mai mare volum de date
 --
 -- 2. TABLE ACCESS FULL pe DIM_DATE
---    - Scaneaz? tabela DIM_DATE pentru a putea aplica filtrul
+--    - Scaneaza tabela DIM_DATE pentru a putea aplica filtrul
 --      CALENDAR_YEAR BETWEEN 2022 AND 2024
 --
--- 3. HASH JOIN între FACT_EXHIBITION_ACTIVITY ?i DIM_DATE
---    - Optimizorul construie?te un hash table pe dimensiunea mai mic?
---      (DIM_DATE filtrat?) ?i face probe cu rândurile din tabela de fapte
---    - Filtrul pe CALENDAR_YEAR este aplicat aici, reducând setul de date
+-- 3. HASH JOIN intre FACT_EXHIBITION_ACTIVITY si DIM_DATE
+--    - Optimizorul construieste un hash table pe dimensiunea mai mica
+--      (DIM_DATE filtrata) si face probe cu randurile din tabela de fapte
+--    - Filtrul pe CALENDAR_YEAR este aplicat aici, reducand setul de date
 --
 -- 4. TABLE ACCESS FULL pe DIM_EXHIBITION
---    - Scaneaz? tabela dimensiune DIM_EXHIBITION
+--    - Scaneaza tabela dimensiune DIM_EXHIBITION
 --
--- 5. HASH JOIN cu rezultatul anterior ?i DIM_EXHIBITION
---    - Face leg?tura pe EXHIBITION_KEY
+-- 5. HASH JOIN cu rezultatul anterior si DIM_EXHIBITION
+--    - Face legatura pe EXHIBITION_KEY
 --
 -- 6. TABLE ACCESS FULL pe DIM_ARTIST
---    - Scaneaz? tabela dimensiune DIM_ARTIST
+--    - Scaneaza tabela dimensiune DIM_ARTIST
 --
--- 7. HASH JOIN cu rezultatul anterior ?i DIM_ARTIST
---    - Face leg?tura pe ARTIST_KEY
+-- 7. HASH JOIN cu rezultatul anterior si DIM_ARTIST
+--    - Face legatura pe ARTIST_KEY
 --
 -- 8. HASH GROUP BY
---    - Grupeaz? rezultatele pe (TITLE, CALENDAR_YEAR, NAME) ?i
---      calculeaz? SUM, COUNT DISTINCT, AVG
+--    - Grupeaza rezultatele pe (TITLE, CALENDAR_YEAR, NAME) si
+--      calculeaza SUM, COUNT DISTINCT, AVG
 --
 -- 9. SORT ORDER BY
---    - Ordoneaz? rezultatul final dup? CALENDAR_YEAR, TITLE,
+--    - Ordoneaza rezultatul final dupa CALENDAR_YEAR, TITLE,
 --      total_insured_amount DESC
 --
--- Observa?ii:
+-- Observatii:
 -- - Toate accesele la tabele sunt de tip FULL TABLE SCAN deoarece
---   nu exist? indec?i pe coloanele de JOIN ale tabelei de fapte
--- - Costul principal provine din scanarea integral? a tabelei de fapte
+--   nu exista indecsi pe coloanele de JOIN ale tabelei de fapte
+-- - Costul principal provine din scanarea integrala a tabelei de fapte
 -- - Hash Join este preferat de CBO pentru volume mari de date (tipic DW)
 -- ============================================================================
 
@@ -127,9 +127,9 @@ FROM table(dbms_xplan.display('plan_table', 'cerinta9_baza', 'serial'));
 -- ---------------------------------------------------------------------------
 -- OPTIMIZARE 1: Index B*Tree pe coloana DATE_KEY din tabela de fapte
 -- ---------------------------------------------------------------------------
--- Justificare: cererea filtreaz? pe un interval de ani, ceea ce se traduce
--- într-un interval de valori DATE_KEY (20220101 - 20241231)
--- Un index B*Tree permite range scan în loc de full table scan.
+-- Justificare: cererea filtreaza pe un interval de ani, ceea ce se traduce
+-- intr-un interval de valori DATE_KEY (20220101 - 20241231)
+-- Un index B*Tree permite range scan in loc de full table scan.
 
 CREATE INDEX idx_fact_date_key
 ON FACT_EXHIBITION_ACTIVITY(DATE_KEY);
@@ -173,20 +173,20 @@ ORDER BY
 SELECT plan_table_output
 FROM table(dbms_xplan.display('plan_table', 'cerinta9_optim1', 'serial'));
 
--- Planul de execu?ie a?teptat:
--- - INDEX RANGE SCAN pe idx_fact_date_key (în loc de TABLE ACCESS FULL)
+-- Planul de executie asteptat:
+-- - INDEX RANGE SCAN pe idx_fact_date_key (in loc de TABLE ACCESS FULL)
 -- - TABLE ACCESS BY INDEX ROWID pe FACT_EXHIBITION_ACTIVITY
--- - Restul planului r?mâne similar (HASH JOIN-uri cu dimensiunile)
--- - Costul total scade deoarece se acceseaz? doar rândurile din intervalul
---   de date relevant, nu întreaga tabel? de fapte
+-- - Restul planului ramane similar (HASH JOIN-uri cu dimensiunile)
+-- - Costul total scade deoarece se acceseaza doar randurile din intervalul
+--   de date relevant, nu intreaga tabela de fapte
 
 
 -- ---------------------------------------------------------------------------
--- OPTIMIZARE 2: Vizualizare materializat? cu ENABLE QUERY REWRITE
+-- OPTIMIZARE 2: Vizualizare materializata cu ENABLE QUERY REWRITE
 -- ---------------------------------------------------------------------------
--- Justificare: pre-calcul?m agregatele (SUM, COUNT, AVG) la nivel de
--- (EXHIBITION_KEY, ARTIST_KEY, CALENDAR_YEAR), eliminând necesitatea
--- JOIN-urilor ?i GROUP BY la fiecare execu?ie.
+-- Justificare: pre-calculam agregatele (SUM, COUNT, AVG) la nivel de
+-- (EXHIBITION_KEY, ARTIST_KEY, CALENDAR_YEAR), eliminand necesitatea
+-- JOIN-urilor si GROUP BY la fiecare executie.
 
 --ALTER SESSION SET QUERY_REWRITE_INTEGRITY = STALE_TOLERATED;
 
@@ -215,11 +215,11 @@ GROUP BY
   d.CALENDAR_YEAR,
   a.NAME;
 
--- Colectare statistici pentru vizualizarea materializat?
+-- Colectare statistici pentru vizualizarea materializata
 ANALYZE TABLE mv_exhibition_artist_year COMPUTE STATISTICS;
 
--- Generarea planului de execu?ie - cererea original? ar trebui rescris?
--- automat de optimizor pentru a folosi vizualizarea materializat?
+-- Generarea planului de executie - cererea originala ar trebui rescrisa
+-- automat de optimizor pentru a folosi vizualizarea materializata
 EXPLAIN PLAN
 SET STATEMENT_ID = 'cerinta9_optim2_rewrite'
 FOR
@@ -251,17 +251,17 @@ ORDER BY
 SELECT plan_table_output
 FROM table(dbms_xplan.display('plan_table', 'cerinta9_optim2_rewrite', 'serial'));
 
--- Planul de execu?ie a?teptat (cu rescriere):
--- - TABLE ACCESS FULL pe MV_EXHIBITION_ARTIST_YEAR (vizualizarea materializat?)
+-- Planul de executie asteptat (cu rescriere):
+-- - TABLE ACCESS FULL pe MV_EXHIBITION_ARTIST_YEAR (vizualizarea materializata)
 -- - FILTER pe CALENDAR_YEAR BETWEEN 2022 AND 2024
--- - SORT ORDER BY (pentru ordonarea final?)
+-- - SORT ORDER BY (pentru ordonarea finala)
 --
--- Avantaj major: se elimin? complet cele 3 JOIN-uri ?i opera?ia de GROUP BY,
--- deoarece datele sunt deja pre-agregate în vizualizarea materializat?.
+-- Avantaj major: se elimina complet cele 3 JOIN-uri si operatia de GROUP BY,
+-- deoarece datele sunt deja pre-agregate in vizualizarea materializata.
 -- Costul scade semnificativ.
 
--- Verificare c? rescrierea a fost utilizat? (f?r? NOREWRITE)
--- vs. planul cu hint NOREWRITE pentru compara?ie:
+-- Verificare ca rescrierea a fost utilizata (fara NOREWRITE)
+-- vs. planul cu hint NOREWRITE pentru comparatie:
 EXPLAIN PLAN
 SET STATEMENT_ID = 'cerinta9_optim2_norewrite'
 FOR
