@@ -162,8 +162,9 @@ public class AnalyticsController : ControllerBase
     /// Natural Language: "Show me the top 10 artists with the most artworks in the collection"
     /// </summary>
     /// <param name="topN">Number of top artists to retrieve (default: 10)</param>
+    /// <param name="forceRefresh">When true, bypasses cache to get fresh data</param>
     [HttpGet("~/api/reports/analytics/top-artists")]
-    [ResponseCache(Duration = 300)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType(typeof(ApiResponse<List<ArtistStatisticsDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<ArtistStatisticsDto>>>> GetTopArtists(
         [FromQuery] int topN = 10)
@@ -178,8 +179,9 @@ public class AnalyticsController : ControllerBase
     /// Query 2: Get collection value breakdown by art medium and collection type.
     /// Natural Language: "What is the total estimated value broken down by art medium and collection type?"
     /// </summary>
+    /// <param name="forceRefresh">When true, bypasses cache to get fresh data</param>
     [HttpGet("~/api/reports/analytics/value-by-category")]
-    [ResponseCache(Duration = 300)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType(typeof(ApiResponse<List<CategoryValueDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<CategoryValueDto>>>> GetValueByCategory()
     {
@@ -194,8 +196,9 @@ public class AnalyticsController : ControllerBase
     /// Natural Language: "Analyze exhibition performance: show monthly activity metrics for the past year"
     /// </summary>
     /// <param name="months">Number of months to analyze (default: 12)</param>
+    /// <param name="forceRefresh">When true, bypasses cache to get fresh data</param>
     [HttpGet("~/api/reports/analytics/visitor-trends")]
-    [ResponseCache(Duration = 300)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType(typeof(ApiResponse<List<MonthlyActivityDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<MonthlyActivityDto>>>> GetMonthlyActivity(
         [FromQuery] int months = 12)
@@ -210,8 +213,9 @@ public class AnalyticsController : ControllerBase
     /// Query 4: Get location/gallery distribution of artworks.
     /// Natural Language: "What is the gallery occupancy rate and distribution of artworks across locations?"
     /// </summary>
+    /// <param name="forceRefresh">When true, bypasses cache to get fresh data</param>
     [HttpGet("~/api/reports/analytics/membership-distribution")]
-    [ResponseCache(Duration = 300)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType(typeof(ApiResponse<List<LocationDistributionDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<LocationDistributionDto>>>> GetLocationDistribution()
     {
@@ -226,8 +230,9 @@ public class AnalyticsController : ControllerBase
     /// Natural Language: "Show the trend of exhibition activity: how has the annual total artwork value evolved?"
     /// </summary>
     /// <param name="years">Number of years to analyze (default: 5)</param>
+    /// <param name="forceRefresh">When true, bypasses cache to get fresh data</param>
     [HttpGet("~/api/reports/analytics/acquisition-trends")]
-    [ResponseCache(Duration = 600)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType(typeof(ApiResponse<List<AnnualTrendDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<AnnualTrendDto>>>> GetAnnualTrends(
         [FromQuery] int years = 5)

@@ -645,12 +645,7 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 
 
------10
--- ============================================================================
--- Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
--- Implemented in DwAnalyticsService.cs and accessible via AnalyticsController
--- ============================================================================
-
+-- M2.10
 -- 1. Top 10 Artiști după număr de opere expuse
 -- Cerință în limbaj natural:
 -- "Afișați primii 10 artiști în funcție de numărul de opere din colecție, 

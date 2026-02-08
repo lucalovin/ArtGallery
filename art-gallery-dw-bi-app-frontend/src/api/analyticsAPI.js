@@ -16,6 +16,12 @@
 import apiClient from './client';
 
 /**
+ * Get a cache-busting timestamp parameter
+ * @returns {string} Timestamp query string parameter
+ */
+const getCacheBuster = () => `_t=${Date.now()}`;
+
+/**
  * Analytics API endpoints for DW queries
  */
 export const analyticsAPI = {
@@ -35,7 +41,7 @@ export const analyticsAPI = {
    * }
    */
   getTopArtists(topN = 10) {
-    return apiClient.get(`/reports/analytics/top-artists?topN=${topN}`);
+    return apiClient.get(`/reports/analytics/top-artists?topN=${topN}&${getCacheBuster()}`);
   },
 
   /**
@@ -53,7 +59,7 @@ export const analyticsAPI = {
    * }
    */
   getValueByCategory() {
-    return apiClient.get('/reports/analytics/value-by-category');
+    return apiClient.get(`/reports/analytics/value-by-category?${getCacheBuster()}`);
   },
 
   /**
@@ -73,7 +79,7 @@ export const analyticsAPI = {
    * }
    */
   getVisitorTrends(months = 12) {
-    return apiClient.get(`/reports/analytics/visitor-trends?months=${months}`);
+    return apiClient.get(`/reports/analytics/visitor-trends?months=${months}&${getCacheBuster()}`);
   },
 
   /**
@@ -92,7 +98,7 @@ export const analyticsAPI = {
    * }
    */
   getMembershipDistribution() {
-    return apiClient.get('/reports/analytics/membership-distribution');
+    return apiClient.get(`/reports/analytics/membership-distribution?${getCacheBuster()}`);
   },
 
   /**
@@ -113,7 +119,7 @@ export const analyticsAPI = {
    * }
    */
   getAcquisitionTrends(years = 5) {
-    return apiClient.get(`/reports/analytics/acquisition-trends?years=${years}`);
+    return apiClient.get(`/reports/analytics/acquisition-trends?years=${years}&${getCacheBuster()}`);
   }
 };
 

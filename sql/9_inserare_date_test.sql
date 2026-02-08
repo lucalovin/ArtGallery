@@ -1,4 +1,4 @@
--- USER: ART_GALLETY_OLTP
+-- USER: ART_GALLETY_DW
 
 -- ============================================================================
 -- 1. DIM_DATE - 10,000 de randuri

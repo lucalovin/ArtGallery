@@ -1,9 +1,5 @@
 -- USER: ART_GALLETY_DW
 
--- ============================================================================
--- Module 1 & 2, Requirement 10: Five Natural Language Analytical Queries
--- Implemented in DwAnalyticsService.cs and accessible via AnalyticsController
--- ============================================================================
 
 -- 1. Top 10 Artisti dupa numar de opere expuse
 -- Cerinta in limbaj natural:

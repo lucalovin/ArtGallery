@@ -1,3 +1,58 @@
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+--M2.1 Creare OLTP + utilizatori
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE USER ART_GALLERY_DW
+  IDENTIFIED BY ART_GALLERY_DW
+  DEFAULT TABLESPACE USERS
+  TEMPORARY TABLESPACE TEMP
+  QUOTA UNLIMITED ON USERS;
+
+GRANT CONNECT, RESOURCE TO ART_GALLERY_DW;
+
+
+ALTER USER ART_GALLERY_DW IDENTIFIED BY ART_GALLERY_DW ACCOUNT UNLOCK;
+
+
+SELECT username, account_status
+FROM dba_users
+WHERE username = 'ART_GALLERY_DW';
+
+
+ALTER USER ART_GALLERY_DW IDENTIFIED BY ART_GALLERY_DW;
+
+GRANT CREATE SESSION TO ART_GALLERY_DW;
+GRANT CREATE TABLE, CREATE VIEW, CREATE SEQUENCE TO ART_GALLERY_DW;
+GRANT UNLIMITED TABLESPACE TO ART_GALLERY_DW
+
+
+
+CREATE USER ART_GALLERY_OLTP
+  IDENTIFIED BY ART_GALLERY_OLTP
+  DEFAULT TABLESPACE USERS
+  TEMPORARY TABLESPACE TEMP
+  QUOTA UNLIMITED ON USERS;
+  
+GRANT CONNECT, RESOURCE TO ART_GALLERY_OLTP;
+ALTER USER ART_GALLERY_OLTP IDENTIFIED BY ART_GALLERY_OLTP ACCOUNT UNLOCK;
+GRANT CREATE SESSION TO ART_GALLERY_OLTP;
+GRANT CREATE TABLE, CREATE VIEW, CREATE SEQUENCE TO ART_GALLERY_OLTP;
+GRANT UNLIMITED TABLESPACE TO ART_GALLERY_OLTP;
+
+
+
+GRANT CREATE DIMENSION TO ART_GALLERY_DW;
+
+
+GRANT SELECT ON ART_GALLERY_OLTP.ARTIST     TO ART_GALLERY_DW;
+GRANT SELECT ON ART_GALLERY_OLTP.ARTWORK    TO ART_GALLERY_DW;
+GRANT SELECT ON ART_GALLERY_OLTP.EXHIBITION TO ART_GALLERY_DW;
+GRANT SELECT ON ART_GALLERY_OLTP.LOCATION   TO ART_GALLERY_DW;
+GRANT SELECT ON ART_GALLERY_OLTP.GALLERY_REVIEW TO ART_GALLERY_DW;
+
 --CREATE
 CREATE TABLE Artist (
     artist_id NUMBER GENERATED ALWAYS AS IDENTITY
@@ -212,6 +267,15 @@ GRANT SELECT ON Gallery_Review   TO ART_GALLERY_DW;
 GRANT SELECT ON Artwork_Exhibition TO ART_GALLERY_DW;
 
 
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+--M2.2 Inserare in OLTP
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 -- ARTIST
 INSERT INTO Artist (name, nationality, birth_year, death_year) VALUES
 ('Pablo Picasso', 'Spanish', 1881, 1973);
@@ -385,6 +449,111 @@ INSERT INTO Artwork_Exhibition (artwork_id, exhibition_id, position_in_gallery, 
 VALUES (8, 3, 'Room 4 - Right', 'Regular');
 INSERT INTO Artwork_Exhibition (artwork_id, exhibition_id, position_in_gallery, featured_status)
 VALUES (3, 4, 'Room 5 - Center', 'Featured');
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+--M2.3 Creare DW
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE TABLE DIM_DATE (
+  DATE_KEY        NUMBER(8)      PRIMARY KEY,          
+  CALENDAR_DATE   DATE           NOT NULL,
+  CALENDAR_YEAR   NUMBER(4)      NOT NULL,
+  CALENDAR_MONTH  NUMBER(2)      NOT NULL,
+  CALENDAR_DAY    NUMBER(2)      NOT NULL,
+  MONTH_NAME      VARCHAR2(20),
+  QUARTER         NUMBER(1),
+  IS_WEEKEND      CHAR(1)
+);
+
+
+CREATE TABLE DIM_ARTIST (
+  ARTIST_KEY      NUMBER          PRIMARY KEY,
+  ARTIST_ID_OLTP  NUMBER,
+  NAME            VARCHAR2(128)   NOT NULL,
+  NATIONALITY     VARCHAR2(64),
+  BIRTH_YEAR      NUMBER(4),
+  DEATH_YEAR      NUMBER(4)
+);
+
+CREATE TABLE DIM_COLLECTION (
+  COLLECTION_KEY      NUMBER          PRIMARY KEY,
+  COLLECTION_ID_OLTP  NUMBER,
+  NAME                VARCHAR2(128)   NOT NULL,
+  DESCRIPTION         VARCHAR2(512),
+  CREATED_DATE_KEY    NUMBER(8)      
+);
+
+CREATE TABLE DIM_LOCATION (
+  LOCATION_KEY      NUMBER          PRIMARY KEY,
+  LOCATION_ID_OLTP  NUMBER,
+  NAME              VARCHAR2(128)   NOT NULL,
+  GALLERY_ROOM      VARCHAR2(32),
+  TYPE              VARCHAR2(32),
+  CAPACITY          NUMBER
+);
+
+CREATE TABLE DIM_EXHIBITOR (
+  EXHIBITOR_KEY      NUMBER          PRIMARY KEY,
+  EXHIBITOR_ID_OLTP  NUMBER,
+  NAME               VARCHAR2(128)   NOT NULL,
+  ADDRESS            VARCHAR2(256),
+  CITY               VARCHAR2(64),
+  CONTACT_INFO       VARCHAR2(256)
+);
+
+CREATE TABLE DIM_EXHIBITION (
+  EXHIBITION_KEY      NUMBER          PRIMARY KEY,
+  EXHIBITION_ID_OLTP  NUMBER,
+  TITLE               VARCHAR2(128)   NOT NULL,
+  START_DATE_KEY      NUMBER(8),
+  END_DATE_KEY        NUMBER(8),
+  EXHIBITOR_KEY       NUMBER,
+  DESCRIPTION         VARCHAR2(512)
+);
+
+CREATE TABLE DIM_ARTWORK (
+  ARTWORK_KEY       NUMBER          PRIMARY KEY,
+  ARTWORK_ID_OLTP   NUMBER,
+  TITLE             VARCHAR2(128)   NOT NULL,
+  ARTIST_KEY        NUMBER          NOT NULL,
+  YEAR_CREATED      NUMBER(4),
+  MEDIUM            VARCHAR2(64),
+  COLLECTION_KEY    NUMBER,
+  LOCATION_KEY      NUMBER,
+  ESTIMATED_VALUE   NUMBER(12,2)
+);
+
+CREATE TABLE DIM_POLICY (
+  POLICY_KEY          NUMBER          PRIMARY KEY,
+  POLICY_ID_OLTP      NUMBER,
+  PROVIDER            VARCHAR2(128)   NOT NULL,
+  START_DATE_KEY      NUMBER(8),
+  END_DATE_KEY        NUMBER(8),
+  TOTAL_COVERAGE_AMT  NUMBER(14,2)
+);
+
+CREATE TABLE FACT_EXHIBITION_ACTIVITY (
+  FACT_KEY               NUMBER        PRIMARY KEY,
+  DATE_KEY               NUMBER(8)     NOT NULL,  
+  EXHIBITION_KEY         NUMBER        NOT NULL,
+  EXHIBITOR_KEY          NUMBER        NOT NULL,
+  ARTWORK_KEY            NUMBER        NOT NULL,
+  ARTIST_KEY             NUMBER        NOT NULL,
+  COLLECTION_KEY         NUMBER,
+  LOCATION_KEY           NUMBER,
+  POLICY_KEY             NUMBER,
+
+  ESTIMATED_VALUE        NUMBER(12,2),
+  INSURED_AMOUNT         NUMBER(14,2),
+  LOAN_FLAG              NUMBER(1),      
+  RESTORATION_COUNT      NUMBER(10),     
+  REVIEW_COUNT           NUMBER(10),
+  AVG_RATING             NUMBER(5,2)
+);
 
 
 

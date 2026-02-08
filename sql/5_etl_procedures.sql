@@ -635,7 +635,7 @@ BEGIN
             FROM art_gallery_oltp.Gallery_Review gr
             GROUP BY gr.exhibition_id, gr.artwork_id
         ) rv_agg ON rv_agg.exhibition_id = ex.exhibition_id
-                AND (rv_agg.artwork_id = aw.artwork_id OR rv_agg.artwork_id IS NULL)
+                AND (rv_agg.artwork_id = aw.artwork_id)
                 
     ) src
     -- Match on business key: ARTWORK_KEY + EXHIBITION_KEY (surrogate)

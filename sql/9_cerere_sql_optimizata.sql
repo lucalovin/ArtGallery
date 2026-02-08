@@ -1,4 +1,4 @@
--- USER: ART_GALLETY_OLTP
+-- USER: ART_GALLETY_DW
 
 -- ============================================================================
 -- 9a. PLANUL DE EXECUTIE ALES DE OPTIMIZORUL BAZAT PE COST (CBO)

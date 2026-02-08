@@ -22,7 +22,11 @@ const apiClient = axios.create({
   // Default headers
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    'Accept': 'application/json',
+    // Prevent browser caching to ensure fresh data on refresh
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   }
 });
 

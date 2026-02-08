@@ -455,7 +455,7 @@ public class OracleProcedureService : IOracleProcedureService
                     FROM ART_GALLERY_OLTP.Gallery_Review
                     GROUP BY exhibition_id, artwork_id
                 ) rv_agg ON rv_agg.exhibition_id = ex.exhibition_id 
-                        AND (rv_agg.artwork_id = aw.artwork_id OR rv_agg.artwork_id IS NULL)
+                        AND (rv_agg.artwork_id = aw.artwork_id)
             ) src
             ON (tgt.ARTWORK_KEY = src.ARTWORK_KEY AND tgt.EXHIBITION_KEY = src.EXHIBITION_KEY)
             WHEN MATCHED THEN

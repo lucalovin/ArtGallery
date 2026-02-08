@@ -10,6 +10,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Oracle.ManagedDataAccess.Client;
 
+// Configure ODP.NET to not use wallet (fix for ORA-28365)
+OracleConfiguration.WalletLocation = "";
+OracleConfiguration.TnsAdmin = "";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure Azure Key Vault (if enabled)
@@ -27,12 +31,10 @@ if (keyVaultEnabled)
     }
 }
 
-// Configure Serilog
+// Configure Serilog (sinks configured in appsettings.json)
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
 builder.Host.UseSerilog();

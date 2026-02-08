@@ -16,7 +16,8 @@ public class DwAnalyticsService : IDwAnalyticsService
     private readonly DwDbContext _dwContext;
     private readonly ILogger<DwAnalyticsService> _logger;
     private readonly IMemoryCache _cache;
-    private readonly TimeSpan _defaultCacheTime = TimeSpan.FromMinutes(5);
+    // Reduced cache time to allow near-real-time refresh of analytics data
+    private readonly TimeSpan _defaultCacheTime = TimeSpan.FromSeconds(5);
 
     public DwAnalyticsService(
         DwDbContext dwContext,
@@ -560,16 +561,18 @@ public class DwAnalyticsService : IDwAnalyticsService
 
         _logger.LogInformation("Fetching value by medium and collection");
 
+        // Query directly from DIM_ARTWORK to get accurate artwork counts and values.
+        // Previously queried through FACT_EXHIBITION_ACTIVITY which caused duplicate
+        // counts when an artwork appeared in multiple exhibitions.
         var sql = @"
             SELECT
                 NVL(daw.MEDIUM, 'Unknown') as MediumType,
                 NVL(dc.NAME, 'Unknown') as CollectionName,
-                COUNT(DISTINCT f.ARTWORK_KEY) as ArtworkCount,
-                SUM(NVL(f.ESTIMATED_VALUE, 0)) as TotalValue,
-                AVG(NVL(f.ESTIMATED_VALUE, 0)) as AverageValue
-            FROM ART_GALLERY_DW.FACT_EXHIBITION_ACTIVITY f
-            JOIN ART_GALLERY_DW.DIM_ARTWORK daw ON f.ARTWORK_KEY = daw.ARTWORK_KEY
-            LEFT JOIN ART_GALLERY_DW.DIM_COLLECTION dc ON f.COLLECTION_KEY = dc.COLLECTION_KEY
+                COUNT(daw.ARTWORK_KEY) as ArtworkCount,
+                SUM(NVL(daw.ESTIMATED_VALUE, 0)) as TotalValue,
+                AVG(NVL(daw.ESTIMATED_VALUE, 0)) as AverageValue
+            FROM ART_GALLERY_DW.DIM_ARTWORK daw
+            LEFT JOIN ART_GALLERY_DW.DIM_COLLECTION dc ON daw.COLLECTION_KEY = dc.COLLECTION_KEY
             GROUP BY daw.MEDIUM, dc.NAME
             ORDER BY TotalValue DESC";
 
