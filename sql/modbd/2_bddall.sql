@@ -1,3 +1,9 @@
+-- =============================================================
+-- Script de rulat pe DB1 (ORCLPDB) ca BDDALL
+-- =============================================================
+-- Conectare exemplu:
+--   sqlplus BDDALL/1234@//localhost:1521/ORCLPDB
+
 -- Creare Tabele
 CREATE TABLE Artist (
     artist_id    NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

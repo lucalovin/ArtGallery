@@ -1,3 +1,12 @@
+-- =============================================================
+-- Script de rulat pe DB1 (ORCLPDB) ca ARTGALLERY_GLOBAL
+-- =============================================================
+-- Conectare exemplu:
+--   sqlplus ARTGALLERY_GLOBAL/parola_global@//localhost:1521/ORCLPDB
+--
+-- link_eu  -> remote la DB2 (ORCLPDB2 / ARTGALLERY_EU)
+-- link_am  -> loopback la DB1 (ARTGALLERY_AM)
+
 -- Creare Tabele Comune
 CREATE TABLE LOCATION (location_id NUMBER PRIMARY KEY, name VARCHAR2(128), gallery_room VARCHAR2(32), type VARCHAR2(32), capacity NUMBER);
 CREATE TABLE VISITOR (visitor_id NUMBER PRIMARY KEY, name VARCHAR2(128), email VARCHAR2(128), phone VARCHAR2(32), membership_type VARCHAR2(32), join_date DATE);

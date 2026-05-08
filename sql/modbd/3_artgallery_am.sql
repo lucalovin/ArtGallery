@@ -1,3 +1,9 @@
+-- =============================================================
+-- Script de rulat pe DB1 (ORCLPDB) ca ARTGALLERY_AM
+-- =============================================================
+-- Conectare exemplu:
+--   sqlplus ARTGALLERY_AM/parola_am@//localhost:1521/ORCLPDB
+
 -- Creare Tabele Localizate
 CREATE TABLE EXHIBITOR_AM (
     exhibitor_id NUMBER PRIMARY KEY,

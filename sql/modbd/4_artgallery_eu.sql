@@ -1,3 +1,9 @@
+-- =============================================================
+-- Script de rulat pe DB2 (ORCLPDB2) ca ARTGALLERY_EU
+-- =============================================================
+-- Conectare exemplu:
+--   sqlplus ARTGALLERY_EU/parola_eu@//localhost:1521/ORCLPDB2
+
 -- Creare Tabele Localizate
 CREATE TABLE EXHIBITOR_EU (
     exhibitor_id NUMBER PRIMARY KEY,
@@ -55,15 +61,15 @@ CREATE TABLE GALLERY_REVIEW_EU (
 CREATE TABLE ARTIST_EU (artist_id NUMBER PRIMARY KEY, name VARCHAR2(128), nationality VARCHAR2(64), birth_year NUMBER(4), death_year NUMBER(4));
 CREATE TABLE COLLECTION_EU (collection_id NUMBER PRIMARY KEY, name VARCHAR2(128), description VARCHAR2(512), created_date DATE);
 
--- Distribuire Date din Sursă
-INSERT INTO EXHIBITOR_EU SELECT * FROM BDDALL.Exhibitor WHERE city IN ('Paris', 'London', 'Madrid');
-INSERT INTO ARTWORK_CORE (artwork_id, title, artist_id, year_created, medium, collection_id) 
-SELECT artwork_id, title, artist_id, year_created, medium, collection_id FROM BDDALL.Artwork;
-INSERT INTO EXHIBITION_EU SELECT * FROM BDDALL.Exhibition WHERE exhibitor_id IN (SELECT exhibitor_id FROM EXHIBITOR_EU);
-INSERT INTO ARTWORK_EXHIBITION_EU SELECT * FROM BDDALL.Artwork_Exhibition WHERE exhibition_id IN (SELECT exhibition_id FROM EXHIBITION_EU);
-INSERT INTO LOAN_EU SELECT * FROM BDDALL.Loan WHERE exhibitor_id IN (SELECT exhibitor_id FROM EXHIBITOR_EU);
-INSERT INTO GALLERY_REVIEW_EU SELECT * FROM BDDALL.Gallery_Review WHERE exhibition_id IN (SELECT exhibition_id FROM EXHIBITION_EU);
-INSERT INTO ARTIST_EU SELECT * FROM BDDALL.Artist;
-INSERT INTO COLLECTION_EU SELECT * FROM BDDALL.Collection;
+-- Distribuire Date din Sursă (BDDALL este pe DB1, accesat via link_bddall)
+INSERT INTO EXHIBITOR_EU SELECT * FROM Exhibitor@link_bddall WHERE city IN ('Paris', 'London', 'Madrid');
+INSERT INTO ARTWORK_CORE (artwork_id, title, artist_id, year_created, medium, collection_id)
+SELECT artwork_id, title, artist_id, year_created, medium, collection_id FROM Artwork@link_bddall;
+INSERT INTO EXHIBITION_EU SELECT * FROM Exhibition@link_bddall WHERE exhibitor_id IN (SELECT exhibitor_id FROM EXHIBITOR_EU);
+INSERT INTO ARTWORK_EXHIBITION_EU SELECT * FROM Artwork_Exhibition@link_bddall WHERE exhibition_id IN (SELECT exhibition_id FROM EXHIBITION_EU);
+INSERT INTO LOAN_EU SELECT * FROM Loan@link_bddall WHERE exhibitor_id IN (SELECT exhibitor_id FROM EXHIBITOR_EU);
+INSERT INTO GALLERY_REVIEW_EU SELECT * FROM Gallery_Review@link_bddall WHERE exhibition_id IN (SELECT exhibition_id FROM EXHIBITION_EU);
+INSERT INTO ARTIST_EU SELECT * FROM Artist@link_bddall;
+INSERT INTO COLLECTION_EU SELECT * FROM Collection@link_bddall;
 
 COMMIT;
