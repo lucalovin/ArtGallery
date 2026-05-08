@@ -18,7 +18,9 @@
 
 import apiClient from './client';
 
-const base = '/api/bdd';
+// Note: apiClient.baseURL already includes the `/api` prefix (VITE_API_BASE_URL),
+// so this base must NOT repeat it - otherwise requests hit `/api/api/bdd/...` (404).
+const base = '/bdd';
 
 export const bddAPI = {
   // Diagnostics
