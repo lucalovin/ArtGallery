@@ -333,7 +333,15 @@ export default {
         },
         { name: 'ETL Management', path: '/etl' },
         { name: 'Reports', path: '/reports' },
-        { name: 'Analytics', path: '/analytics' }
+        { name: 'Analytics', path: '/analytics' },
+        {
+          name: 'BDD',
+          children: [
+            { name: 'Local Management (AM/EU)', path: '/bdd/local' },
+            { name: 'Global Unified View',     path: '/bdd/global' },
+            { name: 'BDD Demo (C3 & C4)',      path: '/bdd/demo' }
+          ]
+        }
       ],
 
       // Active dropdown menu (desktop)

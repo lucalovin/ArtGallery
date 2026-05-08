@@ -47,6 +47,9 @@ const ETLMappingPage = () => import('@/pages/ETLMappingPage.vue');
 const ETLHistoryPage = () => import('@/pages/ETLHistoryPage.vue');
 const Reports = () => import('@/pages/Reports.vue');
 const AnalyticsDashboard = () => import('@/pages/AnalyticsDashboard.vue');
+const LocalManagement = () => import('@/pages/LocalManagement.vue');
+const GlobalView = () => import('@/pages/GlobalView.vue');
+const BddDemo = () => import('@/pages/BddDemo.vue');
 const NotFound = () => import('@/pages/NotFound.vue');
 
 /**
@@ -405,6 +408,28 @@ const routes = [
       description: 'Data Warehouse insights and analytical reports',
       icon: 'chart-pie'
     }
+  },
+
+  // ========================================
+  // BDD (Distributed Database) ROUTES - MODBD Module 3
+  // ========================================
+  {
+    path: '/bdd/local',
+    name: 'BddLocal',
+    component: LocalManagement,
+    meta: { title: 'BDD - Local Management', icon: 'database', description: 'Cerinta 1: CRUD pe baze locale (AM/EU)' }
+  },
+  {
+    path: '/bdd/global',
+    name: 'BddGlobal',
+    component: GlobalView,
+    meta: { title: 'BDD - Global View', icon: 'globe', description: 'Cerinta 2: vizualizare unificata din ARTGALLERY_GLOBAL' }
+  },
+  {
+    path: '/bdd/demo',
+    name: 'BddDemo',
+    component: BddDemo,
+    meta: { title: 'BDD Demo', icon: 'beaker', description: 'Cerinta 3 & 4: scenarii local <-> global' }
   },
 
   // ========================================
