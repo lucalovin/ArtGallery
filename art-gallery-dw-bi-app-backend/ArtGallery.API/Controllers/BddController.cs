@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Oracle.ManagedDataAccess.Client;
 using ArtGallery.Application.DTOs.Common;
@@ -554,26 +555,56 @@ public class BddController : ControllerBase
                 if (values == null || values.Count == 0) throw new ArgumentException("INSERT requires 'values'.");
                 cmd.CommandText = $"INSERT INTO {table} ({string.Join(", ", values.Keys)}) " +
                                   $"VALUES ({string.Join(", ", values.Keys.Select(k => ":" + k))})";
-                foreach (var kv in values) cmd.Parameters.Add(new OracleParameter(kv.Key, kv.Value ?? DBNull.Value));
+                foreach (var kv in values) AddParam(cmd, kv.Key, kv.Value);
                 break;
             case "update":
                 if (values == null || values.Count == 0) throw new ArgumentException("UPDATE requires 'values'.");
                 if (string.IsNullOrWhiteSpace(keyColumn) || string.IsNullOrWhiteSpace(keyValue))
                     throw new ArgumentException("UPDATE requires 'keyColumn' and 'keyValue'.");
                 cmd.CommandText = $"UPDATE {table} SET {string.Join(", ", values.Keys.Select(k => $"{k} = :{k}"))} " +
-                                  $"WHERE {keyColumn} = :__pk";
-                foreach (var kv in values) cmd.Parameters.Add(new OracleParameter(kv.Key, kv.Value ?? DBNull.Value));
-                cmd.Parameters.Add(new OracleParameter("__pk", keyValue));
+                                  $"WHERE {keyColumn} = :p_pk";
+                foreach (var kv in values) AddParam(cmd, kv.Key, kv.Value);
+                AddParam(cmd, "p_pk", keyValue);
                 break;
             case "delete":
                 if (string.IsNullOrWhiteSpace(keyColumn) || string.IsNullOrWhiteSpace(keyValue))
                     throw new ArgumentException("DELETE requires 'keyColumn' and 'keyValue'.");
-                cmd.CommandText = $"DELETE FROM {table} WHERE {keyColumn} = :__pk";
-                cmd.Parameters.Add(new OracleParameter("__pk", keyValue));
+                cmd.CommandText = $"DELETE FROM {table} WHERE {keyColumn} = :p_pk";
+                AddParam(cmd, "p_pk", keyValue);
                 break;
             default:
                 throw new ArgumentException($"Unsupported action '{action}'.");
         }
+    }
+
+    private static void AddParam(OracleCommand cmd, string name, object? value)
+    {
+        var p = new OracleParameter
+        {
+            ParameterName = name,
+            Value = NormalizeValue(value) ?? DBNull.Value
+        };
+        cmd.Parameters.Add(p);
+    }
+
+    private static object? NormalizeValue(object? value)
+    {
+        if (value is null) return null;
+        if (value is JsonElement je)
+        {
+            return je.ValueKind switch
+            {
+                JsonValueKind.Null or JsonValueKind.Undefined => null,
+                JsonValueKind.String => je.GetString(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Number => je.TryGetInt64(out var l) ? (object)l :
+                                        je.TryGetDecimal(out var d) ? d :
+                                        je.GetDouble(),
+                _ => je.ToString()
+            };
+        }
+        return value;
     }
 
     /// <summary>
