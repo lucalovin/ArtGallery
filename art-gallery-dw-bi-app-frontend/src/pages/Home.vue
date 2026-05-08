@@ -88,7 +88,11 @@
               </div>
               <div class="flex-1 min-w-0">
                 <h3 class="font-medium text-gray-900 truncate">{{ artwork.title }}</h3>
-                <p class="text-sm text-gray-500">{{ artwork.artist }} • {{ artwork.year }}</p>
+                <p v-if="artwork.artist || artwork.year" class="text-sm text-gray-500">
+                  <template v-if="artwork.artist">{{ artwork.artist }}</template>
+                  <template v-if="artwork.artist && artwork.year"> &bull; </template>
+                  <template v-if="artwork.year">{{ artwork.year }}</template>
+                </p>
               </div>
               <span 
                 class="px-2 py-1 text-xs font-medium rounded-full"
@@ -307,9 +311,9 @@ export default {
           const artworks = Array.isArray(responseData?.items) ? responseData.items : (Array.isArray(responseData) ? responseData : []);
           this.recentArtworks = artworks.slice(0, 4).map(a => ({
             id: a.id,
-            title: a.title,
-            artist: a.artistName || a.artist,
-            year: a.year || a.creationYear,
+            title: a.title || `Artwork #${a.id}`,
+            artist: a.artistName || a.artist || '',
+            year: a.year || a.creationYear || '',
             status: a.status || 'On Display',
             imageUrl: a.imageUrl || ''
           }));

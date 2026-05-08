@@ -27,6 +27,7 @@ import visitorStore from './modules/visitorStore';
 import staffStore from './modules/staffStore';
 import loansStore from './modules/loansStore';
 import reportsStore from './modules/reportsStore';
+import dataSourceStore from './modules/dataSourceStore';
 
 /**
  * Create and export the Vuex store
@@ -291,7 +292,8 @@ const store = createStore({
     visitor: visitorStore,
     staff: staffStore,
     loans: loansStore,
-    reports: reportsStore
+    reports: reportsStore,
+    dataSource: dataSourceStore
   }
 });
 

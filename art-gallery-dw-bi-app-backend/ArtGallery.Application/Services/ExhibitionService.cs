@@ -18,21 +18,27 @@ public class ExhibitionService : IExhibitionService
     private readonly IRepository<ExhibitionArtwork> _exhibitionArtworkRepository;
     private readonly IRepository<Artwork> _artworkRepository;
     private readonly IMapper _mapper;
+    private readonly IDataSourceContext _ds;
 
     public ExhibitionService(
         IRepository<Exhibition> repository,
         IRepository<ExhibitionArtwork> exhibitionArtworkRepository,
         IRepository<Artwork> artworkRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IDataSourceContext ds)
     {
         _repository = repository;
         _exhibitionArtworkRepository = exhibitionArtworkRepository;
         _artworkRepository = artworkRepository;
         _mapper = mapper;
+        _ds = ds;
     }
 
     public async Task<PaginatedResponse<ExhibitionResponseDto>> GetAllAsync(PagedRequest request)
     {
+        if (!DataSourceCapabilities.HasExhibition(_ds.Source))
+            return PaginatedResponse<ExhibitionResponseDto>.Create(new List<ExhibitionResponseDto>(), 0, request.Page, request.PageSize);
+
         IQueryable<Exhibition> query = _repository.Query()
             .Include(e => e.ExhibitionArtworks)
             .Include(e => e.Exhibitor);
@@ -60,6 +66,8 @@ public class ExhibitionService : IExhibitionService
 
     public async Task<ExhibitionDetailDto?> GetByIdAsync(int id)
     {
+        if (!DataSourceCapabilities.HasExhibition(_ds.Source))
+            return null;
         var exhibition = await _repository.Query()
             .Include(e => e.ExhibitionArtworks)
                 .ThenInclude(ea => ea.Artwork)

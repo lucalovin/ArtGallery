@@ -28,7 +28,8 @@ CREATE TABLE EXHIBITION_EU (
     start_date    DATE NOT NULL,
     end_date      DATE NOT NULL,
     exhibitor_id  NUMBER NOT NULL REFERENCES EXHIBITOR_EU(exhibitor_id),
-    description   VARCHAR2(512)
+    description   VARCHAR2(512),
+    CONSTRAINT ck_exhibition_eu_dates CHECK (end_date >= start_date)
 );
 
 CREATE TABLE ARTWORK_EXHIBITION_EU (
@@ -45,7 +46,8 @@ CREATE TABLE LOAN_EU (
     exhibitor_id NUMBER NOT NULL REFERENCES EXHIBITOR_EU(exhibitor_id),
     start_date   DATE NOT NULL,
     end_date     DATE,
-    conditions   VARCHAR2(512)
+    conditions   VARCHAR2(512),
+    CONSTRAINT ck_loan_eu_dates CHECK (end_date IS NULL OR end_date >= start_date)
 );
 
 CREATE TABLE GALLERY_REVIEW_EU (
@@ -58,8 +60,8 @@ CREATE TABLE GALLERY_REVIEW_EU (
     review_date   DATE NOT NULL
 );
 
-CREATE TABLE ARTIST_EU (artist_id NUMBER PRIMARY KEY, name VARCHAR2(128), nationality VARCHAR2(64), birth_year NUMBER(4), death_year NUMBER(4));
-CREATE TABLE COLLECTION_EU (collection_id NUMBER PRIMARY KEY, name VARCHAR2(128), description VARCHAR2(512), created_date DATE);
+CREATE TABLE ARTIST_EU (artist_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, nationality VARCHAR2(64), birth_year NUMBER(4), death_year NUMBER(4));
+CREATE TABLE COLLECTION_EU (collection_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, description VARCHAR2(512), created_date DATE);
 
 -- Distribuire Date din Sursă (BDDALL este pe DB1, accesat via link_bddall)
 INSERT INTO EXHIBITOR_EU SELECT * FROM Exhibitor@link_bddall WHERE city IN ('Paris', 'London', 'Madrid');

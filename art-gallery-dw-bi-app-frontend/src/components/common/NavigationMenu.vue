@@ -83,6 +83,9 @@
 
         <!-- Right side actions -->
         <div class="hidden md:flex items-center space-x-4">
+          <!-- OLTP data-source selector (OLTP / AM / EU / GLOBAL) -->
+          <data-source-selector />
+
           <!-- Search button -->
           <button 
             @click="toggleSearch"
@@ -280,9 +283,15 @@
 /**
  * NavigationMenu Component
  */
+import DataSourceSelector from './DataSourceSelector.vue';
+
 export default {
   // Component name for debugging and recursive components
   name: 'NavigationMenu',
+
+  components: {
+    DataSourceSelector
+  },
 
   // Props received from parent (App.vue)
   props: {

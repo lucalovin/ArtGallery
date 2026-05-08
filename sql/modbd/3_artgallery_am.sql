@@ -43,7 +43,8 @@ CREATE TABLE LOAN_AM (
     exhibitor_id NUMBER NOT NULL REFERENCES EXHIBITOR_AM(exhibitor_id),
     start_date   DATE NOT NULL,
     end_date     DATE,
-    conditions   VARCHAR2(512)
+    conditions   VARCHAR2(512),
+    CONSTRAINT ck_loan_am_dates CHECK (end_date IS NULL OR end_date >= start_date)
 );
 
 CREATE TABLE GALLERY_REVIEW_AM (
@@ -56,8 +57,8 @@ CREATE TABLE GALLERY_REVIEW_AM (
     review_date   DATE NOT NULL
 );
 
-CREATE TABLE ARTIST_AM (artist_id NUMBER PRIMARY KEY, name VARCHAR2(128), nationality VARCHAR2(64), birth_year NUMBER(4), death_year NUMBER(4));
-CREATE TABLE COLLECTION_AM (collection_id NUMBER PRIMARY KEY, name VARCHAR2(128), description VARCHAR2(512), created_date DATE);
+CREATE TABLE ARTIST_AM (artist_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, nationality VARCHAR2(64), birth_year NUMBER(4), death_year NUMBER(4));
+CREATE TABLE COLLECTION_AM (collection_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, description VARCHAR2(512), created_date DATE);
 
 -- Distribuire Date din Sursă
 INSERT INTO EXHIBITOR_AM SELECT * FROM BDDALL.Exhibitor WHERE city = 'New York';

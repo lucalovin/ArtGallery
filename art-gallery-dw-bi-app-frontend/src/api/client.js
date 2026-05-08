@@ -8,6 +8,7 @@
  */
 
 import axios from 'axios';
+import { getCurrentDataSource } from '@/store/modules/dataSourceStore';
 
 /**
  * Create Axios instance with default configuration
@@ -46,6 +47,16 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Tell the backend which Oracle schema (OLTP / AM / EU / GLOBAL) the
+    // OLTP-style endpoints should target for this request. The backend
+    // DataSourceMiddleware reads this header and re-binds AppDbContext.
+    try {
+      const ds = getCurrentDataSource();
+      if (ds) {
+        config.headers['X-Data-Source'] = ds;
+      }
+    } catch (_) { /* ignore */ }
 
     // Add request timestamp for performance tracking
     config.metadata = { startTime: new Date() };

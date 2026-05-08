@@ -16,22 +16,34 @@ public class ArtworkService : IArtworkService
 {
     private readonly IRepository<Artwork> _repository;
     private readonly IMapper _mapper;
+    private readonly IDataSourceContext _ds;
 
-    public ArtworkService(IRepository<Artwork> repository, IMapper mapper)
+    public ArtworkService(IRepository<Artwork> repository, IMapper mapper, IDataSourceContext ds)
     {
         _repository = repository;
         _mapper = mapper;
+        _ds = ds;
+    }
+
+    private IQueryable<Artwork> WithIncludes(IQueryable<Artwork> q)
+    {
+        var s = _ds.Source;
+        if (DataSourceCapabilities.HasArtist(s) && DataSourceCapabilities.ArtworkHasCore(s))
+            q = q.Include(a => a.Artist);
+        if (DataSourceCapabilities.HasCollection(s) && DataSourceCapabilities.ArtworkHasCore(s))
+            q = q.Include(a => a.Collection);
+        if (DataSourceCapabilities.HasLocation(s) && DataSourceCapabilities.ArtworkHasDetails(s))
+            q = q.Include(a => a.Location);
+        return q;
     }
 
     public async Task<PaginatedResponse<ArtworkListDto>> GetAllAsync(PagedRequest request)
     {
-        IQueryable<Artwork> query = _repository.Query()
-            .Include(a => a.Artist)
-            .Include(a => a.Collection)
-            .Include(a => a.Location);
+        var hasCore = DataSourceCapabilities.ArtworkHasCore(_ds.Source);
+        IQueryable<Artwork> query = WithIncludes(_repository.Query());
 
         // Search
-        if (!string.IsNullOrWhiteSpace(request.Search))
+        if (!string.IsNullOrWhiteSpace(request.Search) && hasCore)
         {
             var searchTerm = request.Search.ToLower();
             query = query.Where(a => a.Title.ToLower().Contains(searchTerm) ||
@@ -39,13 +51,16 @@ public class ArtworkService : IArtworkService
         }
 
         // Sorting
-        query = request.SortBy?.ToLower() switch
+        var sortKey = request.SortBy?.ToLower();
+        if (!hasCore && sortKey is "title" or "artist" or "year")
+            sortKey = null; // those columns are absent on this source
+        query = sortKey switch
         {
-            "title" => request.IsDescending ? query.OrderByDescending(a => a.Title) : query.OrderBy(a => a.Title),
-            "artist" => request.IsDescending ? query.OrderByDescending(a => a.Artist!.Name) : query.OrderBy(a => a.Artist!.Name),
-            "year" => request.IsDescending ? query.OrderByDescending(a => a.YearCreated) : query.OrderBy(a => a.YearCreated),
+            "title"          => request.IsDescending ? query.OrderByDescending(a => a.Title) : query.OrderBy(a => a.Title),
+            "artist"         => request.IsDescending ? query.OrderByDescending(a => a.Artist!.Name) : query.OrderBy(a => a.Artist!.Name),
+            "year"           => request.IsDescending ? query.OrderByDescending(a => a.YearCreated) : query.OrderBy(a => a.YearCreated),
             "estimatedvalue" => request.IsDescending ? query.OrderByDescending(a => a.EstimatedValue) : query.OrderBy(a => a.EstimatedValue),
-            _ => query.OrderBy(a => a.Title)
+            _                => query.OrderBy(a => a.Id)
         };
 
         var totalCount = await query.CountAsync();
@@ -60,10 +75,7 @@ public class ArtworkService : IArtworkService
 
     public async Task<ArtworkResponseDto?> GetByIdAsync(int id)
     {
-        var artwork = await _repository.Query()
-            .Include(a => a.Artist)
-            .Include(a => a.Collection)
-            .Include(a => a.Location)
+        var artwork = await WithIncludes(_repository.Query())
             .FirstOrDefaultAsync(a => a.Id == id);
         return artwork == null ? null : _mapper.Map<ArtworkResponseDto>(artwork);
     }
@@ -106,11 +118,10 @@ public class ArtworkService : IArtworkService
 
     public async Task<IEnumerable<ArtworkListDto>> SearchAsync(string query)
     {
+        if (!DataSourceCapabilities.ArtworkHasCore(_ds.Source))
+            return Enumerable.Empty<ArtworkListDto>();
         var searchTerm = query.ToLower();
-        var artworks = await _repository.Query()
-            .Include(a => a.Artist)
-            .Include(a => a.Collection)
-            .Include(a => a.Location)
+        var artworks = await WithIncludes(_repository.Query())
             .Where(a => a.Title.ToLower().Contains(searchTerm) ||
                        (a.Artist != null && a.Artist.Name.ToLower().Contains(searchTerm)))
             .ToListAsync();
@@ -119,11 +130,7 @@ public class ArtworkService : IArtworkService
 
     public async Task<ArtworkStatisticsDto> GetStatisticsAsync()
     {
-        var artworks = await _repository.Query()
-            .Include(a => a.Artist)
-            .Include(a => a.Collection)
-            .Include(a => a.Location)
-            .ToListAsync();
+        var artworks = await WithIncludes(_repository.Query()).ToListAsync();
 
         return new ArtworkStatisticsDto
         {
@@ -146,10 +153,9 @@ public class ArtworkService : IArtworkService
 
     public async Task<IEnumerable<ArtworkListDto>> GetByArtistAsync(string artist)
     {
-        var artworks = await _repository.Query()
-            .Include(a => a.Artist)
-            .Include(a => a.Collection)
-            .Include(a => a.Location)
+        if (!DataSourceCapabilities.ArtworkHasCore(_ds.Source) || !DataSourceCapabilities.HasArtist(_ds.Source))
+            return Enumerable.Empty<ArtworkListDto>();
+        var artworks = await WithIncludes(_repository.Query())
             .Where(a => a.Artist != null && a.Artist.Name.ToLower().Contains(artist.ToLower()))
             .ToListAsync();
         return _mapper.Map<IEnumerable<ArtworkListDto>>(artworks);
@@ -157,10 +163,9 @@ public class ArtworkService : IArtworkService
 
     public async Task<IEnumerable<ArtworkListDto>> GetByCollectionAsync(string collection)
     {
-        var artworks = await _repository.Query()
-            .Include(a => a.Artist)
-            .Include(a => a.Collection)
-            .Include(a => a.Location)
+        if (!DataSourceCapabilities.ArtworkHasCore(_ds.Source) || !DataSourceCapabilities.HasCollection(_ds.Source))
+            return Enumerable.Empty<ArtworkListDto>();
+        var artworks = await WithIncludes(_repository.Query())
             .Where(a => a.Collection != null && a.Collection.Name.ToLower() == collection.ToLower())
             .ToListAsync();
         return _mapper.Map<IEnumerable<ArtworkListDto>>(artworks);
@@ -169,12 +174,7 @@ public class ArtworkService : IArtworkService
     public async Task<IEnumerable<ArtworkListDto>> GetByStatusAsync(string status)
     {
         // Note: Status field no longer exists in the new schema
-        // This method now returns all artworks
-        var artworks = await _repository.Query()
-            .Include(a => a.Artist)
-            .Include(a => a.Collection)
-            .Include(a => a.Location)
-            .ToListAsync();
+        var artworks = await WithIncludes(_repository.Query()).ToListAsync();
         return _mapper.Map<IEnumerable<ArtworkListDto>>(artworks);
     }
 }

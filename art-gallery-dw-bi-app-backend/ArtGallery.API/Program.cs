@@ -79,6 +79,10 @@ app.UseCors("AllowVueApp");
 // Global exception handling
 app.UseExceptionHandling();
 
+// Resolve the per-request data source (OLTP / AM / EU / GLOBAL) from the
+// X-Data-Source header BEFORE controllers / EF DbContext are created.
+app.UseDataSourceContext();
+
 // Rate limiting (before other middleware)
 app.UseIpRateLimiting();
 

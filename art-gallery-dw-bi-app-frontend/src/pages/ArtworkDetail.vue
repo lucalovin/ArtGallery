@@ -405,7 +405,7 @@ export default {
 
   methods: {
     ...mapActions({
-      fetchArtworks: 'artwork/fetchArtworks',
+      fetchArtworkById: 'artwork/fetchArtworkById',
       removeArtwork: 'artwork/deleteArtwork'
     }),
 
@@ -414,20 +414,15 @@ export default {
       this.error = false;
 
       try {
-        // Fetch artworks if not already loaded
-        if (this.artworks.length === 0) {
-          await this.fetchArtworks();
-        }
-        
-        // Check if artwork exists
         const artworkId = parseInt(this.id);
-        const artworkExists = this.artworks.find(a => a.id === artworkId);
-        
-        if (!artworkExists) {
+        // Fetch the specific artwork directly so we don't depend on a paginated
+        // list cache that may not include this id (especially on AM where the
+        // vertical fragment has limited columns).
+        const artwork = await this.fetchArtworkById(artworkId);
+        if (!artwork || artwork.id == null) {
           this.error = true;
           return;
         }
-        
         // Load tab data in parallel
         await this.loadTabData(artworkId);
       } catch (err) {

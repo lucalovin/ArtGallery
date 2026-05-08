@@ -15,21 +15,27 @@ public class EtlService : IEtlService
     private readonly IEntityCountService _entityCountService;
     private readonly ICodeBasedEtlService _codeBasedEtlService;
     private readonly IMapper _mapper;
+    private readonly IDataSourceContext _ds;
 
     public EtlService(
         IRepository<EtlSync> repository, 
         IEntityCountService entityCountService,
         ICodeBasedEtlService codeBasedEtlService,
-        IMapper mapper)
+        IMapper mapper,
+        IDataSourceContext ds)
     {
         _repository = repository;
         _entityCountService = entityCountService;
         _codeBasedEtlService = codeBasedEtlService;
         _mapper = mapper;
+        _ds = ds;
     }
 
     public async Task<PaginatedResponse<EtlSyncResponseDto>> GetSyncsAsync(PagedRequest request)
     {
+        if (!DataSourceCapabilities.HasEtl(_ds.Source))
+            return PaginatedResponse<EtlSyncResponseDto>.Create(new List<EtlSyncResponseDto>(), 0, request.Page, request.PageSize);
+
         var query = _repository.Query();
 
         query = request.SortBy?.ToLower() switch
@@ -99,6 +105,22 @@ public class EtlService : IEtlService
 
     public async Task<EtlStatusDto> GetStatusAsync()
     {
+        if (!DataSourceCapabilities.HasEtl(_ds.Source))
+        {
+            return new EtlStatusDto
+            {
+                IsRunning = false,
+                Status = "unavailable",
+                LastSync = null,
+                TotalSyncs = 0,
+                SuccessfulSyncs = 0,
+                FailedSyncs = 0,
+                SuccessRate = 0,
+                DataSources = new List<EtlDataSourceDto>(),
+                Stats = new EtlStatsDto { TotalRecords = 0, Duration = "N/A", SuccessRate = 0, FailedRecords = 0 }
+            };
+        }
+
         var syncs = await _repository.Query().ToListAsync();
         var lastSync = syncs.OrderByDescending(s => s.SyncDate).FirstOrDefault();
         var isRunning = syncs.Any(s => s.Status == "Running");

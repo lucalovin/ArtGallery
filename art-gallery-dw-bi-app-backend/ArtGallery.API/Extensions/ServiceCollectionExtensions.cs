@@ -1,4 +1,5 @@
 ﻿﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using ArtGallery.Infrastructure.Data;
@@ -44,18 +45,31 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // OLTP Database Context (Oracle)
-        services.AddDbContext<AppDbContext>(options =>
+        // Per-request data-source selector (OLTP / AM / EU / GLOBAL).
+        // Populated by DataSourceMiddleware from the X-Data-Source header.
+        services.AddScoped<IDataSourceContext, DataSourceContext>();
+
+        // OLTP Database Context (Oracle).
+        // Connection string + compiled model are resolved per request based on
+        // the IDataSourceContext, so the same controllers can run against the
+        // legacy OLTP schema or any of the three distributed schemas.
+        services.AddDbContext<AppDbContext>((sp, options) =>
         {
+            var dsContext = sp.GetRequiredService<IDataSourceContext>();
+            var connectionKey = DataSourceContext.ConnectionStringKey(dsContext.Source);
+            var connectionString = configuration.GetConnectionString(connectionKey)
+                ?? configuration.GetConnectionString("OltpConnection");
+
             options.UseOracle(
-                configuration.GetConnectionString("OltpConnection"),
+                connectionString,
                 oracleOptions =>
                 {
                     oracleOptions.CommandTimeout(configuration.GetValue<int>("Oracle:CommandTimeout", 60));
-                    // Enable connection pooling settings via connection string
                 });
-            
-            // Enable detailed errors in development
+
+            // Cache a separate compiled model per data source.
+            options.ReplaceService<IModelCacheKeyFactory, DataSourceModelCacheKeyFactory>();
+
             #if DEBUG
             options.EnableSensitiveDataLogging();
             options.EnableDetailedErrors();
@@ -125,6 +139,7 @@ public static class ServiceCollectionExtensions
                         "https://localhost:5173")
                     .AllowAnyMethod()
                     .AllowAnyHeader()
+                    .WithExposedHeaders("X-Data-Source")
                     .AllowCredentials();
             });
         });

@@ -15,6 +15,7 @@ public class ReportService : IReportService
     private readonly IRepository<Loan> _loanRepository;
     private readonly IRepository<Insurance> _insuranceRepository;
     private readonly IRepository<Restoration> _restorationRepository;
+    private readonly IDataSourceContext _ds;
 
     public ReportService(
         IRepository<Artwork> artworkRepository,
@@ -23,7 +24,8 @@ public class ReportService : IReportService
         IRepository<Staff> staffRepository,
         IRepository<Loan> loanRepository,
         IRepository<Insurance> insuranceRepository,
-        IRepository<Restoration> restorationRepository)
+        IRepository<Restoration> restorationRepository,
+        IDataSourceContext ds)
     {
         _artworkRepository = artworkRepository;
         _exhibitionRepository = exhibitionRepository;
@@ -32,24 +34,38 @@ public class ReportService : IReportService
         _loanRepository = loanRepository;
         _insuranceRepository = insuranceRepository;
         _restorationRepository = restorationRepository;
+        _ds = ds;
     }
 
     public async Task<KpiDashboardDto> GetKpisAsync()
     {
         var today = DateTime.UtcNow.Date;
+        var s = _ds.Source;
 
         var artworks = await _artworkRepository.Query().ToListAsync();
-        var visitors = await _visitorRepository.Query().ToListAsync();
-        var exhibitions = await _exhibitionRepository.Query()
-            .Where(e => e.StartDate <= today && e.EndDate >= today)
-            .ToListAsync();
-        var staff = await _staffRepository.Query().ToListAsync();
-        var loans = await _loanRepository.Query().Where(l => l.EndDate == null || l.EndDate >= today).ToListAsync();
-        var restorations = await _restorationRepository.Query().Where(r => r.EndDate == null).ToListAsync();
-        var insurances = await _insuranceRepository.Query()
-            .Include(i => i.Policy)
-            .Where(i => i.Policy != null && i.Policy.EndDate >= today)
-            .ToListAsync();
+        var visitors = DataSourceCapabilities.HasVisitor(s)
+            ? await _visitorRepository.Query().ToListAsync()
+            : new List<Visitor>();
+        var exhibitions = DataSourceCapabilities.HasExhibition(s)
+            ? await _exhibitionRepository.Query()
+                .Where(e => e.StartDate <= today && e.EndDate >= today)
+                .ToListAsync()
+            : new List<Exhibition>();
+        var staff = DataSourceCapabilities.HasStaff(s)
+            ? await _staffRepository.Query().ToListAsync()
+            : new List<Staff>();
+        var loans = DataSourceCapabilities.HasLoan(s)
+            ? await _loanRepository.Query().Where(l => l.EndDate == null || l.EndDate >= today).ToListAsync()
+            : new List<Loan>();
+        var restorations = DataSourceCapabilities.HasRestoration(s)
+            ? await _restorationRepository.Query().Where(r => r.EndDate == null).ToListAsync()
+            : new List<Restoration>();
+        var insurances = DataSourceCapabilities.HasInsurance(s)
+            ? await _insuranceRepository.Query()
+                .Include(i => i.Policy)
+                .Where(i => i.Policy != null && i.Policy.EndDate >= today)
+                .ToListAsync()
+            : new List<Insurance>();
 
         return new KpiDashboardDto
         {
@@ -57,7 +73,7 @@ public class ReportService : IReportService
             TotalVisitors = visitors.Count,
             ActiveExhibitions = exhibitions.Count,
             TotalStaff = staff.Count,
-            TotalCollectionValue = artworks.Sum(a => a.EstimatedValue ?? 0),
+            TotalCollectionValue = DataSourceCapabilities.ArtworkHasDetails(s) ? artworks.Sum(a => a.EstimatedValue ?? 0) : 0,
             ActiveLoans = loans.Count,
             ArtworksUnderRestoration = restorations.Count,
             TotalInsuranceCoverage = insurances.Sum(i => i.InsuredAmount),
@@ -69,6 +85,9 @@ public class ReportService : IReportService
     {
         var start = startDate ?? DateTime.UtcNow.AddMonths(-12);
         var end = endDate ?? DateTime.UtcNow;
+
+        if (!DataSourceCapabilities.HasVisitor(_ds.Source))
+            return Enumerable.Empty<VisitorTrendDto>();
 
         var visitors = await _visitorRepository.Query()
             .Where(v => v.JoinDate != null && v.JoinDate >= start && v.JoinDate <= end)
@@ -107,6 +126,8 @@ public class ReportService : IReportService
 
     public async Task<IEnumerable<ArtworkDistributionDto>> GetArtworkDistributionAsync()
     {
+        if (!DataSourceCapabilities.HasCollection(_ds.Source) || !DataSourceCapabilities.ArtworkHasCore(_ds.Source))
+            return Enumerable.Empty<ArtworkDistributionDto>();
         var artworks = await _artworkRepository.Query()
             .Include(a => a.Collection)
             .ToListAsync();
@@ -128,6 +149,8 @@ public class ReportService : IReportService
 
     public async Task<IEnumerable<ExhibitionPerformanceDto>> GetExhibitionPerformanceAsync()
     {
+        if (!DataSourceCapabilities.HasExhibition(_ds.Source))
+            return Enumerable.Empty<ExhibitionPerformanceDto>();
         var exhibitions = await _exhibitionRepository.Query()
             .Include(e => e.ExhibitionArtworks)
                 .ThenInclude(ea => ea.Artwork)
@@ -170,6 +193,9 @@ public class ReportService : IReportService
     {
         var start = startDate ?? DateTime.UtcNow.AddMonths(-12);
         var end = endDate ?? DateTime.UtcNow;
+
+        if (!DataSourceCapabilities.HasInsurance(_ds.Source) || !DataSourceCapabilities.HasLoan(_ds.Source))
+            return Enumerable.Empty<RevenueDto>();
 
         // Get insurance data with policies to derive "value under coverage" per month
         var insurances = await _insuranceRepository.Query()
