@@ -62,7 +62,7 @@
       <button @click="load" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
         Reincarca
       </button>
-      <button @click="showInsertForm = !showInsertForm" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">
+      <button @click="toggleInsertForm" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">
         {{ showInsertForm ? 'Anuleaza INSERT' : 'INSERT nou' }}
       </button>
     </div>
@@ -71,8 +71,8 @@
     <div v-if="showInsertForm" class="bg-white rounded-lg shadow p-4 space-y-3">
       <h3 class="font-semibold text-gray-800">INSERT pe {{ entity }}@{{ station }}</h3>
       <p class="text-xs text-gray-500">
-        Introdu un obiect JSON cu coloanele si valorile. Exemplu:
-        <code class="bg-gray-100 px-1">{ "EXHIBITORID": 999, "NAME": "Test", "CITY": "New York" }</code>
+        Introdu un obiect JSON cu coloanele si valorile (numele coloanelor sunt case-insensitive in Oracle, dar trebuie sa respecte schema reala - ex. <code class="bg-gray-100 px-1">exhibitor_id</code>, nu <code class="bg-gray-100 px-1">ExhibitorID</code>). Exemplu:
+        <code class="bg-gray-100 px-1">{ "exhibitor_id": 999, "name": "Test", "city": "New York" }</code>
       </p>
       <textarea v-model="insertJson" rows="6" class="w-full font-mono text-sm border-gray-300 rounded-md"></textarea>
       <button @click="doInsert" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">
@@ -161,8 +161,8 @@ export default {
     }
   },
   watch: {
-    station() { this.load(); },
-    entity()  { this.load(); }
+    station() { this.load(); if (this.showInsertForm) this.insertJson = this.entityTemplate(); },
+    entity()  { this.load(); if (this.showInsertForm) this.insertJson = this.entityTemplate(); }
   },
   mounted() { this.load(); },
   methods: {
@@ -182,6 +182,27 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    toggleInsertForm() {
+      this.showInsertForm = !this.showInsertForm;
+      if (this.showInsertForm) this.insertJson = this.entityTemplate();
+    },
+    entityTemplate() {
+      // Real Oracle column names per entity (snake_case, lowercase) from sql/modbd/*.sql
+      const templates = {
+        EXHIBITOR:          { exhibitor_id: '', name: '', address: '', city: '', contact_info: '' },
+        EXHIBITION:         { exhibition_id: '', title: '', start_date: '', end_date: '', exhibitor_id: '', description: '' },
+        LOAN:               { loan_id: '', artwork_id: '', exhibitor_id: '', start_date: '', end_date: '', conditions: '' },
+        GALLERY_REVIEW:     { review_id: '', visitor_id: '', artwork_id: '', exhibition_id: '', rating: '', review_text: '', review_date: '' },
+        ARTWORK_EXHIBITION: { artwork_id: '', exhibition_id: '', position_in_gallery: '', featured_status: '' },
+        ARTIST:             { artist_id: '', name: '', nationality: '', birth_year: '', death_year: '' },
+        COLLECTION:         { collection_id: '', name: '', description: '', created_date: '' },
+        ARTWORK_CORE:       { artwork_id: '', title: '', artist_id: '', year_created: '', medium: '', collection_id: '' },
+        ARTWORK_DETAILS:    { artwork_id: '', location_id: '', estimated_value: '' }
+      };
+      const tpl = templates[this.entity];
+      if (!tpl) return '{\n  \n}';
+      return JSON.stringify(tpl, null, 2);
     },
     async doInsert() {
       try {

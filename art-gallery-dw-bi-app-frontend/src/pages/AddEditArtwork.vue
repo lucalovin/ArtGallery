@@ -265,35 +265,29 @@ export default {
     }),
 
     async loadLookups() {
-      try {
-        // Fetch all lookups in parallel
-        const [artistsRes, collectionsRes, locationsRes] = await Promise.all([
-          this.$api.lookups.getArtists(),
-          this.$api.lookups.getCollections(),
-          this.$api.lookups.getLocations()
-        ]);
+      // Use Promise.allSettled so a single failed lookup (e.g. /lookups/locations
+      // returning 500 on the AM/EU schema, where Location is not mapped) does
+      // not wipe out the artists / collections dropdowns.
+      const [artistsRes, collectionsRes, locationsRes] = await Promise.allSettled([
+        this.$api.lookups.getArtists(),
+        this.$api.lookups.getCollections(),
+        this.$api.lookups.getLocations()
+      ]);
 
-        // Handle ApiResponse format: { success: true, data: [...] }
-        if (artistsRes.data?.success && artistsRes.data?.data) {
-          this.artists = artistsRes.data.data;
-        } else if (Array.isArray(artistsRes.data)) {
-          this.artists = artistsRes.data;
+      const extract = (settled, label) => {
+        if (settled.status !== 'fulfilled') {
+          console.warn(`Lookup '${label}' failed:`, settled.reason?.message || settled.reason);
+          return [];
         }
-        
-        if (collectionsRes.data?.success && collectionsRes.data?.data) {
-          this.collections = collectionsRes.data.data;
-        } else if (Array.isArray(collectionsRes.data)) {
-          this.collections = collectionsRes.data;
-        }
-        
-        if (locationsRes.data?.success && locationsRes.data?.data) {
-          this.locations = locationsRes.data.data;
-        } else if (Array.isArray(locationsRes.data)) {
-          this.locations = locationsRes.data;
-        }
-      } catch (error) {
-        console.error('Error loading lookups:', error);
-      }
+        const body = settled.value?.data;
+        if (body?.success && Array.isArray(body.data)) return body.data;
+        if (Array.isArray(body)) return body;
+        return [];
+      };
+
+      this.artists = extract(artistsRes, 'artists');
+      this.collections = extract(collectionsRes, 'collections');
+      this.locations = extract(locationsRes, 'locations');
     },
 
     async loadArtwork() {
