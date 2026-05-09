@@ -51,6 +51,8 @@ export const bddAPI = {
     apiClient.post(`${base}/demo/local-to-global`, payload),
   demoGlobalToLocal: (payload) =>
     apiClient.post(`${base}/demo/global-to-local`, payload),
+  demoSampleValues: (scenario) =>
+    apiClient.get(`${base}/demo/sample-values`, { params: { scenario } }),
 };
 
 export default bddAPI;

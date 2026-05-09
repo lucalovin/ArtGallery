@@ -75,7 +75,13 @@
         </label>
         <div></div>
         <label class="block md:col-span-3">
-          <span class="text-xs font-semibold text-gray-600 uppercase">Values (JSON)</span>
+          <span class="text-xs font-semibold text-gray-600 uppercase flex items-center justify-between">
+            <span>Values (JSON)</span>
+            <button type="button" @click="autoFillC3"
+                    class="text-[10px] font-semibold px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 normal-case">
+              Auto-fill din date reale
+            </button>
+          </span>
           <textarea v-model="c3.valuesJson" rows="4" class="mt-1 w-full font-mono text-xs border-gray-300 rounded-md"></textarea>
         </label>
         <label class="block">
@@ -144,7 +150,13 @@
         </label>
         <div></div>
         <label class="block md:col-span-3">
-          <span class="text-xs font-semibold text-gray-600 uppercase">Values (JSON)</span>
+          <span class="text-xs font-semibold text-gray-600 uppercase flex items-center justify-between">
+            <span>Values (JSON)</span>
+            <button type="button" @click="autoFillC4"
+                    class="text-[10px] font-semibold px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 normal-case">
+              Auto-fill din date reale
+            </button>
+          </span>
           <textarea v-model="c4.valuesJson" rows="4" class="mt-1 w-full font-mono text-xs border-gray-300 rounded-md"></textarea>
         </label>
         <label class="block">
@@ -224,6 +236,18 @@ export default {
   },
   mounted() {
     this.loadStatus();
+    this.autoFillC3();
+    this.autoFillC4();
+  },
+  watch: {
+    'c3.scenario'() { this.autoFillC3(); },
+    'c3.action'(val) {
+      if (val === 'insert') this.autoFillC3();
+    },
+    'c4.scenario'() { this.autoFillC4(); },
+    'c4.action'(val) {
+      if (val === 'insert') this.autoFillC4();
+    }
   },
   methods: {
     statusOf(s) { return this.status[s] || { ok: false }; },
@@ -237,6 +261,33 @@ export default {
     },
     parseJsonOrNull(s) {
       try { return s ? JSON.parse(s) : null; } catch { return null; }
+    },
+    async autoFillC3() {
+      if (this.c3.action !== 'insert') return;
+      try {
+        const res = await bddAPI.demoSampleValues(this.c3.scenario);
+        const values = res.data?.data;
+        if (values && typeof values === 'object') {
+          this.c3.valuesJson = JSON.stringify(values, null, 2);
+        }
+      } catch (e) {
+        // keep existing template; surface a hint
+        this.c3.message = 'Nu am putut auto-completa valorile: ' +
+          (e.response?.data?.error || e.message);
+      }
+    },
+    async autoFillC4() {
+      if (this.c4.action !== 'insert') return;
+      try {
+        const res = await bddAPI.demoSampleValues(this.c4.scenario);
+        const values = res.data?.data;
+        if (values && typeof values === 'object') {
+          this.c4.valuesJson = JSON.stringify(values, null, 2);
+        }
+      } catch (e) {
+        this.c4.message = 'Nu am putut auto-completa valorile: ' +
+          (e.response?.data?.error || e.message);
+      }
     },
     async runC3() {
       this.c3.message = null; this.c3.result = null;

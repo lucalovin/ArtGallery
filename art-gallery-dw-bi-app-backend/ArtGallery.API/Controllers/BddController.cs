@@ -389,6 +389,476 @@ public class BddController : ControllerBase
         public string? Station { get; set; } // optional override for routed scenarios
     }
 
+    /// <summary>
+    /// Returns a ready-to-use INSERT payload for a given demo scenario,
+    /// populated with parent IDs that actually exist on the relevant station.
+    /// This avoids ORA-02291 caused by hard-coded demo values.
+    /// </summary>
+    [HttpGet("demo/sample-values")]
+    public async Task<ActionResult<ApiResponse<object>>> SampleValues([FromQuery] string scenario)
+    {
+        if (string.IsNullOrWhiteSpace(scenario))
+            return BadRequest(ApiResponse<object>.FailureResponse("'scenario' is required."));
+        try
+        {
+            var values = await BuildSampleInsertValues(scenario.ToLowerInvariant());
+            return Ok(ApiResponse<object>.SuccessResponse(values, $"Sample insert payload for scenario '{scenario}'"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "BDD SampleValues failed for scenario {Scenario}", scenario);
+            return BadRequest(ApiResponse<object>.FailureResponse(FormatOracleError(ex)));
+        }
+    }
+
+    private async Task<Dictionary<string, object?>> BuildSampleInsertValues(string scenario)
+    {
+        // local helpers for scalar lookups
+        async Task<long?> NextPk(string st, string table, string col)
+        {
+            var v = await ScalarAsync(st, $"SELECT NVL(MAX({col}),0)+1 FROM {table}");
+            return v == null ? null : Convert.ToInt64(v);
+        }
+        async Task<long?> AnyId(string st, string table, string col)
+        {
+            var v = await ScalarAsync(st, $"SELECT {col} FROM {table} FETCH FIRST 1 ROWS ONLY");
+            return v == null ? (long?)null : Convert.ToInt64(v);
+        }
+        // Next PK that does not exist in EITHER AM or EU fragment (used for C4 horizontal/replicated entities).
+        async Task<long> NextPkAcross(string amTable, string euTable, string col)
+        {
+            var am = await NextPk("AM", amTable, col) ?? 1;
+            var eu = await NextPk("EU", euTable, col) ?? 1;
+            return Math.Max(am, eu);
+        }
+        async Task<long> NextPkGlobal(string table, string col)
+        {
+            var v = await ScalarAsync("GLOBAL", $"SELECT NVL(MAX({col}),0)+1 FROM {table}");
+            return v == null ? 1 : Convert.ToInt64(v);
+        }
+
+        switch (scenario)
+        {
+            case "exhibitor_am":
+            case "exhibitor_eu":
+            {
+                var st = scenario.EndsWith("_am") ? "AM" : "EU";
+                var table = st == "AM" ? "EXHIBITOR_AM" : "EXHIBITOR_EU";
+                var pk = await NextPk(st, table, "exhibitor_id");
+                return new()
+                {
+                    ["exhibitor_id"] = pk,
+                    ["name"] = $"Demo Exhibitor {pk}",
+                    ["address"] = "Demo Street 1",
+                    ["city"] = st == "AM" ? "New York" : "Paris",
+                    ["contact_info"] = "demo@example.com"
+                };
+            }
+            case "exhibition_am":
+            case "exhibition_eu":
+            {
+                var st = scenario.EndsWith("_am") ? "AM" : "EU";
+                var table = st == "AM" ? "EXHIBITION_AM" : "EXHIBITION_EU";
+                var exhTable = st == "AM" ? "EXHIBITOR_AM" : "EXHIBITOR_EU";
+                var pk = await NextPk(st, table, "exhibition_id");
+                var exhibitorId = await AnyId(st, exhTable, "exhibitor_id")
+                    ?? throw new InvalidOperationException($"No rows in {exhTable} on {st}; cannot pick exhibitor_id.");
+                return new()
+                {
+                    ["exhibition_id"] = pk,
+                    ["title"] = $"Demo Exhibition {pk}",
+                    ["start_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["end_date"] = DateTime.Today.AddDays(30).ToString("yyyy-MM-dd"),
+                    ["exhibitor_id"] = exhibitorId,
+                    ["description"] = "demo c3"
+                };
+            }
+            case "loan_am":
+            case "loan_eu":
+            {
+                var st = scenario.EndsWith("_am") ? "AM" : "EU";
+                var table = st == "AM" ? "LOAN_AM" : "LOAN_EU";
+                var artTable = st == "AM" ? "ARTWORK_DETAILS" : "ARTWORK_CORE";
+                var exhTable = st == "AM" ? "EXHIBITOR_AM" : "EXHIBITOR_EU";
+                var pk = await NextPk(st, table, "loan_id");
+                var artworkId = await AnyId(st, artTable, "artwork_id")
+                    ?? throw new InvalidOperationException($"No rows in {artTable} on {st}.");
+                var exhibitorId = await AnyId(st, exhTable, "exhibitor_id")
+                    ?? throw new InvalidOperationException($"No rows in {exhTable} on {st}.");
+                return new()
+                {
+                    ["loan_id"] = pk,
+                    ["artwork_id"] = artworkId,
+                    ["exhibitor_id"] = exhibitorId,
+                    ["start_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["end_date"] = DateTime.Today.AddDays(60).ToString("yyyy-MM-dd"),
+                    ["conditions"] = "demo loan"
+                };
+            }
+            case "gallery_review_am":
+            case "gallery_review_eu":
+            {
+                var st = scenario.EndsWith("_am") ? "AM" : "EU";
+                var table = st == "AM" ? "GALLERY_REVIEW_AM" : "GALLERY_REVIEW_EU";
+                var artTable = st == "AM" ? "ARTWORK_DETAILS" : "ARTWORK_CORE";
+                var exhTable = st == "AM" ? "EXHIBITION_AM" : "EXHIBITION_EU";
+                var pk = await NextPk(st, table, "review_id");
+                var artworkId = await AnyId(st, artTable, "artwork_id")
+                    ?? throw new InvalidOperationException($"No rows in {artTable} on {st}.");
+                var exhibitionId = await AnyId(st, exhTable, "exhibition_id")
+                    ?? throw new InvalidOperationException($"No rows in {exhTable} on {st}.");
+                return new()
+                {
+                    ["review_id"] = pk,
+                    ["visitor_id"] = 1,
+                    ["artwork_id"] = artworkId,
+                    ["exhibition_id"] = exhibitionId,
+                    ["rating"] = 5,
+                    ["review_text"] = "demo review",
+                    ["review_date"] = DateTime.Today.ToString("yyyy-MM-dd")
+                };
+            }
+            case "artwork_exhibition_am":
+            case "artwork_exhibition_eu":
+            {
+                var st = scenario.EndsWith("_am") ? "AM" : "EU";
+                var artTable = st == "AM" ? "ARTWORK_DETAILS" : "ARTWORK_CORE";
+                var exhTable = st == "AM" ? "EXHIBITION_AM" : "EXHIBITION_EU";
+                var axTable = st == "AM" ? "ARTWORK_EXHIBITION_AM" : "ARTWORK_EXHIBITION_EU";
+                var artworkId = await AnyId(st, artTable, "artwork_id")
+                    ?? throw new InvalidOperationException($"No rows in {artTable} on {st}.");
+                // pick an exhibition that doesn't already pair with this artwork
+                var exhibitionId = await ScalarAsync(st,
+                    $"SELECT exhibition_id FROM {exhTable} WHERE exhibition_id NOT IN " +
+                    $"(SELECT exhibition_id FROM {axTable} WHERE artwork_id = {artworkId}) " +
+                    $"FETCH FIRST 1 ROWS ONLY");
+                if (exhibitionId == null)
+                    throw new InvalidOperationException($"No free exhibition on {st} to pair with artwork {artworkId}.");
+                return new()
+                {
+                    ["artwork_id"] = artworkId,
+                    ["exhibition_id"] = Convert.ToInt64(exhibitionId),
+                    ["position_in_gallery"] = "Hall A",
+                    ["featured_status"] = "FEATURED"
+                };
+            }
+            case "artwork_core":
+            {
+                var pk = await NextPk("EU", "ARTWORK_CORE", "artwork_id");
+                var artistId = await AnyId("EU", "ARTIST_EU", "artist_id") ?? 1;
+                var collectionId = await AnyId("EU", "COLLECTION_EU", "collection_id");
+                return new()
+                {
+                    ["artwork_id"] = pk,
+                    ["title"] = $"Demo Artwork {pk}",
+                    ["artist_id"] = artistId,
+                    ["year_created"] = 2024,
+                    ["medium"] = "Oil",
+                    ["collection_id"] = collectionId
+                };
+            }
+            case "artwork_details":
+            {
+                // artwork_id MUST exist in EU.ARTWORK_CORE; pick one not yet present in AM.ARTWORK_DETAILS.
+                // Fetch a small candidate set from EU and find the first that AM doesn't already have.
+                long? chosen = null;
+                await using (var euConn = OpenConnection("EU"))
+                await using (var euCmd = euConn.CreateCommand())
+                {
+                    euCmd.CommandText = "SELECT artwork_id FROM ARTWORK_CORE ORDER BY artwork_id";
+                    await using var rdr = await euCmd.ExecuteReaderAsync();
+                    var candidates = new List<long>();
+                    while (await rdr.ReadAsync()) candidates.Add(Convert.ToInt64(rdr.GetValue(0)));
+                    foreach (var id in candidates)
+                    {
+                        var present = await ScalarAsync("AM", $"SELECT 1 FROM ARTWORK_DETAILS WHERE artwork_id = {id}");
+                        if (present == null) { chosen = id; break; }
+                    }
+                    if (chosen == null && candidates.Count > 0) chosen = candidates[0];
+                }
+                if (chosen == null)
+                    throw new InvalidOperationException("No rows in EU.ARTWORK_CORE.");
+                return new()
+                {
+                    ["artwork_id"] = chosen,
+                    ["location_id"] = 1,
+                    ["estimated_value"] = 12345.67M
+                };
+            }
+            case "artist_am":
+            case "artist_eu":
+            {
+                var st = scenario.EndsWith("_am") ? "AM" : "EU";
+                var table = st == "AM" ? "ARTIST_AM" : "ARTIST_EU";
+                var pk = await NextPk(st, table, "artist_id");
+                return new()
+                {
+                    ["artist_id"] = pk,
+                    ["name"] = $"Demo Artist {pk}",
+                    ["nationality"] = "Demo",
+                    ["birth_year"] = 1950,
+                    ["death_year"] = (object?)null!
+                };
+            }
+            case "collection_am":
+            case "collection_eu":
+            {
+                var st = scenario.EndsWith("_am") ? "AM" : "EU";
+                var table = st == "AM" ? "COLLECTION_AM" : "COLLECTION_EU";
+                var pk = await NextPk(st, table, "collection_id");
+                return new()
+                {
+                    ["collection_id"] = pk,
+                    ["name"] = $"Demo Collection {pk}",
+                    ["description"] = "demo",
+                    ["created_date"] = DateTime.Today.ToString("yyyy-MM-dd")
+                };
+            }
+
+            // -------------------------------------------------------------
+            // Cerinta 4 - global LMD routed to fragment(s)
+            // -------------------------------------------------------------
+            case "horizontal_exhibitor":
+            {
+                var pk = await NextPkAcross("EXHIBITOR_AM", "EXHIBITOR_EU", "exhibitor_id");
+                return new()
+                {
+                    ["exhibitor_id"] = pk,
+                    ["name"] = $"Demo Exhibitor {pk}",
+                    ["address"] = "5th Ave",
+                    ["city"] = "New York", // routes to AM
+                    ["contact_info"] = "demo@x"
+                };
+            }
+            case "horizontal_exhibition":
+            {
+                var pk = await NextPkAcross("EXHIBITION_AM", "EXHIBITION_EU", "exhibition_id");
+                // pick an AM exhibitor so router targets AM
+                var exhibitorId = await AnyId("AM", "EXHIBITOR_AM", "exhibitor_id")
+                    ?? throw new InvalidOperationException("No EXHIBITOR_AM rows.");
+                return new()
+                {
+                    ["exhibition_id"] = pk,
+                    ["title"] = $"Demo Routed Exhibition {pk}",
+                    ["start_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["end_date"] = DateTime.Today.AddDays(30).ToString("yyyy-MM-dd"),
+                    ["exhibitor_id"] = exhibitorId,
+                    ["description"] = "demo c4"
+                };
+            }
+            case "horizontal_loan":
+            {
+                var pk = await NextPkAcross("LOAN_AM", "LOAN_EU", "loan_id");
+                var artworkId = await AnyId("AM", "ARTWORK_DETAILS", "artwork_id")
+                    ?? throw new InvalidOperationException("No ARTWORK_DETAILS rows.");
+                var exhibitorId = await AnyId("AM", "EXHIBITOR_AM", "exhibitor_id")
+                    ?? throw new InvalidOperationException("No EXHIBITOR_AM rows.");
+                return new()
+                {
+                    ["loan_id"] = pk,
+                    ["artwork_id"] = artworkId,
+                    ["exhibitor_id"] = exhibitorId,
+                    ["start_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["end_date"] = DateTime.Today.AddDays(60).ToString("yyyy-MM-dd"),
+                    ["conditions"] = "demo loan"
+                };
+            }
+            case "horizontal_review":
+            {
+                var pk = await NextPkAcross("GALLERY_REVIEW_AM", "GALLERY_REVIEW_EU", "review_id");
+                var artworkId = await AnyId("AM", "ARTWORK_DETAILS", "artwork_id")
+                    ?? throw new InvalidOperationException("No ARTWORK_DETAILS rows.");
+                var exhibitionId = await AnyId("AM", "EXHIBITION_AM", "exhibition_id")
+                    ?? throw new InvalidOperationException("No EXHIBITION_AM rows.");
+                return new()
+                {
+                    ["review_id"] = pk,
+                    ["visitor_id"] = 1,
+                    ["artwork_id"] = artworkId,
+                    ["exhibition_id"] = exhibitionId,
+                    ["rating"] = 5,
+                    ["review_text"] = "demo routed review",
+                    ["review_date"] = DateTime.Today.ToString("yyyy-MM-dd")
+                };
+            }
+            case "horizontal_artwork_exh":
+            {
+                // pair an artwork with an exhibition not yet linked, on AM
+                var artworkId = await AnyId("AM", "ARTWORK_DETAILS", "artwork_id")
+                    ?? throw new InvalidOperationException("No ARTWORK_DETAILS rows.");
+                var exhibitionId = await ScalarAsync("AM",
+                    $"SELECT exhibition_id FROM EXHIBITION_AM WHERE exhibition_id NOT IN " +
+                    $"(SELECT exhibition_id FROM ARTWORK_EXHIBITION_AM WHERE artwork_id = {artworkId}) " +
+                    $"FETCH FIRST 1 ROWS ONLY");
+                if (exhibitionId == null)
+                    throw new InvalidOperationException("No free AM exhibition to pair with this artwork.");
+                return new()
+                {
+                    ["artwork_id"] = artworkId,
+                    ["exhibition_id"] = Convert.ToInt64(exhibitionId),
+                    ["position_in_gallery"] = "Hall A",
+                    ["featured_status"] = "FEATURED"
+                };
+            }
+            case "vertical_artwork":
+            {
+                // ARTWORK is split: CORE@EU + DETAILS@AM. We need a fresh artwork_id absent on both.
+                var pk = await NextPkAcross("ARTWORK_DETAILS", "ARTWORK_CORE", "artwork_id");
+                var artistId = await AnyId("EU", "ARTIST_EU", "artist_id") ?? 1;
+                var collectionId = await AnyId("EU", "COLLECTION_EU", "collection_id");
+                return new()
+                {
+                    ["artwork_id"] = pk,
+                    ["title"] = $"Demo Vertical Artwork {pk}",
+                    ["artist_id"] = artistId,
+                    ["year_created"] = 2024,
+                    ["medium"] = "Oil",
+                    ["collection_id"] = collectionId,
+                    ["location_id"] = 1,
+                    ["estimated_value"] = 12345.67M
+                };
+            }
+            case "replicated_artist":
+            {
+                var pk = await NextPkAcross("ARTIST_AM", "ARTIST_EU", "artist_id");
+                return new()
+                {
+                    ["artist_id"] = pk,
+                    ["name"] = $"Demo Artist {pk}",
+                    ["nationality"] = "Demo",
+                    ["birth_year"] = 1950
+                };
+            }
+            case "replicated_collection":
+            {
+                var pk = await NextPkAcross("COLLECTION_AM", "COLLECTION_EU", "collection_id");
+                return new()
+                {
+                    ["collection_id"] = pk,
+                    ["name"] = $"Demo Collection {pk}",
+                    ["description"] = "demo",
+                    ["created_date"] = DateTime.Today.ToString("yyyy-MM-dd")
+                };
+            }
+            case "global_location":
+            {
+                var pk = await NextPkGlobal("LOCATION", "location_id");
+                return new()
+                {
+                    ["location_id"] = pk,
+                    ["name"] = $"Demo Location {pk}",
+                    ["gallery_room"] = "Room 1",
+                    ["type"] = "Gallery",
+                    ["capacity"] = 50
+                };
+            }
+            case "global_visitor":
+            {
+                var pk = await NextPkGlobal("VISITOR", "visitor_id");
+                return new()
+                {
+                    ["visitor_id"] = pk,
+                    ["name"] = $"Demo Visitor {pk}",
+                    ["email"] = $"visitor{pk}@demo.com",
+                    ["phone"] = "555-0000",
+                    ["membership_type"] = "Standard",
+                    ["join_date"] = DateTime.Today.ToString("yyyy-MM-dd")
+                };
+            }
+            case "global_staff":
+            {
+                var pk = await NextPkGlobal("STAFF", "staff_id");
+                return new()
+                {
+                    ["staff_id"] = pk,
+                    ["name"] = $"Demo Staff {pk}",
+                    ["role"] = "Curator",
+                    ["hire_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["certification_level"] = "Senior"
+                };
+            }
+            case "global_insurance_policy":
+            {
+                var pk = await NextPkGlobal("INSURANCE_POLICY", "policy_id");
+                return new()
+                {
+                    ["policy_id"] = pk,
+                    ["provider"] = "Demo Insurance Co",
+                    ["start_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["end_date"] = DateTime.Today.AddYears(1).ToString("yyyy-MM-dd"),
+                    ["total_coverage_amount"] = 1000000M
+                };
+            }
+            case "global_insurance":
+            {
+                var pk = await NextPkGlobal("INSURANCE", "insurance_id");
+                var policyId = await ScalarAsync("GLOBAL",
+                    "SELECT policy_id FROM INSURANCE_POLICY FETCH FIRST 1 ROWS ONLY")
+                    ?? throw new InvalidOperationException("No INSURANCE_POLICY rows.");
+                var artworkId = await AnyId("EU", "ARTWORK_CORE", "artwork_id") ?? 1;
+                return new()
+                {
+                    ["insurance_id"] = pk,
+                    ["artwork_id"] = artworkId,
+                    ["policy_id"] = Convert.ToInt64(policyId),
+                    ["insured_amount"] = 50000M
+                };
+            }
+            case "global_restoration":
+            {
+                var pk = await NextPkGlobal("RESTORATION", "restoration_id");
+                var staffId = await ScalarAsync("GLOBAL",
+                    "SELECT staff_id FROM STAFF FETCH FIRST 1 ROWS ONLY")
+                    ?? throw new InvalidOperationException("No STAFF rows.");
+                var artworkId = await AnyId("EU", "ARTWORK_CORE", "artwork_id") ?? 1;
+                return new()
+                {
+                    ["restoration_id"] = pk,
+                    ["artwork_id"] = artworkId,
+                    ["staff_id"] = Convert.ToInt64(staffId),
+                    ["start_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["end_date"] = DateTime.Today.AddDays(14).ToString("yyyy-MM-dd"),
+                    ["description"] = "demo restoration"
+                };
+            }
+            case "global_acquisition":
+            {
+                var pk = await NextPkGlobal("ACQUISITION", "acquisition_id");
+                var staffId = await ScalarAsync("GLOBAL",
+                    "SELECT staff_id FROM STAFF FETCH FIRST 1 ROWS ONLY")
+                    ?? throw new InvalidOperationException("No STAFF rows.");
+                // ACQUISITION.artwork_id is UNIQUE - pick an artwork not yet acquired
+                var artworkId = await ScalarAsync("GLOBAL",
+                    "SELECT artwork_id FROM (SELECT artwork_id FROM ARTWORK_CORE@link_eu) " +
+                    "WHERE artwork_id NOT IN (SELECT artwork_id FROM ACQUISITION) " +
+                    "FETCH FIRST 1 ROWS ONLY");
+                if (artworkId == null)
+                    artworkId = (await AnyId("EU", "ARTWORK_CORE", "artwork_id")) ?? 1L;
+                return new()
+                {
+                    ["acquisition_id"] = pk,
+                    ["artwork_id"] = Convert.ToInt64(artworkId),
+                    ["acquisition_date"] = DateTime.Today.ToString("yyyy-MM-dd"),
+                    ["acquisition_type"] = "Purchase",
+                    ["price"] = 25000M,
+                    ["staff_id"] = Convert.ToInt64(staffId)
+                };
+            }
+
+            default:
+                throw new ArgumentException($"Unknown scenario '{scenario}'.");
+        }
+    }
+
+    private async Task<object?> ScalarAsync(string station, string sql)
+    {
+        await using var conn = OpenConnection(station);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        var v = await cmd.ExecuteScalarAsync();
+        return v == DBNull.Value ? null : v;
+    }
+
     [HttpPost("demo/local-to-global")]
     public async Task<ActionResult<ApiResponse<object>>> LocalToGlobal([FromBody] DemoScenarioRequest req)
     {
@@ -438,7 +908,7 @@ public class BddController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "BDD LocalToGlobal demo failed");
-            return BadRequest(ApiResponse<object>.FailureResponse(ex.Message));
+            return BadRequest(ApiResponse<object>.FailureResponse(FormatOracleError(ex)));
         }
     }
 
@@ -496,7 +966,7 @@ public class BddController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "BDD GlobalToLocal demo failed");
-            return BadRequest(ApiResponse<object>.FailureResponse(ex.Message));
+            return BadRequest(ApiResponse<object>.FailureResponse(FormatOracleError(ex)));
         }
     }
 
@@ -595,7 +1065,7 @@ public class BddController : ControllerBase
             return je.ValueKind switch
             {
                 JsonValueKind.Null or JsonValueKind.Undefined => null,
-                JsonValueKind.String => je.GetString(),
+                JsonValueKind.String => CoerceString(je.GetString()),
                 JsonValueKind.True => true,
                 JsonValueKind.False => false,
                 JsonValueKind.Number => je.TryGetInt64(out var l) ? (object)l :
@@ -604,7 +1074,64 @@ public class BddController : ControllerBase
                 _ => je.ToString()
             };
         }
+        if (value is string s) return CoerceString(s);
         return value;
+    }
+
+    // Detect ISO date / datetime strings so Oracle binds them as DATE/TIMESTAMP
+    // instead of trying to apply NLS_DATE_FORMAT (which causes ORA-01861).
+    private static object? CoerceString(string? s)
+    {
+        if (s is null) return null;
+        if (s.Length == 0) return s;
+        if ((s.Length == 10 || s.Length == 19 || s.Length >= 20) &&
+            DateTime.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeLocal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out var dt) &&
+            LooksLikeIsoDate(s))
+        {
+            return dt;
+        }
+        return s;
+    }
+
+    private static bool LooksLikeIsoDate(string s)
+    {
+        // YYYY-MM-DD or YYYY-MM-DDTHH:mm[:ss[.fff]][Z|+hh:mm]
+        if (s.Length < 10) return false;
+        if (s[4] != '-' || s[7] != '-') return false;
+        for (int i = 0; i < 10; i++)
+        {
+            if (i == 4 || i == 7) continue;
+            if (!char.IsDigit(s[i])) return false;
+        }
+        if (s.Length == 10) return true;
+        return s[10] == 'T' || s[10] == ' ';
+    }
+
+    /// <summary>
+    /// Translates raw Oracle errors into actionable messages for the UI.
+    /// </summary>
+    private static string FormatOracleError(Exception ex)
+    {
+        var ora = ex as OracleException ?? ex.InnerException as OracleException;
+        if (ora == null) return ex.Message;
+
+        var raw = ora.Message ?? string.Empty;
+        return ora.Number switch
+        {
+            1   => $"ORA-00001 unique key violation - a row with the same primary/unique key already exists. ({raw})",
+            1400 => $"ORA-01400 NULL value passed for a NOT NULL column. Check your 'values' payload. ({raw})",
+            1407 => $"ORA-01407 cannot UPDATE a NOT NULL column to NULL. ({raw})",
+            1722 => $"ORA-01722 invalid number - a value bound as text is not numeric. ({raw})",
+            1843 => $"ORA-01843 not a valid month - check date format (use ISO 'YYYY-MM-DD'). ({raw})",
+            1861 => $"ORA-01861 literal does not match format string - send dates as ISO 'YYYY-MM-DD'. ({raw})",
+            2291 => $"ORA-02291 foreign key violation - the referenced parent row does not exist on this station. " +
+                    $"Use an existing parent ID (e.g. an ARTIST_ID/EXHIBITOR_ID/ARTWORK_ID present in the AM/EU fragment). ({raw})",
+            2292 => $"ORA-02292 child records exist - cannot delete because dependent rows reference this key. ({raw})",
+            12899 => $"ORA-12899 value too large for column - shorten the input. ({raw})",
+            _ => raw
+        };
     }
 
     /// <summary>
