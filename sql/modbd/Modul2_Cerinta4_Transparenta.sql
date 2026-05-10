@@ -1,39 +1,36 @@
 -- ============================================================
--- MODULUL 2 – CERINȚA 4: Formele de transparență
--- Galeria de Artă – Baze de Date Distribuite
--- Schema globală: ARTGALLERY_GLOBAL (bdglobal)
+-- MODULUL 2 - CERINTA 4: Formele de transparenta
+-- Galeria de Arta - Baze de Date Distribuite
+-- Schema globala: ARTGALLERY_GLOBAL (bdglobal)
 -- ============================================================
--- Transparența localizării datelor = utilizatorii accesează
--- obiectele din BD distribuită ca și când ar fi locale.
+-- Transparenta localizarii datelor = utilizatorii acceseaza
+-- obiectele din BD distribuita ca si cand ar fi locale.
 --
 -- Tehnici implementate:
---   4.A  VIEW + INSTEAD OF trigger → fragmente ORIZONTALE (EXHIBITOR, EXHIBITION etc.)
---   4.B  VIEW + INSTEAD OF trigger → fragmente VERTICALE  (ARTWORK)
---   4.C  SINONIME locale              → tabele remote individuale
---   4.D  PROCEDURI stocate            → operații distribuite cu logică de rutare
+--   4.A  VIEW + INSTEAD OF trigger -> fragmente ORIZONTALE (EXHIBITOR, EXHIBITION etc.)
+--   4.B  VIEW + INSTEAD OF trigger -> fragmente VERTICALE  (ARTWORK)
+--   4.C  SINONIME locale              -> tabele remote individuale
+--   4.D  PROCEDURI stocate            -> operatii distribuite cu logica de rutare
 -- ============================================================
--- PRECONDIȚIE: DB Links existente pe bdglobal:
+-- PRECONDITIE: DB Links existente pe bdglobal:
 --   CREATE PUBLIC DATABASE LINK bdam CONNECT TO ARTGALLERY_AM IDENTIFIED BY parola USING bdam;
 --   CREATE PUBLIC DATABASE LINK bdeu CONNECT TO ARTGALLERY_EU IDENTIFIED BY parola USING bdeu;
--- și drepturi acordate din bdam/bdeu către bdglobal (GRANT SELECT,INSERT,UPDATE,DELETE ON ...)
+-- si drepturi acordate din bdam/bdeu catre bdglobal (GRANT SELECT,INSERT,UPDATE,DELETE ON ...)
 -- ============================================================
-
-
 -- ===========================================================
 -- PASUL 0: ACORDARE DREPTURI
 -- ===========================================================
--- ATENȚIE: GRANT este DDL → NU poate fi executat printr-un DB link
+-- ATENTIE: GRANT este DDL -> NU poate fi executat printr-un DB link
 --          (eroare ORA-02021). Granturile trebuie rulate LOCAL pe
---          fiecare bază de date, conectat ca ownerul tabelelor.
+--          fiecare baza de date, conectat ca ownerul tabelelor.
 --
--- În arhitectura noastră (ARTGALLERY_GLOBAL trăiește pe DB1/bdam):
---   • Granturile AM se rulează pe DB1, conectat ca ARTGALLERY_AM,
---     către userul local ARTGALLERY_GLOBAL.
---   • Granturile EU NU sunt necesare, pentru că link_eu (definit pe
---     DB1) se conectează la DB2 chiar ca ARTGALLERY_EU – ownerul
+-- In arhitectura noastra (ARTGALLERY_GLOBAL traieste pe DB1/bdam):
+--   - Granturile AM se ruleaza pe DB1, conectat ca ARTGALLERY_AM,
+--     catre userul local ARTGALLERY_GLOBAL.
+--   - Granturile EU NU sunt necesare, pentru ca link_eu (definit pe
+--     DB1) se conecteaza la DB2 chiar ca ARTGALLERY_EU - ownerul
 --     tabelelor *_EU are deja toate drepturile pe propriile obiecte.
 -- ===========================================================
-
 -- === RULAT PE DB1 (ORCLPDB), conectat ca ARTGALLERY_AM ===
 GRANT SELECT, INSERT, UPDATE, DELETE ON EXHIBITOR_AM           TO ARTGALLERY_GLOBAL;
 GRANT SELECT, INSERT, UPDATE, DELETE ON EXHIBITION_AM          TO ARTGALLERY_GLOBAL;
@@ -44,25 +41,21 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ARTWORK_DETAILS        TO ARTGALLERY_GLO
 GRANT SELECT, INSERT, UPDATE, DELETE ON ARTIST_AM              TO ARTGALLERY_GLOBAL;
 GRANT SELECT, INSERT, UPDATE, DELETE ON COLLECTION_AM          TO ARTGALLERY_GLOBAL;
 
--- === pe DB2 (bdeu) NU se rulează nimic ===
--- link_eu se autentifică deja ca ARTGALLERY_EU (vezi 1_sys_db1.sql).
--- Dacă vrei totuși să dai grant explicit (ex. pentru un alt link care
--- nu se conectează ca owner), trebuie să te conectezi la DB2:
+-- === pe DB2 (bdeu) NU se ruleaza nimic ===
+-- link_eu se autentifica deja ca ARTGALLERY_EU (vezi 1_sys_db1.sql).
+-- Daca vrei totusi sa dai grant explicit (ex. pentru un alt link care
+-- nu se conecteaza ca owner), trebuie sa te conectezi la DB2:
 --   sqlplus ARTGALLERY_EU/parola_eu@//localhost:1521/ORCLPDB2
--- și să rulezi grant-urile către un user care există LOCAL pe DB2.
-
-
+-- si sa rulezi grant-urile catre un user care exista LOCAL pe DB2.
 -- ===========================================================
--- 4.A  TRANSPARENȚĂ PENTRU FRAGMENTE ORIZONTALE
+-- 4.A  TRANSPARENTA PENTRU FRAGMENTE ORIZONTALE
 --      (VIEW UNION ALL + INSTEAD OF trigger INSERT/UPDATE/DELETE)
 -- ===========================================================
--- Toate comenzile de mai jos se execută conectat la ARTGALLERY_GLOBAL (bdglobal)
+-- Toate comenzile de mai jos se executa conectat la ARTGALLERY_GLOBAL (bdglobal)
 -- ===========================================================
-
-
 -- -----------------------------------------------------------
 -- 4.A.1  VIEW global: EXHIBITOR
--- Reconstruiește relația globală din EXHIBITOR_AM@link_am + EXHIBITOR_EU@link_eu
+-- Reconstruieste relatia globala din EXHIBITOR_AM@link_am + EXHIBITOR_EU@link_eu
 -- -----------------------------------------------------------
 
 CREATE OR REPLACE VIEW EXHIBITOR AS
@@ -72,11 +65,11 @@ CREATE OR REPLACE VIEW EXHIBITOR AS
     SELECT exhibitor_id, name, address, city, contact_info
     FROM   ARTGALLERY_EU.EXHIBITOR_EU@link_eu;
 
--- Verificare coloane updatabile
+-- Verificare coloane actualizabile
 SELECT column_name, updatable
 FROM   USER_UPDATABLE_COLUMNS
 WHERE  table_name = UPPER('EXHIBITOR');
--- UNION ALL → coloanele NU sunt updatabile direct → necesită INSTEAD OF trigger
+-- UNION ALL -> coloanele NU sunt updatabile direct -> necesita INSTEAD OF trigger
 
 -- Trigger INSTEAD OF INSERT/UPDATE/DELETE pe VIEW EXHIBITOR
 CREATE OR REPLACE TRIGGER t_exhibitor
@@ -99,7 +92,7 @@ BEGIN
                 (:NEW.exhibitor_id, :NEW.name, :NEW.address,
                  :NEW.city, :NEW.contact_info);
         ELSE
-            -- City necunoscută: stație default Americas
+            -- City necunoscut: statie default Americas
             INSERT INTO ARTGALLERY_AM.EXHIBITOR_AM@link_am
                 (exhibitor_id, name, address, city, contact_info)
             VALUES
@@ -108,8 +101,8 @@ BEGIN
         END IF;
 
     ELSIF UPDATING THEN
-        -- UPDATE pe fragmentul corect (identificat după city VECHE sau exhibitor_id)
-        -- Cazul 1: rândul existia pe AM
+        -- UPDATE pe fragmentul corect (identificat dupa city VECHE sau exhibitor_id)
+        -- Cazul 1: randul existia pe AM
         UPDATE ARTGALLERY_AM.EXHIBITOR_AM@link_am
         SET    name         = :NEW.name,
                address      = :NEW.address,
@@ -118,7 +111,7 @@ BEGIN
         WHERE  exhibitor_id = :OLD.exhibitor_id;
 
         IF SQL%ROWCOUNT = 0 THEN
-            -- Rândul nu era pe AM, încearcă EU
+            -- Randul nu era pe AM, incearca EU
             UPDATE ARTGALLERY_EU.EXHIBITOR_EU@link_eu
             SET    name         = :NEW.name,
                    address      = :NEW.address,
@@ -128,7 +121,7 @@ BEGIN
         END IF;
 
     ELSIF DELETING THEN
-        -- DELETE din ambele fragmente (PK garantează că există doar în unul)
+        -- DELETE din ambele fragmente (PK garanteaza ca exista doar in unul)
         DELETE FROM ARTGALLERY_AM.EXHIBITOR_AM@link_am
         WHERE  exhibitor_id = :OLD.exhibitor_id;
 
@@ -145,7 +138,7 @@ VALUES (100, 'Guggenheim', '1071 5th Ave', 'New York', 'info@guggenheim.org');
 INSERT INTO EXHIBITOR (exhibitor_id, name, address, city, contact_info)
 VALUES (101, 'Uffizi Gallery', 'Piazzale degli Uffizi', 'Florence', 'info@uffizi.it');
 
--- Verificare că s-au inserat pe stațiile corecte
+-- Verificare ca s-au inserat pe statiile corecte
 SELECT * FROM ARTGALLERY_AM.EXHIBITOR_AM@link_am WHERE exhibitor_id IN (100,101);
 SELECT * FROM ARTGALLERY_EU.EXHIBITOR_EU@link_eu WHERE exhibitor_id IN (100,101);
 
@@ -250,7 +243,7 @@ DECLARE
     v_cnt NUMBER;
 BEGIN
     IF INSERTING THEN
-        -- Verifică pe ce stație există expoziția
+        -- Verifica pe ce statie exista expozitia
         SELECT COUNT(*) INTO v_cnt
         FROM   ARTGALLERY_AM.EXHIBITION_AM@link_am
         WHERE  exhibition_id = :NEW.exhibition_id;
@@ -370,7 +363,7 @@ DECLARE
     v_cnt NUMBER;
 BEGIN
     IF INSERTING THEN
-        -- Dacă are exhibition_id, verificăm pe ce stație e expoziția
+        -- Daca are exhibition_id, verificam pe ce statie e expozitia
         IF :NEW.exhibition_id IS NOT NULL THEN
             SELECT COUNT(*) INTO v_cnt
             FROM   ARTGALLERY_AM.EXHIBITION_AM@link_am
@@ -392,7 +385,7 @@ BEGIN
                         :NEW.review_text, :NEW.review_date);
             END IF;
         ELSE
-            -- Fără expoziție → stație default: AM
+            -- Fara expozitie in statie default: AM
             INSERT INTO ARTGALLERY_AM.GALLERY_REVIEW_AM@link_am
                 (review_id, visitor_id, artwork_id, exhibition_id,
                  rating, review_text, review_date)
@@ -423,7 +416,7 @@ END t_gallery_review;
 
 
 -- ===========================================================
--- 4.B  TRANSPARENȚĂ PENTRU FRAGMENTE VERTICALE: ARTWORK
+-- 4.B  TRANSPARENTA� PENTRU FRAGMENTE VERTICALE: ARTWORK
 --      VIEW pe ARTWORK_CORE@link_eu JOIN ARTWORK_DETAILS@link_am
 -- ===========================================================
 
@@ -441,19 +434,19 @@ CREATE OR REPLACE VIEW ARTWORK AS
     JOIN   ARTGALLERY_AM.ARTWORK_DETAILS@link_am ad
         ON ac.artwork_id = ad.artwork_id;
 
--- Verificare coloane updatabile (JOIN → blocate implicit, necesită INSTEAD OF)
+-- Verificare coloane updatabile (JOIN blocate implicit, necesita INSTEAD OF)
 SELECT column_name, updatable
 FROM   USER_UPDATABLE_COLUMNS
 WHERE  table_name = UPPER('ARTWORK');
 
--- INSTEAD OF trigger pentru VIEW ARTWORK (fragmentare verticală)
+-- INSTEAD OF trigger pentru VIEW ARTWORK (fragmentare verticala)
 CREATE OR REPLACE TRIGGER t_artwork
     INSTEAD OF INSERT OR UPDATE OR DELETE
     ON ARTWORK
     FOR EACH ROW
 BEGIN
     IF INSERTING THEN
-        -- INSERT simultan în AMBELE fragmente verticale
+        -- INSERT simultan in AMBELE fragmente verticale
         INSERT INTO ARTGALLERY_EU.ARTWORK_CORE@link_eu
             (artwork_id, title, artist_id, year_created, medium, collection_id)
         VALUES
@@ -466,7 +459,7 @@ BEGIN
             (:NEW.artwork_id, :NEW.location_id, :NEW.estimated_value);
 
     ELSIF UPDATING THEN
-        -- UPDATE pe fragmentul corespunzător fiecărui atribut modificat
+        -- UPDATE pe fragmentul corespunzator fiecarui atribut modificat
         UPDATE ARTGALLERY_EU.ARTWORK_CORE@link_eu
         SET    title         = :NEW.title,
                artist_id     = :NEW.artist_id,
@@ -496,7 +489,7 @@ INSERT INTO ARTWORK (artwork_id, title, artist_id, year_created, medium,
                      collection_id, location_id, estimated_value)
 VALUES (99, 'Test Painting', 1, 2020, 'Oil on Canvas', 1, 1, 50000);
 
--- Verificare că s-a inserat în ambele fragmente
+-- Verificare ca s-a inserat in ambele fragmente
 SELECT * FROM ARTGALLERY_EU.ARTWORK_CORE@link_eu    WHERE artwork_id = 99;
 SELECT * FROM ARTGALLERY_AM.ARTWORK_DETAILS@link_am WHERE artwork_id = 99;
 
@@ -511,9 +504,9 @@ ROLLBACK; -- anulare test
 
 
 -- ===========================================================
--- 4.C  TRANSPARENȚĂ PRIN SINONIME
+-- 4.C  TRANSPARENTA� PRIN SINONIME
 --      Sinonime locale pe ARTGALLERY_GLOBAL pentru accesul
---      direct la fragmente individuale, fără a specifica @link
+--      direct la fragmente individuale, fara a specifica @link
 -- ===========================================================
 
 -- Sinonime pentru fragmentele de pe bdam (AM)
@@ -541,21 +534,21 @@ SELECT synonym_name, table_owner, table_name, db_link
 FROM   USER_SYNONYMS
 ORDER BY synonym_name;
 
--- Utilizare sinonime (fără @link în cereri)
+-- Utilizare sinonime (fara @link in cereri)
 SELECT * FROM EXHIBITOR_AM;   -- echivalent cu: SELECT * FROM ARTGALLERY_AM.EXHIBITOR_AM@link_am
 SELECT * FROM EXHIBITOR_EU;   -- echivalent cu: SELECT * FROM ARTGALLERY_EU.EXHIBITOR_EU@link_eu
 
 
 -- ===========================================================
--- 4.D  TRANSPARENȚĂ PRIN PROCEDURI STOCATE
+-- 4.D  TRANSPARENETA� PRIN PROCEDURI STOCATE
 --      Proceduri care ascund complet localizarea datelor
---      și implementează logica de rutare
+--      si implementeaza logica de rutare
 -- ===========================================================
 
 -- -----------------------------------------------------------
--- 4.D.1  Procedură: insert_exhibitor
---         Inserează un organizator pe stația corectă fără
---         ca apelantul să știe structura distribuită
+-- 4.D.1  Procedura: insert_exhibitor
+--         Insereaza un organizator pe statia corecta fara
+--         ca apelantul sa stie structura distribuita
 -- -----------------------------------------------------------
 
 CREATE OR REPLACE PROCEDURE insert_exhibitor (
@@ -575,7 +568,7 @@ BEGIN
             (exhibitor_id, name, address, city, contact_info)
         VALUES (p_exhibitor_id, p_name, p_address, p_city, p_contact_info);
     ELSE
-        -- Oraș necunoscut → implicit AM
+        -- Oras necunoscut implicit AM
         INSERT INTO ARTGALLERY_AM.EXHIBITOR_AM@link_am
             (exhibitor_id, name, address, city, contact_info)
         VALUES (p_exhibitor_id, p_name, p_address, p_city, p_contact_info);
@@ -584,7 +577,7 @@ BEGIN
 END insert_exhibitor;
 /
 
--- Test procedură
+-- Test procedura
 EXECUTE insert_exhibitor(200, 'MET Museum', '1000 5th Ave', 'New York', 'info@metmuseum.org');
 -- verificare
 SELECT * FROM EXHIBITOR WHERE exhibitor_id = 200;
@@ -592,9 +585,9 @@ ROLLBACK;
 
 
 -- -----------------------------------------------------------
--- 4.D.2  Procedură: delete_exhibition
---         Șterge o expoziție din stația corespunzătoare,
---         gestionând mai întâi FK-urile dependente
+-- 4.D.2  Procedura: delete_exhibition
+--         Sterge o expozitie din statia corespunzatoare,
+--         gestionand mai intai FK-urile dependente
 -- -----------------------------------------------------------
 
 CREATE OR REPLACE PROCEDURE delete_exhibition (
@@ -602,13 +595,13 @@ CREATE OR REPLACE PROCEDURE delete_exhibition (
 ) AS
     v_cnt NUMBER;
 BEGIN
-    -- Verifică pe ce stație există expoziția
+    -- Verifica pe ce statie exista expozitia
     SELECT COUNT(*) INTO v_cnt
     FROM   ARTGALLERY_AM.EXHIBITION_AM@link_am
     WHERE  exhibition_id = p_exhibition_id;
 
     IF v_cnt > 0 THEN
-        -- Șterge mai întâi înregistrările dependente
+        -- Sterge mai intai inregistrarile dependente
         DELETE FROM ARTGALLERY_AM.ARTWORK_EXHIBITION_AM@link_am
         WHERE  exhibition_id = p_exhibition_id;
 
@@ -631,18 +624,18 @@ BEGIN
 END delete_exhibition;
 /
 
--- Test procedură
--- expoziție cu exhibitor_id=1 (Louvre=EU)
+-- Test procedura
+-- expozitie cu exhibitor_id=1 (Louvre=EU)
 EXECUTE delete_exhibition(1);
--- nu mai trebuie să existe
+-- nu mai trebuie sa existe
 SELECT * FROM EXHIBITION WHERE exhibition_id = 1;
 ROLLBACK;
 
 
 -- -----------------------------------------------------------
--- 4.D.3  Procedură: transfer_artwork_between_locations
---         Actualizează location_id dintr-un fragment vertical
---         fără ca aplicația să știe că e în ARTWORK_DETAILS@link_am
+-- 4.D.3  Procedura: transfer_artwork_between_locations
+--         Actualizeaza location_id dintr-un fragment vertical
+--         fara ca aplicatia sa stie ca e in ARTWORK_DETAILS@link_am
 -- -----------------------------------------------------------
 
 CREATE OR REPLACE PROCEDURE transfer_artwork (
@@ -663,16 +656,16 @@ END transfer_artwork;
 /
 
 -- Test
--- mută artwork 1 în sala 2
+-- muta artwork 1 in sala 2
 EXECUTE transfer_artwork(1, 2);
 SELECT location_id FROM ARTWORK WHERE artwork_id = 1;
 ROLLBACK;
 
 
 -- -----------------------------------------------------------
--- 4.D.4  Procedură: get_exhibition_summary
---         Returnează statistici globale pentru o expoziție,
---         transparentă față de localizarea fragmentelor
+-- 4.D.4  Procedura: get_exhibition_summary
+--         Returneaza statistici globale pentru o expoziție,
+--         transparenta fara de localizarea fragmentelor
 -- -----------------------------------------------------------
 
 CREATE OR REPLACE PROCEDURE get_exhibition_summary (
@@ -716,21 +709,21 @@ END;
 
 
 -- ===========================================================
--- 4.E  VERIFICAREA TRANSPARENȚEI – scenarii demonstrative
+-- 4.E  VERIFICAREA TRANSPARENTA scenarii demonstrative
 -- ===========================================================
 
 -- -----------------------------------------------------------
--- 4.E.1  Verificare transparență localizare: utilizatorul
---         vede EXHIBITOR ca tabel unic, fără să știe de
---         fragmentele EXHIBITOR_AM și EXHIBITOR_EU
+-- 4.E.1  Verificare transparena localizare: utilizatorul
+--         vede EXHIBITOR ca tabel unic, fara sa stie de
+--         fragmentele EXHIBITOR_AM si EXHIBITOR_EU
 -- -----------------------------------------------------------
 
--- Cerere globală prin VIEW (fără să se specifice @link_am/@link_eu)
+-- Cerere globala prin VIEW (fara sase specifice @link_am/@link_eu)
 SELECT exhibitor_id, name, city
 FROM   EXHIBITOR
 ORDER BY city;
 
--- Cerere care join-uiește VIEW-uri globale
+-- Cerere care join-uieste VIEW-uri globale
 SELECT
     eh.name                  AS organizator,
     eh.city                  AS oras,
@@ -742,15 +735,15 @@ ORDER BY nr_expozitii DESC;
 
 
 -- -----------------------------------------------------------
--- 4.E.2  Verificare transparență LMD: INSERT prin VIEW global
---         → apare automat pe stația corectă
+-- 4.E.2  Verificare transparenta LMD: INSERT prin VIEW global
+--        apare automat pe statia corecta
 -- -----------------------------------------------------------
 
 -- INSERT global → trigger rutează automat pe bdeu (London = Europe)
 INSERT INTO EXHIBITOR (exhibitor_id, name, address, city, contact_info)
 VALUES (102, 'V&A Museum', 'Cromwell Rd', 'London', 'info@vam.ac.uk');
 
--- Verificare că a apărut pe EU, nu AM
+-- Verificare ca a aparut pe EU, nu AM
 SELECT * FROM ARTGALLERY_EU.EXHIBITOR_EU@link_eu WHERE exhibitor_id = 102;   -- trebuie găsit
 SELECT * FROM ARTGALLERY_AM.EXHIBITOR_AM@link_am WHERE exhibitor_id = 102;   -- trebuie 0 rânduri
 
@@ -761,11 +754,11 @@ ROLLBACK;
 
 
 -- -----------------------------------------------------------
--- 4.E.3  Verificare transparență comenzi (III.B din laborator):
---         SELECT, INSERT, UPDATE, DELETE prin VIEW → tabel distant
+-- 4.E.3  Verificare transparentei comenzi (III.B din laborator):
+--         SELECT, INSERT, UPDATE, DELETE prin VIEW tabel distant
 -- -----------------------------------------------------------
 
--- SELECT cu JOIN inter-stații prin VIEW-uri globale (nici un @link vizibil)
+-- SELECT cu JOIN inter-statii prin VIEW-uri globale (nici un @link vizibil)
 SELECT
     ar.title             AS titlu_lucrare,
     e.title              AS expozitie,
@@ -782,7 +775,7 @@ ORDER BY eh.city, e.title, ar.title;
 
 
 -- ===========================================================
--- 4.F  VIZUALIZARE STARE OBIECTE TRANSPARENȚĂ DEFINITE
+-- 4.F  VIZUALIZARE STARE OBIECTE TRANSPARENTA� DEFINITE
 -- ===========================================================
 
 -- Lista view-urilor globale create pe ARTGALLERY_GLOBAL
@@ -813,5 +806,5 @@ FROM   USER_UPDATABLE_COLUMNS
 WHERE  table_name IN ('EXHIBITOR','EXHIBITION','ARTWORK_EXHIBITION',
                       'LOAN','GALLERY_REVIEW','ARTWORK')
 ORDER BY table_name, column_name;
--- După definirea triggerelor INSTEAD OF, coloanele devin efectiv updatabile
--- prin mecanismul triggerului, chiar dacă USER_UPDATABLE_COLUMNS arată NO pentru UNION ALL
+-- Dupa definirea triggerelor INSTEAD OF, coloanele devin efectiv updatabile
+-- prin mecanismul triggerului, chiar daca USER_UPDATABLE_COLUMNS arata NO pentru UNION ALL

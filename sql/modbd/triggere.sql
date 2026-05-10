@@ -1,5 +1,5 @@
 -- validare vizitator pentru recenzii
--- Se execută pe ARTGALLERY_AM (similar și pe EU, schimbând numele tabelului)
+-- Se executa pe ARTGALLERY_AM (similar si pe EU, schimband numele tabelului)
 CREATE OR REPLACE TRIGGER TRG_FK_REVIEW_VISITOR_GLOBAL
 BEFORE INSERT OR UPDATE OF visitor_id ON GALLERY_REVIEW_AM
 FOR EACH ROW
@@ -16,7 +16,7 @@ END;
 /
 
 -- validare locatie pentru ARTWORK_DETAILS (AM)
--- Se execută pe ARTGALLERY_AM
+-- Se executa pe ARTGALLERY_AM
 CREATE OR REPLACE TRIGGER TRG_FK_ARTWORK_LOCATION_GLOBAL
 BEFORE INSERT OR UPDATE OF location_id ON ARTWORK_DETAILS
 FOR EACH ROW
@@ -35,7 +35,7 @@ END;
 /
 
 --sincronizare fragmente Verticale (Artwork)
--- Exemplu pentru ștergere în cascadă (executat pe ARTGALLERY_EU)
+-- Exemplu pentru stergere in cascada (executat pe ARTGALLERY_EU)
 CREATE OR REPLACE TRIGGER TRG_VFRAG_ARTWORK_DELETE
 AFTER DELETE ON ARTWORK_CORE
 FOR EACH ROW

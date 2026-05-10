@@ -1,6 +1,6 @@
 -- =============================================================
 -- Script de rulat pe DB1 (ORCLPDB) ca SYS / SYSDBA
--- Stație 1 - găzduiește: BDDALL, ARTGALLERY_AM, ARTGALLERY_GLOBAL
+-- Statia 1 - gazduieste: BDDALL, ARTGALLERY_AM, ARTGALLERY_GLOBAL
 -- =============================================================
 -- Conectare exemplu:
 --   sqlplus sys/<parola_sys>@//localhost:1521/ORCLPDB as sysdba
@@ -8,7 +8,7 @@
 ALTER PLUGGABLE DATABASE ORCLPDB OPEN;
 ALTER SESSION SET CONTAINER = ORCLPDB;
 
--- Utilizatori găzduiți pe DB1
+-- Utilizatori gazduiti pe DB1
 CREATE USER BDDALL              IDENTIFIED BY 1234;
 CREATE USER ARTGALLERY_AM       IDENTIFIED BY parola_am;
 CREATE USER ARTGALLERY_GLOBAL   IDENTIFIED BY parola_global;
@@ -37,7 +37,7 @@ CREATE PUBLIC DATABASE LINK link_global
 COMMIT;
 
 
--- Drop link-urile create gre?it
+-- Drop link-urile create gresit
 --DROP PUBLIC DATABASE LINK link_bddall;
 --DROP PUBLIC DATABASE LINK link_am;
 --DROP PUBLIC DATABASE LINK link_global;
@@ -45,28 +45,28 @@ COMMIT;
 
 
 -- Conectare fara tsnames.ora
- CREATE PUBLIC DATABASE LINK link_eu
- CONNECT TO ARTGALLERY_EU IDENTIFIED BY parola_eu
- USING '(DESCRIPTION=
-            (ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
-            (CONNECT_DATA=(SERVICE_NAME=ORCLPDB2))
-        )';
- 
- CREATE PUBLIC DATABASE LINK link_am
- CONNECT TO ARTGALLERY_AM IDENTIFIED BY parola_am
- USING '(DESCRIPTION=
-            (ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
-            (CONNECT_DATA=(SERVICE_NAME=ORCLPDB))
-        )';
- 
- CREATE PUBLIC DATABASE LINK link_global
- CONNECT TO ARTGALLERY_GLOBAL IDENTIFIED BY parola_global
- USING '(DESCRIPTION=
-            (ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
-            (CONNECT_DATA=(SERVICE_NAME=ORCLPDB))
-        )';
- 
- COMMIT;
+-- CREATE PUBLIC DATABASE LINK link_eu
+-- CONNECT TO ARTGALLERY_EU IDENTIFIED BY parola_eu
+-- USING '(DESCRIPTION=
+--            (ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
+--            (CONNECT_DATA=(SERVICE_NAME=ORCLPDB2))
+--        )';
+-- 
+-- CREATE PUBLIC DATABASE LINK link_am
+-- CONNECT TO ARTGALLERY_AM IDENTIFIED BY parola_am
+-- USING '(DESCRIPTION=
+--            (ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
+--            (CONNECT_DATA=(SERVICE_NAME=ORCLPDB))
+--        )';
+-- 
+-- CREATE PUBLIC DATABASE LINK link_global
+-- CONNECT TO ARTGALLERY_GLOBAL IDENTIFIED BY parola_global
+-- USING '(DESCRIPTION=
+--            (ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
+--            (CONNECT_DATA=(SERVICE_NAME=ORCLPDB))
+--        )';
+-- 
+-- COMMIT;
 
 -- Verificare
   SELECT * FROM dual@link_eu;

@@ -60,7 +60,7 @@ CREATE TABLE GALLERY_REVIEW_AM (
 CREATE TABLE ARTIST_AM (artist_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, nationality VARCHAR2(64), birth_year NUMBER(4), death_year NUMBER(4));
 CREATE TABLE COLLECTION_AM (collection_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, description VARCHAR2(512), created_date DATE);
 
--- Distribuire Date din Sursă
+-- Distribuire Date din Sursa
 INSERT INTO EXHIBITOR_AM SELECT * FROM BDDALL.Exhibitor WHERE city = 'New York';
 INSERT INTO EXHIBITION_AM SELECT * FROM BDDALL.Exhibition WHERE exhibitor_id IN (SELECT exhibitor_id FROM EXHIBITOR_AM);
 INSERT INTO ARTWORK_DETAILS (artwork_id, location_id, estimated_value) SELECT artwork_id, location_id, estimated_value FROM BDDALL.Artwork; 

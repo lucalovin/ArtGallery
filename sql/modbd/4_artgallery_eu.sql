@@ -63,7 +63,7 @@ CREATE TABLE GALLERY_REVIEW_EU (
 CREATE TABLE ARTIST_EU (artist_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, nationality VARCHAR2(64), birth_year NUMBER(4), death_year NUMBER(4));
 CREATE TABLE COLLECTION_EU (collection_id NUMBER PRIMARY KEY, name VARCHAR2(128) NOT NULL, description VARCHAR2(512), created_date DATE);
 
--- Distribuire Date din Sursă (BDDALL este pe DB1, accesat via link_bddall)
+-- Distribuire Date din Sursa (BDDALL este pe DB1, accesat via link_bddall)
 INSERT INTO EXHIBITOR_EU SELECT * FROM Exhibitor@link_bddall WHERE city IN ('Paris', 'London', 'Madrid');
 INSERT INTO ARTWORK_CORE (artwork_id, title, artist_id, year_created, medium, collection_id)
 SELECT artwork_id, title, artist_id, year_created, medium, collection_id FROM Artwork@link_bddall;

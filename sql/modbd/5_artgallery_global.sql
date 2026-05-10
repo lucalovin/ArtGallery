@@ -83,7 +83,7 @@ INSERT INTO ACQUISITION SELECT * FROM BDDALL.Acquisition;
 
 COMMIT;
 
--- Creare Vizualizări de Transparență (Reconstrucție)
+-- Creare Vizualizari de Transparene (Reconstructie)
 CREATE OR REPLACE VIEW GLOBAL_ARTWORK AS
 SELECT c.artwork_id, c.title, c.artist_id, c.year_created, c.medium, c.collection_id, 
        d.location_id, d.estimated_value
