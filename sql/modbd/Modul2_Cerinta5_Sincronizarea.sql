@@ -31,7 +31,6 @@
 
 ALTER SESSION SET CONTAINER = ORCLPDB;
 
-
 -- ----------------------------------------------------------------------------
 -- PAS 1.1: Pachetul de control al replicarii (flag anti-bucla)
 -- ----------------------------------------------------------------------------
@@ -39,7 +38,6 @@ CREATE OR REPLACE PACKAGE PKG_REPL_CTRL AS
     v_replicating BOOLEAN := FALSE;
 END PKG_REPL_CTRL;
 /
-
 
 -- ----------------------------------------------------------------------------
 -- PAS 1.2: Pachetul cu proceduri "remote-callable"
