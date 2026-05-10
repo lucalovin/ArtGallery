@@ -1,0 +1,206 @@
+version: "3.8"
+
+services:
+  oracle-modb:
+    image: container-registry.oracle.com/database/enterprise:19.3.0.0
+
+    container_name: Oracle-MODB-19c
+
+    ports:
+      - "1525:1521" # Port SQL (SQL Developer, SQL*Plus, aplicatii)
+      - "5505:5500" # Port Enterprise Manager
+
+    environment:
+      - ORACLE_SID=ORCLCDB
+      - ORACLE_PDB=ORCLPDB
+      - ORACLE_PWD=admin
+      - ORACLE_CHARACTERSET=AL32UTF8
+
+    volumes:
+      - oracle-modb-data:/opt/oracle/oradata
+
+    shm_size: 1gb
+
+volumes:
+  oracle-modb-data:
+    driver: local
+
+# ============================================================================
+# ARHITECTURA BDD - PROIECT MODB
+# ============================================================================
+#
+#  Un singur container Oracle 19c cu doua PDB-uri:
+#
+#  CDB: ORCLCDB — port 1521
+#  ├── ORCLPDB  (service: orclpdb)  TNS alias: BD_AM  → Statia 1 (Americas)
+#  │     Scheme: ART_GALLERY_OLTP, ART_GALLERY_DW,
+#  │             BDDALL, ARTGALLERY_AM, ARTGALLERY_GLOBAL
+#  └── ORCLPDB2 (service: orclpdb2) TNS alias: BD_EU  → Statia 2 (Europe)
+#        Scheme: ARTGALLERY_EU
+#
+#  ORCLPDB se creeaza automat la pornire.
+#  ORCLPDB2 se creeaza manual dupa startup (vezi PASUL 4).
+#
+# ============================================================================
+
+# ============================================================================
+# PROCES INITIAL - PASI OBLIGATORII INAINTE DE "docker-compose up"
+# ============================================================================
+#
+# PASUL 1: Autentificare pe Oracle Container Registry
+# -------------------------------------------------------
+#   docker login container-registry.oracle.com
+#   Username: adresa ta de email Oracle
+#   Password: Auth Token (generat pe container-registry.oracle.com)
+#
+# PASUL 2: Acceptare Licenta Oracle Database Enterprise
+# -------------------------------------------------------
+#   1. https://container-registry.oracle.com → Database → Enterprise
+#   2. Selecteaza "English" → Continue → Accept License
+#
+# PASUL 3: Pornire container
+# -------------------------------------------------------
+#   docker-compose up -d
+#
+#   Prima pornire dureaza 10-30 minute.
+#   Asteapta "DATABASE IS READY TO USE!" in log-uri:
+#     docker-compose logs -f
+#
+# PASUL 4: Creare ORCLPDB2 (BD_EU - Statia 2)
+# -------------------------------------------------------
+#   docker exec -it Oracle-MODB-19c sqlplus sys/admin@ORCLCDB as sysdba
+#
+#   Apoi executa sql/modbd/0_create_second_db.sql:
+#
+#   ALTER SESSION SET CONTAINER = CDB$ROOT;
+#   CREATE PLUGGABLE DATABASE ORCLPDB2
+#     ADMIN USER pdbadmin IDENTIFIED BY admin
+#     FILE_NAME_CONVERT=('pdbseed','orclpdb2');
+#   ALTER PLUGGABLE DATABASE ORCLPDB2 OPEN;
+#   ALTER PLUGGABLE DATABASE ORCLPDB2 SAVE STATE;
+#   ALTER SYSTEM REGISTER;
+#
+# ============================================================================
+
+# ============================================================================
+# CONFIGURARE tnsnames.ora (in containerul Docker)
+# ============================================================================
+#
+#   docker exec -it Oracle-MODB-19c bash
+#   vi $ORACLE_HOME/network/admin/tnsnames.ora
+#
+#   Adauga:
+#
+#   ORCLPDB =
+#     (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
+#     (CONNECT_DATA=(SERVICE_NAME=orclpdb)))
+#
+#   ORCLPDB2 =
+#     (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
+#     (CONNECT_DATA=(SERVICE_NAME=orclpdb2)))
+#
+#   BD_AM =
+#     (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
+#     (CONNECT_DATA=(SERVICE_NAME=orclpdb)))
+#
+#   BD_EU =
+#     (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))
+#     (CONNECT_DATA=(SERVICE_NAME=orclpdb2)))
+#
+# ============================================================================
+
+# ============================================================================
+# CONECTARE SQL DEVELOPER - ORCLPDB (BD_AM - Statia 1)
+# ============================================================================
+#
+# Connection Name:  MODB - SYS (CDB)
+# Username:         sys
+# Password:         admin
+# Role:             SYSDBA
+# Hostname:         localhost
+# Port:             1521
+# SID:              ORCLCDB
+#
+# Connection Name:  MODB - ORCLPDB (BD_AM)
+# Username:         ARTGALLERY_AM   (sau ART_GALLERY_OLTP / BDDALL)
+# Password:         parola_am
+# Hostname:         localhost
+# Port:             1521
+# Service Name:     orclpdb
+#
+# ============================================================================
+
+# ============================================================================
+# CONECTARE SQL DEVELOPER - ORCLPDB2 (BD_EU - Statia 2)
+# ============================================================================
+#
+# Connection Name:  MODB - ORCLPDB2 (BD_EU)
+# Username:         ARTGALLERY_EU
+# Password:         parola_eu
+# Hostname:         localhost
+# Port:             1521
+# Service Name:     orclpdb2
+#
+# ============================================================================
+
+# ============================================================================
+# CREARE UTILIZATORI - executa pe fiecare PDB ca SYS
+# ============================================================================
+#
+# --- Pe ORCLPDB (BD_AM) --- sql/modbd/1_sys_db1.sql
+# ALTER SESSION SET CONTAINER = ORCLPDB;
+# CREATE USER BDDALL            IDENTIFIED BY 1234;
+# CREATE USER ARTGALLERY_AM     IDENTIFIED BY parola_am;
+# CREATE USER ARTGALLERY_GLOBAL IDENTIFIED BY parola_global;
+# GRANT DBA TO BDDALL, ARTGALLERY_AM, ARTGALLERY_GLOBAL;
+# GRANT UNLIMITED TABLESPACE TO BDDALL, ARTGALLERY_AM, ARTGALLERY_GLOBAL;
+# (+ utilizatori OLTP/DW din sql/1_create_user.sql)
+#
+# --- Pe ORCLPDB2 (BD_EU) --- sql/modbd/1_sys_db2.sql
+# ALTER SESSION SET CONTAINER = ORCLPDB2;
+# CREATE USER ARTGALLERY_EU IDENTIFIED BY parola_eu;
+# GRANT DBA TO ARTGALLERY_EU;
+# GRANT UNLIMITED TABLESPACE TO ARTGALLERY_EU;
+#
+# ============================================================================
+
+# ============================================================================
+# CONFIGURARE DB LINKS (dupa creare utilizatori + tnsnames.ora)
+# ============================================================================
+#
+# Pe ORCLPDB (BD_AM) — sql/modbd/1_sys_db1.sql:
+#   CREATE PUBLIC DATABASE LINK link_eu
+#     CONNECT TO ARTGALLERY_EU IDENTIFIED BY parola_eu USING 'BD_EU';
+#   CREATE PUBLIC DATABASE LINK link_am
+#     CONNECT TO ARTGALLERY_AM IDENTIFIED BY parola_am USING 'BD_AM';
+#   CREATE PUBLIC DATABASE LINK link_global
+#     CONNECT TO ARTGALLERY_GLOBAL IDENTIFIED BY parola_global USING 'BD_AM';
+#
+# Pe ORCLPDB2 (BD_EU) — sql/modbd/1_sys_db2.sql:
+#   CREATE PUBLIC DATABASE LINK link_am
+#     CONNECT TO ARTGALLERY_AM IDENTIFIED BY parola_am USING 'BD_AM';
+#   CREATE PUBLIC DATABASE LINK link_global
+#     CONNECT TO ARTGALLERY_GLOBAL IDENTIFIED BY parola_global USING 'BD_AM';
+#   CREATE PUBLIC DATABASE LINK link_bddall
+#     CONNECT TO BDDALL IDENTIFIED BY "1234" USING 'BD_AM';
+#
+# Test: SELECT * FROM DUAL@link_eu;   (pe ORCLPDB)
+#       SELECT * FROM DUAL@link_am;   (pe ORCLPDB2)
+#
+# ============================================================================
+
+# ============================================================================
+# COMENZI DOCKER UTILE
+# ============================================================================
+#
+# docker-compose up -d                    # Porneste containerul
+# docker-compose down                     # Opreste (pastreaza datele)
+# docker-compose down -v                  # ATENTIE: Sterge TOATE datele!
+# docker-compose logs -f                  # Log-uri in timp real
+#
+# docker exec -it Oracle-MODB-19c bash
+# docker exec -it Oracle-MODB-19c sqlplus sys/admin@ORCLCDB as sysdba
+# docker exec -it Oracle-MODB-19c sqlplus sys/admin@ORCLPDB as sysdba
+# docker exec -it Oracle-MODB-19c sqlplus sys/admin@ORCLPDB2 as sysdba
+#
+# ============================================================================
