@@ -25,6 +25,7 @@ volumes:
   oracle-data:
     driver: local # Stocare locală pe mașina gazdă
 
+
 # ============================================================================
 # PROCES INIȚIAL - PAȘI OBLIGATORII ÎNAINTE DE "docker-compose up"
 # ============================================================================
