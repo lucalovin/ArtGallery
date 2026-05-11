@@ -154,60 +154,6 @@ GRANT EXECUTE ON PKG_REPL_REMOTE TO ARTGALLERY_AM;
 -- GRANT EXECUTE ON PKG_REPL_REMOTE TO <user_link>;
 
 
--- ----------------------------------------------------------------------------
--- PAS 1.4: Triggerele de sincronizare AM -> EU
--- Apeleaza procedurile remote pe DB2; triggerele EU se vor inhiba prin flag.
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE TRIGGER TRG_SYNC_ARTIST_AM_TO_EU
-AFTER INSERT OR UPDATE OR DELETE ON ARTIST_AM
-FOR EACH ROW
-BEGIN
-    IF NOT PKG_REPL_CTRL.v_replicating THEN
-        IF INSERTING THEN
-            ARTGALLERY_EU.PKG_REPL_REMOTE.insert_artist@link_eu(
-                :NEW.artist_id, :NEW.name, :NEW.nationality,
-                :NEW.birth_year, :NEW.death_year);
-        ELSIF UPDATING THEN
-            ARTGALLERY_EU.PKG_REPL_REMOTE.update_artist@link_eu(
-                :OLD.artist_id, :NEW.name, :NEW.nationality,
-                :NEW.birth_year, :NEW.death_year);
-        ELSIF DELETING THEN
-            ARTGALLERY_EU.PKG_REPL_REMOTE.delete_artist@link_eu(:OLD.artist_id);
-        END IF;
-    END IF;
-END;
-/
-
-CREATE OR REPLACE TRIGGER TRG_SYNC_COLLECTION_AM_TO_EU
-AFTER INSERT OR UPDATE OR DELETE ON COLLECTION_AM
-FOR EACH ROW
-BEGIN
-    IF NOT PKG_REPL_CTRL.v_replicating THEN
-        IF INSERTING THEN
-            ARTGALLERY_EU.PKG_REPL_REMOTE.insert_collection@link_eu(
-                :NEW.collection_id, :NEW.name, :NEW.description, :NEW.created_date);
-        ELSIF UPDATING THEN
-            ARTGALLERY_EU.PKG_REPL_REMOTE.update_collection@link_eu(
-                :OLD.collection_id, :NEW.name, :NEW.description, :NEW.created_date);
-        ELSIF DELETING THEN
-            ARTGALLERY_EU.PKG_REPL_REMOTE.delete_collection@link_eu(:OLD.collection_id);
-        END IF;
-    END IF;
-END;
-/
-
-
--- ----------------------------------------------------------------------------
--- PAS 1.5: Verificare obiecte create pe DB1
--- ----------------------------------------------------------------------------
-SELECT object_name, object_type, status
-FROM   USER_OBJECTS
-WHERE  object_name IN ('PKG_REPL_CTRL', 'PKG_REPL_REMOTE',
-                       'TRG_SYNC_ARTIST_AM_TO_EU', 'TRG_SYNC_COLLECTION_AM_TO_EU')
-ORDER BY object_type, object_name;
-
--- Toate trebuie sa aiba STATUS = VALID
-
 
 
 -- ============================================================================
@@ -391,8 +337,85 @@ ORDER BY object_type, object_name;
 
 
 
+
+
+
 -- ============================================================================
--- PARTEA III - TESTE DE SINCRONIZARE
+-- PARTEA III - DB1 (ORCLPDB)
+-- Conectare: sqlplus ARTGALLERY_AM/parola_am@//localhost:1521/ORCLPDB
+-- (sau in SQL Developer: conexiune ARTGALLERY_AM @ ORCLPDB)
+-- ============================================================================
+
+ALTER SESSION SET CONTAINER = ORCLPDB;
+
+-- ----------------------------------------------------------------------------
+-- PAS 3.1: Triggerele de sincronizare AM -> EU
+-- Apeleaza procedurile remote pe DB2; triggerele EU se vor inhiba prin flag.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER TRG_SYNC_ARTIST_AM_TO_EU
+AFTER INSERT OR UPDATE OR DELETE ON ARTIST_AM
+FOR EACH ROW
+BEGIN
+    IF NOT PKG_REPL_CTRL.v_replicating THEN
+        IF INSERTING THEN
+            ARTGALLERY_EU.PKG_REPL_REMOTE.insert_artist@link_eu(
+                :NEW.artist_id, :NEW.name, :NEW.nationality,
+                :NEW.birth_year, :NEW.death_year);
+        ELSIF UPDATING THEN
+            ARTGALLERY_EU.PKG_REPL_REMOTE.update_artist@link_eu(
+                :OLD.artist_id, :NEW.name, :NEW.nationality,
+                :NEW.birth_year, :NEW.death_year);
+        ELSIF DELETING THEN
+            ARTGALLERY_EU.PKG_REPL_REMOTE.delete_artist@link_eu(:OLD.artist_id);
+        END IF;
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER TRG_SYNC_COLLECTION_AM_TO_EU
+AFTER INSERT OR UPDATE OR DELETE ON COLLECTION_AM
+FOR EACH ROW
+BEGIN
+    IF NOT PKG_REPL_CTRL.v_replicating THEN
+        IF INSERTING THEN
+            ARTGALLERY_EU.PKG_REPL_REMOTE.insert_collection@link_eu(
+                :NEW.collection_id, :NEW.name, :NEW.description, :NEW.created_date);
+        ELSIF UPDATING THEN
+            ARTGALLERY_EU.PKG_REPL_REMOTE.update_collection@link_eu(
+                :OLD.collection_id, :NEW.name, :NEW.description, :NEW.created_date);
+        ELSIF DELETING THEN
+            ARTGALLERY_EU.PKG_REPL_REMOTE.delete_collection@link_eu(:OLD.collection_id);
+        END IF;
+    END IF;
+END;
+/
+
+
+-- ----------------------------------------------------------------------------
+-- PAS 3.2: Verificare obiecte create pe DB1
+-- ----------------------------------------------------------------------------
+SELECT object_name, object_type, status
+FROM   USER_OBJECTS
+WHERE  object_name IN ('PKG_REPL_CTRL', 'PKG_REPL_REMOTE',
+                       'TRG_SYNC_ARTIST_AM_TO_EU', 'TRG_SYNC_COLLECTION_AM_TO_EU')
+ORDER BY object_type, object_name;
+
+-- Toate trebuie sa aiba STATUS = VALID
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ============================================================================
+-- PARTEA IV - TESTE DE SINCRONIZARE
 -- ============================================================================
 -- Testele alterneaza intre cele doua statii. Atentie la ALTER SESSION
 -- si la userul cu care esti conectat in fiecare bloc.
