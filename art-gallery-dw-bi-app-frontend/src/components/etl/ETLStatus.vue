@@ -13,37 +13,43 @@
     <div class="p-6 space-y-4">
       <!-- Connection Status List -->
       <div class="space-y-3">
-        <div 
-          v-for="connection in connections" 
+        <div
+          v-for="connection in connections"
           :key="connection.id"
           class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
         >
           <div class="flex items-center">
-            <!-- Status Indicator -->
             <span :class="getConnectionIndicatorClasses(connection.status)"></span>
             <div class="ml-3">
               <p class="text-sm font-medium text-gray-900">{{ connection.name }}</p>
               <p class="text-xs text-gray-500">{{ connection.type }}</p>
             </div>
           </div>
+
           <div class="flex items-center space-x-2">
             <span :class="getConnectionStatusClasses(connection.status)">
               {{ formatConnectionStatus(connection.status) }}
             </span>
+
             <button
               @click="$emit('test-connection', connection.id)"
               class="text-gray-400 hover:text-gray-600"
               :disabled="connection.status === 'testing'"
               title="Test Connection"
             >
-              <svg 
+              <svg
                 class="w-4 h-4"
                 :class="{ 'animate-spin': connection.status === 'testing' }"
-                fill="none" 
-                stroke="currentColor" 
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
             </button>
           </div>
@@ -53,15 +59,18 @@
       <!-- Last Activity -->
       <div class="pt-4 border-t border-gray-100">
         <h3 class="text-sm font-medium text-gray-700 mb-3">Last Activity</h3>
+
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-500">Last Sync</span>
             <span class="text-gray-900">{{ formattedLastSync }}</span>
           </div>
+
           <div class="flex justify-between">
             <span class="text-gray-500">Duration</span>
             <span class="text-gray-900">{{ lastSyncDuration }}</span>
           </div>
+
           <div class="flex justify-between">
             <span class="text-gray-500">Records Processed</span>
             <span class="text-gray-900">{{ lastSyncRecords.toLocaleString() }}</span>
@@ -69,11 +78,11 @@
         </div>
       </div>
 
-      <!-- Uptime -->
+      <!-- API Status -->
       <div class="pt-4 border-t border-gray-100">
         <div class="flex items-center justify-between">
-          <span class="text-sm text-gray-500">System Uptime</span>
-          <span class="text-sm font-medium text-gray-900">{{ systemUptime }}</span>
+          <span class="text-sm text-gray-500">API Status</span>
+          <span class="text-sm font-medium text-green-600">Online</span>
         </div>
       </div>
     </div>
@@ -81,10 +90,6 @@
 </template>
 
 <script>
-/**
- * ETLStatus Component
- * Displays connection status and health metrics for ETL system
- */
 export default {
   name: 'ETLStatus',
 
@@ -101,17 +106,11 @@ export default {
 
   emits: ['test-connection'],
 
-  data() {
-    return {
-      uptimeStart: new Date(Date.now() - 86400000 * 3) // 3 days ago
-    };
-  },
-
   computed: {
     overallStatus() {
       const hasDisconnected = this.connections.some(c => c.status === 'disconnected');
       const hasError = this.connections.some(c => c.status === 'error');
-      
+
       if (hasError) return 'Error';
       if (hasDisconnected) return 'Degraded';
       return 'Operational';
@@ -120,44 +119,56 @@ export default {
     overallStatusBadgeClasses() {
       const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
       const statusStyles = {
-        'Operational': 'bg-green-100 text-green-800',
-        'Degraded': 'bg-yellow-100 text-yellow-800',
-        'Error': 'bg-red-100 text-red-800'
+        Operational: 'bg-green-100 text-green-800',
+        Degraded: 'bg-yellow-100 text-yellow-800',
+        Error: 'bg-red-100 text-red-800'
       };
+
       return `${base} ${statusStyles[this.overallStatus]}`;
     },
 
     formattedLastSync() {
       if (!this.status.lastSync?.timestamp) return 'Never';
+
       const date = new Date(this.status.lastSync.timestamp);
+
+      if (Number.isNaN(date.getTime())) return 'Never';
+
       return this.formatTimeAgo(date);
     },
 
     lastSyncDuration() {
-      if (!this.status.lastSync?.duration) return 'N/A';
-      const seconds = this.status.lastSync.duration;
-      if (seconds < 60) return `${seconds}s`;
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes}m ${remainingSeconds}s`;
+      const duration = this.status.lastSync?.duration;
+
+      if (duration === null || duration === undefined) {
+        return 'N/A';
+      }
+
+      // Backend-ul tău trimite duration în milisecunde, ex: 248.
+      const totalMs = Number(duration);
+
+      if (Number.isNaN(totalMs)) {
+        return 'N/A';
+      }
+
+      if (totalMs < 1000) {
+        return `${totalMs}ms`;
+      }
+
+      const totalSeconds = Math.floor(totalMs / 1000);
+
+      if (totalSeconds < 60) {
+        return `${totalSeconds}s`;
+      }
+
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+
+      return `${minutes}m ${seconds}s`;
     },
 
     lastSyncRecords() {
-      return this.status.lastSync?.recordsProcessed || 0;
-    },
-
-    systemUptime() {
-      const now = new Date();
-      const diff = now - this.uptimeStart;
-      
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
-      if (days > 0) {
-        return `${days}d ${hours}h ${minutes}m`;
-      }
-      return `${hours}h ${minutes}m`;
+      return this.status.lastSync?.recordsProcessed ?? 0;
     }
   },
 
@@ -165,46 +176,50 @@ export default {
     getConnectionIndicatorClasses(status) {
       const base = 'w-3 h-3 rounded-full';
       const statusClasses = {
-        'connected': 'bg-green-500',
-        'disconnected': 'bg-red-500',
-        'testing': 'bg-yellow-500 animate-pulse',
-        'error': 'bg-red-500'
+        connected: 'bg-green-500',
+        disconnected: 'bg-red-500',
+        testing: 'bg-yellow-500 animate-pulse',
+        error: 'bg-red-500'
       };
+
       return `${base} ${statusClasses[status] || 'bg-gray-500'}`;
     },
 
     getConnectionStatusClasses(status) {
       const base = 'text-xs font-medium';
       const statusClasses = {
-        'connected': 'text-green-600',
-        'disconnected': 'text-red-600',
-        'testing': 'text-yellow-600',
-        'error': 'text-red-600'
+        connected: 'text-green-600',
+        disconnected: 'text-red-600',
+        testing: 'text-yellow-600',
+        error: 'text-red-600'
       };
+
       return `${base} ${statusClasses[status] || 'text-gray-600'}`;
     },
 
     formatConnectionStatus(status) {
       const statusLabels = {
-        'connected': 'Connected',
-        'disconnected': 'Disconnected',
-        'testing': 'Testing...',
-        'error': 'Error'
+        connected: 'Connected',
+        disconnected: 'Disconnected',
+        testing: 'Testing...',
+        error: 'Error'
       };
+
       return statusLabels[status] || status;
     },
 
     formatTimeAgo(date) {
       const now = new Date();
-      const diff = now - date;
-      
+      const diff = Math.max(0, now - date);
+
       const minutes = Math.floor(diff / (1000 * 60));
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      
+
       if (minutes < 1) return 'Just now';
       if (minutes < 60) return `${minutes}m ago`;
       if (hours < 24) return `${hours}h ago`;
+
       return `${days}d ago`;
     }
   }
