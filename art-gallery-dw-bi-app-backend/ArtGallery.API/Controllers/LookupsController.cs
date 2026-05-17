@@ -384,8 +384,17 @@ public class LookupsController : ControllerBase
                 Array.Empty<LookupDto>()));
         }
 
-        var exhibitors = await _context.Exhibitors
+        var exhibitorEntities = await _context.Exhibitors
             .OrderBy(e => e.Id)
+            .Select(e => new
+            {
+                e.Id,
+                e.Name,
+                e.City
+            })
+            .ToListAsync();
+
+        var exhibitors = exhibitorEntities
             .Select(e => new LookupDto
             {
                 Id = e.Id,
@@ -394,7 +403,7 @@ public class LookupsController : ControllerBase
                     : $"Exhibitor #{e.Id}",
                 Description = e.City
             })
-            .ToListAsync();
+            .ToList();
 
         return Ok(ApiResponse<IEnumerable<LookupDto>>.SuccessResponse(exhibitors));
     }
