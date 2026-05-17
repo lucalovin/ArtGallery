@@ -2,8 +2,19 @@
   <!--
     AddEditExhibition.vue - Add/Edit Exhibition Form
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - direct access to /exhibitions/new is blocked
+    - direct access to /exhibitions/:id/edit is blocked
   -->
   <div class="add-edit-exhibition-page">
+    <div
+      v-if="isGlobalSource"
+      class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800"
+    >
+      Global view is read-only. Create and edit operations are available only on AM or EU.
+    </div>
+
     <button @click="goBack" class="inline-flex items-center text-gray-500 hover:text-gray-700 mb-6">
       <span class="mr-2">←</span>
       Back
@@ -18,7 +29,7 @@
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Exhibition Details</h2>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -34,7 +45,9 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Start Date <span class="text-red-500">*</span>
+            </label>
             <input
               v-model="form.startDate"
               type="date"
@@ -44,7 +57,9 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              End Date <span class="text-red-500">*</span>
+            </label>
             <input
               v-model="form.endDate"
               type="date"
@@ -91,7 +106,7 @@
         </button>
         <button
           type="submit"
-          :disabled="isSubmitting"
+          :disabled="isSubmitting || isGlobalSource"
           class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50"
         >
           {{ isSubmitting ? 'Saving...' : (isEditMode ? 'Update' : 'Create') }}
@@ -106,7 +121,8 @@ import { mapActions } from 'vuex';
 
 /**
  * AddEditExhibition Page
- * Form respects Exhibition table schema with ExhibitorId FK
+ * Form respects Exhibition table schema with ExhibitorId FK.
+ * GLOBAL is read-only and redirects away from create/edit.
  */
 export default {
   name: 'AddEditExhibitionPage',
@@ -135,11 +151,28 @@ export default {
   computed: {
     isEditMode() {
       return !!this.id;
+    },
+
+    isGlobalSource() {
+      const source =
+        localStorage.getItem('dataSource') ||
+        localStorage.getItem('selectedDataSource') ||
+        localStorage.getItem('currentDataSource') ||
+        localStorage.getItem('artGalleryDataSource') ||
+        '';
+
+      return source.toUpperCase() === 'GLOBAL';
     }
   },
 
   async created() {
+    if (this.isGlobalSource) {
+      this.redirectFromGlobal();
+      return;
+    }
+
     await this.loadLookups();
+
     if (this.isEditMode) {
       await this.loadExhibition();
     }
@@ -152,10 +185,18 @@ export default {
       fetchExhibitionById: 'exhibition/fetchExhibitionById'
     }),
 
+    redirectFromGlobal() {
+      if (this.isEditMode && this.id) {
+        this.$router.replace(`/exhibitions/${this.id}`);
+      } else {
+        this.$router.replace('/exhibitions');
+      }
+    },
+
     async loadLookups() {
       try {
         const response = await this.$api.lookups.getExhibitors();
-        // API returns { success: true, data: [...] }
+
         if (response.data?.success && response.data?.data) {
           this.exhibitors = response.data.data;
         } else if (Array.isArray(response.data)) {
@@ -172,6 +213,7 @@ export default {
     async loadExhibition() {
       try {
         const exhibition = await this.fetchExhibitionById(this.id);
+
         this.form = {
           title: exhibition.title || '',
           description: exhibition.description || '',
@@ -186,7 +228,13 @@ export default {
     },
 
     async handleSubmit() {
+      if (this.isGlobalSource) {
+        alert('Global view is read-only. Please switch to AM or EU to create or edit exhibitions.');
+        return;
+      }
+
       this.isSubmitting = true;
+
       try {
         const submitData = {
           title: this.form.title,
@@ -204,6 +252,7 @@ export default {
         } else {
           await this.createExhibition(submitData);
         }
+
         this.$router.push('/exhibitions');
       } catch (error) {
         console.error('Failed to save exhibition:', error);
@@ -214,7 +263,11 @@ export default {
     },
 
     goBack() {
-      this.$router.push('/exhibitions');
+      if (this.isEditMode && this.id) {
+        this.$router.push(`/exhibitions/${this.id}`);
+      } else {
+        this.$router.push('/exhibitions');
+      }
     }
   }
 };

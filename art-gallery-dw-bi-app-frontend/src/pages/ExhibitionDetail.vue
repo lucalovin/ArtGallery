@@ -2,6 +2,10 @@
   <!--
     ExhibitionDetail.vue - Exhibition Detail Page
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - edit/delete actions are hidden
+    - detail view remains available
   -->
   <div class="exhibition-detail-page">
     <!-- Back Button -->
@@ -12,6 +16,13 @@
       <span class="mr-2">←</span>
       Back to Exhibitions
     </button>
+
+    <div
+      v-if="isGlobalSource"
+      class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800"
+    >
+      Global view is read-only. Create, edit, delete and artwork assignment actions are available only on AM or EU.
+    </div>
 
     <!-- Loading -->
     <div v-if="isLoading" class="animate-pulse bg-white rounded-xl p-8">
@@ -26,10 +37,11 @@
         <div class="h-48 bg-gradient-to-r from-primary-500 to-secondary-500 flex items-center justify-center">
           <span class="text-6xl">🎨</span>
         </div>
+
         <div class="p-6">
           <div class="flex items-start justify-between">
             <div>
-              <span 
+              <span
                 class="inline-block px-3 py-1 text-sm font-medium rounded-full mb-2"
                 :class="getStatusClass(exhibition.status)"
               >
@@ -38,7 +50,8 @@
               <h1 class="text-3xl font-bold text-gray-900">{{ exhibition.title }}</h1>
               <p class="text-gray-500 mt-1">{{ formatDateRange(exhibition.startDate, exhibition.endDate) }}</p>
             </div>
-            <div class="flex space-x-2">
+
+            <div v-if="!isGlobalSource" class="flex space-x-2">
               <button @click="editExhibition" class="p-2 hover:bg-gray-100 rounded-lg">✏️</button>
               <button @click="showDeleteModal = true" class="p-2 hover:bg-red-50 rounded-lg">🗑️</button>
             </div>
@@ -52,12 +65,13 @@
         <div class="lg:col-span-2 space-y-6">
           <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-4">About</h2>
-            <p class="text-gray-600 leading-relaxed">{{ exhibition.description }}</p>
+            <p class="text-gray-600 leading-relaxed">{{ exhibition.description || 'No description available.' }}</p>
           </div>
 
-          <!-- Artworks Section - Using the new component -->
-          <ExhibitionArtworks 
+          <!-- Artworks Section -->
+          <ExhibitionArtworks
             :exhibition-id="id"
+            :read-only="isGlobalSource"
             @artwork-added="onArtworkChanged"
             @artwork-removed="onArtworkChanged"
           />
@@ -91,7 +105,10 @@
     </div>
 
     <!-- Delete Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      v-if="showDeleteModal && !isGlobalSource"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+    >
       <div class="fixed inset-0 bg-black bg-opacity-50" @click="showDeleteModal = false"></div>
       <div class="relative bg-white rounded-xl p-6 max-w-md w-full z-10">
         <h3 class="text-lg font-semibold mb-2">Delete Exhibition</h3>
@@ -111,6 +128,7 @@ import ExhibitionArtworks from '@/components/exhibitions/ExhibitionArtworks.vue'
 
 /**
  * ExhibitionDetail Page
+ * GLOBAL is read-only. Edit/delete actions are hidden.
  */
 export default {
   name: 'ExhibitionDetailPage',
@@ -138,8 +156,20 @@ export default {
       exhibitions: state => state.exhibition?.exhibitions || []
     }),
 
+    isGlobalSource() {
+      const source =
+        localStorage.getItem('dataSource') ||
+        localStorage.getItem('selectedDataSource') ||
+        localStorage.getItem('currentDataSource') ||
+        localStorage.getItem('artGalleryDataSource') ||
+        '';
+
+      return source.toUpperCase() === 'GLOBAL';
+    },
+
     exhibition() {
       const found = this.exhibitions.find(e => e.id === parseInt(this.id));
+
       return found || {
         id: null,
         title: '',
@@ -171,6 +201,7 @@ export default {
 
     async loadExhibition() {
       this.isLoading = true;
+
       try {
         if (this.exhibitions.length === 0) {
           await this.fetchExhibitions();
@@ -185,10 +216,19 @@ export default {
     },
 
     editExhibition() {
+      if (this.isGlobalSource) {
+        return;
+      }
+
       this.$router.push({ name: 'EditExhibition', params: { id: this.id } });
     },
 
     async deleteExhibition() {
+      if (this.isGlobalSource) {
+        this.showDeleteModal = false;
+        return;
+      }
+
       try {
         await this.removeExhibition(parseInt(this.id));
         this.showDeleteModal = false;
@@ -200,13 +240,22 @@ export default {
     },
 
     formatDateRange(start, end) {
+      if (!start || !end) {
+        return 'Date not available';
+      }
+
       const opts = { month: 'short', day: 'numeric', year: 'numeric' };
+
       return `${new Date(start).toLocaleDateString('en-US', opts)} - ${new Date(end).toLocaleDateString('en-US', opts)}`;
     },
 
     formatCurrency(value) {
       if (!value) return 'Free';
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(value);
     },
 
     getStatusClass(status) {
@@ -215,15 +264,19 @@ export default {
         upcoming: 'bg-blue-100 text-blue-700',
         past: 'bg-gray-100 text-gray-700'
       };
+
       return classes[status] || classes.past;
     },
 
     /**
-     * Handle artwork added/removed events
-     * Refresh exhibition data to update artwork count
+     * Handle artwork added/removed events.
+     * Refresh exhibition data to update artwork count.
      */
     onArtworkChanged() {
-      // Refresh the exhibition data
+      if (this.isGlobalSource) {
+        return;
+      }
+
       this.fetchExhibitions();
     }
   }

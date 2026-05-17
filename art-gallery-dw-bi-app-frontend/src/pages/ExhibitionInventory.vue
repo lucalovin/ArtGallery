@@ -2,6 +2,11 @@
   <!--
     ExhibitionInventory.vue - Exhibition List Page
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - hide New Exhibition
+    - hide Create Exhibition in empty state
+    - block edit/delete handlers
   -->
   <div class="exhibition-inventory-page">
     <!-- Page Header -->
@@ -10,7 +15,8 @@
         <h1 class="text-3xl font-bold text-gray-900">Exhibitions</h1>
         <p class="text-gray-500 mt-1">Manage gallery exhibitions and events</p>
       </div>
-      <div class="mt-4 md:mt-0">
+
+      <div v-if="!isGlobalSource" class="mt-4 md:mt-0">
         <router-link
           to="/exhibitions/new"
           class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
@@ -21,6 +27,13 @@
       </div>
     </header>
 
+    <div
+      v-if="isGlobalSource"
+      class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800"
+    >
+      GLOBAL is read-only. Create, edit and delete operations are available only on AM or EU.
+    </div>
+
     <!-- Status Tabs -->
     <div class="mb-6">
       <nav class="flex space-x-2 bg-gray-100 rounded-lg p-1">
@@ -29,12 +42,12 @@
           :key="tab.value"
           @click="activeStatus = tab.value"
           class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-          :class="activeStatus === tab.value 
-            ? 'bg-white text-primary-600 shadow-sm' 
+          :class="activeStatus === tab.value
+            ? 'bg-white text-primary-600 shadow-sm'
             : 'text-gray-600 hover:text-gray-800'"
         >
           {{ tab.label }}
-          <span 
+          <span
             class="ml-1 px-2 py-0.5 text-xs rounded-full"
             :class="activeStatus === tab.value ? 'bg-primary-100 text-primary-600' : 'bg-gray-200 text-gray-500'"
           >
@@ -61,9 +74,9 @@
 
     <!-- Loading State -->
     <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div 
-        v-for="n in 6" 
-        :key="n" 
+      <div
+        v-for="n in 6"
+        :key="n"
         class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse"
       >
         <div class="h-40 bg-gray-200"></div>
@@ -75,17 +88,18 @@
     </div>
 
     <!-- Empty State -->
-    <div 
+    <div
       v-else-if="filteredExhibitions.length === 0"
       class="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
     >
       <span class="text-6xl mb-4 block">🎨</span>
       <h3 class="text-xl font-semibold text-gray-800 mb-2">No Exhibitions Found</h3>
       <p class="text-gray-500 mb-6">
-        {{ searchQuery ? 'Try a different search term' : 'Create your first exhibition' }}
+        {{ emptyStateMessage }}
       </p>
+
       <router-link
-        v-if="!searchQuery"
+        v-if="!searchQuery && !isGlobalSource"
         to="/exhibitions/new"
         class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
       >
@@ -106,8 +120,8 @@
     </div>
 
     <!-- Delete Modal -->
-    <div 
-      v-if="showDeleteModal"
+    <div
+      v-if="showDeleteModal && !isGlobalSource"
       class="fixed inset-0 z-50 overflow-y-auto"
     >
       <div class="flex items-center justify-center min-h-screen px-4">
@@ -172,21 +186,49 @@ export default {
       exhibitions: state => state.exhibition?.exhibitions || []
     }),
 
+    isGlobalSource() {
+      const storeSource = this.$store?.state?.dataSource?.source;
+      const localSource =
+        localStorage.getItem('dataSource') ||
+        localStorage.getItem('selectedDataSource') ||
+        localStorage.getItem('currentDataSource') ||
+        localStorage.getItem('artGalleryDataSource') ||
+        '';
+
+      return String(storeSource || localSource).toUpperCase() === 'GLOBAL';
+    },
+
+    emptyStateMessage() {
+      if (this.searchQuery) {
+        return 'Try a different search term';
+      }
+
+      return this.isGlobalSource
+        ? 'No exhibitions are available in the global view.'
+        : 'Create your first exhibition';
+    },
+
     filteredExhibitions() {
       let result = [...this.exhibitions];
 
-      // Status filter - calculate status based on dates
       if (this.activeStatus !== 'all') {
         result = result.filter(e => this.getExhibitionStatus(e) === this.activeStatus);
       }
 
-      // Search filter
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
-        result = result.filter(e => 
-          e.title.toLowerCase().includes(query) ||
-          e.description?.toLowerCase().includes(query)
-        );
+
+        result = result.filter(e => {
+          const title = (e.title || '').toLowerCase();
+          const description = (e.description || '').toLowerCase();
+          const exhibitorName = (e.exhibitorName || '').toLowerCase();
+
+          return (
+            title.includes(query) ||
+            description.includes(query) ||
+            exhibitorName.includes(query)
+          );
+        });
       }
 
       return result;
@@ -203,27 +245,25 @@ export default {
       deleteExhibitionAction: 'exhibition/deleteExhibition'
     }),
 
-    /**
-     * Calculate exhibition status based on start and end dates
-     * @param {Object} exhibition - Exhibition object with startDate and endDate
-     * @returns {string} 'current', 'upcoming', or 'past'
-     */
     getExhibitionStatus(exhibition) {
       const now = new Date();
       const startDate = new Date(exhibition.startDate);
       const endDate = new Date(exhibition.endDate);
-      
+
       if (now < startDate) {
         return 'upcoming';
-      } else if (now > endDate) {
-        return 'past';
-      } else {
-        return 'current';
       }
+
+      if (now > endDate) {
+        return 'past';
+      }
+
+      return 'current';
     },
 
     async loadExhibitions() {
       this.isLoading = true;
+
       try {
         await this.fetchExhibitions();
       } catch (error) {
@@ -235,6 +275,7 @@ export default {
 
     getStatusCount(status) {
       if (status === 'all') return this.exhibitions.length;
+
       return this.exhibitions.filter(e => this.getExhibitionStatus(e) === status).length;
     },
 
@@ -243,15 +284,29 @@ export default {
     },
 
     editExhibition(exhibition) {
+      if (this.isGlobalSource) {
+        return;
+      }
+
       this.$router.push({ name: 'EditExhibition', params: { id: exhibition.id } });
     },
 
     confirmDelete(exhibition) {
+      if (this.isGlobalSource) {
+        return;
+      }
+
       this.exhibitionToDelete = exhibition;
       this.showDeleteModal = true;
     },
 
     async deleteExhibition() {
+      if (this.isGlobalSource || !this.exhibitionToDelete) {
+        this.showDeleteModal = false;
+        this.exhibitionToDelete = null;
+        return;
+      }
+
       try {
         await this.deleteExhibitionAction(this.exhibitionToDelete.id);
         this.showDeleteModal = false;

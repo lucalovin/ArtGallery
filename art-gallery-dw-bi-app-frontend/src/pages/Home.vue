@@ -2,12 +2,23 @@
   <!--
     Home.vue - Dashboard Home Page
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - hide write quick actions
+    - keep read/report actions
   -->
   <div class="home-page">
     <!-- Page Header -->
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900">Art Gallery Dashboard</h1>
       <p class="text-gray-500 mt-2">Welcome to the Art Gallery Management System</p>
+
+      <div
+        v-if="isGlobalSchema"
+        class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800"
+      >
+        GLOBAL is read-only. Create, update and delete operations are available only on AM or EU.
+      </div>
     </header>
 
     <!-- KPI Cards Row -->
@@ -212,7 +223,7 @@
 
           <div class="space-y-3">
             <div
-              v-for="notification in notifications"
+              v-for="notification in visibleNotifications"
               :key="notification.id"
               class="flex items-start space-x-3 p-3 rounded-lg"
               :class="notification.bgClass"
@@ -257,12 +268,12 @@ export default {
       ],
 
       quickActions: [
-        { route: '/artworks/new', icon: '➕', label: 'Add Artwork' },
-        { route: '/exhibitions/new', icon: '📅', label: 'New Exhibition' },
-        { route: '/reviews/new', icon: '⭐', label: 'New Review' },
-        { route: '/loans/new', icon: '📋', label: 'New Loan' },
-        { route: '/etl', icon: '🔄', label: 'Sync Data' },
-        { route: '/reports', icon: '📊', label: 'View Reports' }
+        { route: '/artworks/new', icon: '➕', label: 'Add Artwork', writeAction: true },
+        { route: '/exhibitions/new', icon: '📅', label: 'New Exhibition', writeAction: true },
+        { route: '/reviews/new', icon: '⭐', label: 'New Review', writeAction: true },
+        { route: '/loans/new', icon: '📋', label: 'New Loan', writeAction: true },
+        { route: '/etl', icon: '🔄', label: 'Sync Data', requiresOltp: true },
+        { route: '/reports', icon: '📊', label: 'View Reports', readAction: true }
       ],
 
       recentArtworks: [],
@@ -281,7 +292,8 @@ export default {
           message: 'ETL sync completed successfully',
           time: '5 minutes ago',
           bgClass: 'bg-green-50',
-          textClass: 'text-green-800'
+          textClass: 'text-green-800',
+          requiresOltp: true
         },
         {
           id: 2,
@@ -297,7 +309,17 @@ export default {
           message: 'New exhibition proposal submitted',
           time: '3 hours ago',
           bgClass: 'bg-blue-50',
-          textClass: 'text-blue-800'
+          textClass: 'text-blue-800',
+          writeRelated: true
+        },
+        {
+          id: 4,
+          icon: '🌐',
+          message: 'Global schema is read-only and aggregates data from AM and EU.',
+          time: 'Current session',
+          bgClass: 'bg-blue-50',
+          textClass: 'text-blue-800',
+          globalOnly: true
         }
       ]
     };
@@ -317,12 +339,40 @@ export default {
       return this.currentSchema === 'OLTP';
     },
 
-    visibleQuickActions() {
-      if (this.isOltpSchema) {
-        return this.quickActions;
-      }
+    isGlobalSchema() {
+      return this.currentSchema === 'GLOBAL';
+    },
 
-      return this.quickActions.filter(action => action.route !== '/etl');
+    visibleQuickActions() {
+      return this.quickActions.filter(action => {
+        if (action.requiresOltp && !this.isOltpSchema) {
+          return false;
+        }
+
+        if (this.isGlobalSchema && action.writeAction) {
+          return false;
+        }
+
+        return true;
+      });
+    },
+
+    visibleNotifications() {
+      return this.notifications.filter(notification => {
+        if (notification.requiresOltp && !this.isOltpSchema) {
+          return false;
+        }
+
+        if (notification.globalOnly && !this.isGlobalSchema) {
+          return false;
+        }
+
+        if (this.isGlobalSchema && notification.writeRelated) {
+          return false;
+        }
+
+        return true;
+      });
     }
   },
 

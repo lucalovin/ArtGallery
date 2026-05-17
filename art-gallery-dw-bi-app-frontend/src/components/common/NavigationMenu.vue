@@ -2,6 +2,12 @@
   <!--
     NavigationMenu.vue - Main Navigation Component
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - hide Add Artwork
+    - hide Add Exhibition
+    - hide New Artwork / New Exhibition / New Review / New Loan
+    - if a dropdown has only one remaining child, render it as a direct link
   -->
   <header class="bg-white shadow-md sticky top-0 z-40">
     <nav class="container mx-auto px-4 lg:px-8">
@@ -13,7 +19,6 @@
             class="flex items-center space-x-3"
             @click="closeMobileMenu"
           >
-            <!-- Gallery Icon -->
             <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -34,7 +39,6 @@
         <!-- Desktop Navigation Links -->
         <div class="hidden md:flex items-center space-x-1">
           <template v-for="item in visibleNavigationItems" :key="item.name">
-            <!-- Simple link without dropdown -->
             <router-link
               v-if="!item.children"
               :to="item.path"
@@ -48,7 +52,6 @@
               {{ item.name }}
             </router-link>
 
-            <!-- Dropdown menu -->
             <div
               v-else
               class="relative"
@@ -91,10 +94,8 @@
 
         <!-- Right side actions -->
         <div class="hidden md:flex items-center space-x-4">
-          <!-- OLTP data-source selector (OLTP / AM / EU / GLOBAL) -->
           <data-source-selector />
 
-          <!-- Search button -->
           <button
             @click="toggleSearch"
             class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -110,8 +111,8 @@
             </svg>
           </button>
 
-          <!-- Quick actions dropdown -->
-          <div class="relative" ref="quickActionsRef">
+          <!-- Quick actions hidden on GLOBAL -->
+          <div v-if="visibleQuickActions.length > 0" class="relative" ref="quickActionsRef">
             <button
               @click.stop="toggleQuickActions"
               class="btn-primary text-sm flex items-center space-x-2"
@@ -159,7 +160,7 @@
         </button>
       </div>
 
-      <!-- Search bar (expandable) -->
+      <!-- Search bar -->
       <transition name="slide-down">
         <div v-if="showSearch" class="py-4 border-t border-gray-200">
           <div class="relative">
@@ -200,7 +201,6 @@
       <div v-if="isMobileMenuOpen" class="md:hidden bg-white border-t border-gray-200">
         <div class="px-4 py-3 space-y-1">
           <template v-for="item in visibleNavigationItems" :key="item.name">
-            <!-- Simple link -->
             <router-link
               v-if="!item.children"
               :to="item.path"
@@ -215,7 +215,6 @@
               {{ item.name }}
             </router-link>
 
-            <!-- Expandable section -->
             <div v-else>
               <button
                 @click="toggleMobileSection(item.name)"
@@ -254,8 +253,10 @@
             </div>
           </template>
 
-          <!-- Mobile quick actions -->
-          <div class="pt-4 mt-4 border-t border-gray-200 space-y-2">
+          <div
+            v-if="visibleMobileQuickActions.length > 0"
+            class="pt-4 mt-4 border-t border-gray-200 space-y-2"
+          >
             <router-link
               v-for="action in visibleMobileQuickActions"
               :key="action.path"
@@ -266,6 +267,13 @@
             >
               {{ action.name }}
             </router-link>
+          </div>
+
+          <div
+            v-if="isGlobalSchema"
+            class="pt-4 mt-4 border-t border-gray-200 text-xs text-gray-500 text-center"
+          >
+            GLOBAL is read-only. Add actions are available on AM or EU.
           </div>
         </div>
       </div>
@@ -300,14 +308,14 @@ export default {
           name: 'Artworks',
           children: [
             { name: 'All Artworks', path: '/artworks' },
-            { name: 'Add Artwork', path: '/artworks/new' }
+            { name: 'Add Artwork', path: '/artworks/new', writeAction: true }
           ]
         },
         {
           name: 'Exhibitions',
           children: [
             { name: 'All Exhibitions', path: '/exhibitions' },
-            { name: 'Add Exhibition', path: '/exhibitions/new' }
+            { name: 'Add Exhibition', path: '/exhibitions/new', writeAction: true }
           ]
         },
         {
@@ -334,15 +342,15 @@ export default {
       ],
 
       quickActions: [
-        { name: 'New Artwork', path: '/artworks/new' },
-        { name: 'New Exhibition', path: '/exhibitions/new' },
-        { name: 'New Review', path: '/reviews/new' },
-        { name: 'New Loan', path: '/loans/new' }
+        { name: 'New Artwork', path: '/artworks/new', writeAction: true },
+        { name: 'New Exhibition', path: '/exhibitions/new', writeAction: true },
+        { name: 'New Review', path: '/reviews/new', writeAction: true },
+        { name: 'New Loan', path: '/loans/new', writeAction: true }
       ],
 
       mobileQuickActions: [
-        { name: 'Add New Artwork', path: '/artworks/new', class: 'btn-primary' },
-        { name: 'Add New Exhibition', path: '/exhibitions/new', class: 'btn-outline' }
+        { name: 'Add New Artwork', path: '/artworks/new', class: 'btn-primary', writeAction: true },
+        { name: 'Add New Exhibition', path: '/exhibitions/new', class: 'btn-outline', writeAction: true }
       ],
 
       activeDropdown: null,
@@ -367,21 +375,60 @@ export default {
       return this.currentSchema === 'OLTP';
     },
 
-    visibleNavigationItems() {
-      return this.navigationItems.filter(item => {
-        if (item.requiresOltp) {
-          return this.isOltpSchema;
-        }
+    isGlobalSchema() {
+      return this.currentSchema === 'GLOBAL';
+    },
 
-        return true;
-      });
+    visibleNavigationItems() {
+      return this.navigationItems
+        .filter(item => {
+          if (item.requiresOltp) {
+            return this.isOltpSchema;
+          }
+
+          return true;
+        })
+        .map(item => {
+          if (!item.children) {
+            return item;
+          }
+
+          const visibleChildren = item.children.filter(child => {
+            if (this.isGlobalSchema && child.writeAction) {
+              return false;
+            }
+
+            return true;
+          });
+
+          if (visibleChildren.length === 1) {
+            return {
+              name: item.name,
+              path: visibleChildren[0].path
+            };
+          }
+
+          return {
+            ...item,
+            children: visibleChildren
+          };
+        })
+        .filter(item => !item.children || item.children.length > 0);
     },
 
     visibleQuickActions() {
+      if (this.isGlobalSchema) {
+        return [];
+      }
+
       return this.quickActions;
     },
 
     visibleMobileQuickActions() {
+      if (this.isGlobalSchema) {
+        return [];
+      }
+
       return this.mobileQuickActions;
     }
   },
@@ -396,10 +443,35 @@ export default {
       if (!this.isOltpSchema && this.currentPath.startsWith('/etl')) {
         this.$router.push('/');
       }
+
+      if (this.isGlobalSchema && this.isWriteRoute(this.currentPath)) {
+        this.$router.push(this.safeReadRouteFor(this.currentPath));
+      }
+
+      this.showQuickActions = false;
     }
   },
 
   methods: {
+    isWriteRoute(path) {
+      return (
+        path === '/artworks/new' ||
+        path === '/exhibitions/new' ||
+        path === '/reviews/new' ||
+        path === '/loans/new' ||
+        path.includes('/edit')
+      );
+    },
+
+    safeReadRouteFor(path) {
+      if (path.startsWith('/artworks')) return '/artworks';
+      if (path.startsWith('/exhibitions')) return '/exhibitions';
+      if (path.startsWith('/reviews')) return '/reviews';
+      if (path.startsWith('/loans')) return '/loans';
+
+      return '/';
+    },
+
     isActiveRoute(path) {
       if (path === '/') {
         return this.currentPath === '/';
