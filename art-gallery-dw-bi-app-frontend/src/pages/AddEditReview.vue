@@ -156,7 +156,7 @@
             >
               <option value="">-- No Artwork Selected --</option>
               <option v-for="artwork in artworks" :key="artwork.id" :value="artwork.id">
-                {{ artwork.title }} {{ artwork.artistName ? `by ${artwork.artistName}` : '' }}
+              {{ getArtworkLabel(artwork) }}
               </option>
             </select>
           </div>
@@ -342,6 +342,33 @@ export default {
       }
       return Array.isArray(response.data) ? response.data : [];
     },
+
+
+    getArtworkLabel(artwork) {
+  const id = artwork.id ?? artwork.artworkId;
+
+  const title =
+    artwork.title ||
+    artwork.name ||
+    artwork.artworkTitle ||
+    `Artwork #${id}`;
+
+  const artist =
+    artwork.artistName ||
+    artwork.artist ||
+    artwork.authorName ||
+    null;
+
+  if (artist && !String(artist).toLowerCase().includes('unknown')) {
+    return `${title} by ${artist}`;
+  }
+
+  return title;
+},
+
+    
+
+
 
     async loadReview() {
       try {

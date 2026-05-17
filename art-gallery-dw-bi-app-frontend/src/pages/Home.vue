@@ -2,12 +2,23 @@
   <!--
     Home.vue - Dashboard Home Page
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - hide write quick actions
+    - keep read/report actions
   -->
   <div class="home-page">
     <!-- Page Header -->
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900">Art Gallery Dashboard</h1>
       <p class="text-gray-500 mt-2">Welcome to the Art Gallery Management System</p>
+
+      <div
+        v-if="isGlobalSchema"
+        class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800"
+      >
+        GLOBAL is read-only. Create, update and delete operations are available only on AM or EU.
+      </div>
     </header>
 
     <!-- KPI Cards Row -->
@@ -30,9 +41,10 @@
     <!-- Quick Actions -->
     <section class="mb-8">
       <h2 class="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <router-link
-          v-for="action in quickActions"
+          v-for="action in visibleQuickActions"
           :key="action.route"
           :to="action.route"
           class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary-200 transition-all group"
@@ -50,8 +62,9 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-800">Recent Artworks</h2>
-            <router-link 
-              to="/artworks" 
+
+            <router-link
+              to="/artworks"
               class="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               View All →
@@ -69,32 +82,36 @@
           </div>
 
           <div v-else class="space-y-4">
-            <div 
-              v-for="artwork in recentArtworks" 
+            <div
+              v-for="artwork in recentArtworks"
               :key="artwork.id"
               class="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               @click="viewArtwork(artwork.id)"
             >
               <div class="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                <img 
-                  v-if="artwork.imageUrl" 
-                  :src="artwork.imageUrl" 
+                <img
+                  v-if="artwork.imageUrl"
+                  :src="artwork.imageUrl"
                   :alt="artwork.title"
                   class="w-full h-full object-cover"
                 />
+
                 <div v-else class="w-full h-full flex items-center justify-center text-2xl">
                   🖼️
                 </div>
               </div>
+
               <div class="flex-1 min-w-0">
                 <h3 class="font-medium text-gray-900 truncate">{{ artwork.title }}</h3>
+
                 <p v-if="artwork.artist || artwork.year" class="text-sm text-gray-500">
                   <template v-if="artwork.artist">{{ artwork.artist }}</template>
                   <template v-if="artwork.artist && artwork.year"> &bull; </template>
                   <template v-if="artwork.year">{{ artwork.year }}</template>
                 </p>
               </div>
-              <span 
+
+              <span
                 class="px-2 py-1 text-xs font-medium rounded-full"
                 :class="getStatusClass(artwork.status)"
               >
@@ -111,8 +128,9 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-800">Upcoming Exhibitions</h2>
-            <router-link 
-              to="/exhibitions" 
+
+            <router-link
+              to="/exhibitions"
               class="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               View All
@@ -127,8 +145,8 @@
           </div>
 
           <div v-else class="space-y-4">
-            <div 
-              v-for="exhibition in upcomingExhibitions" 
+            <div
+              v-for="exhibition in upcomingExhibitions"
               :key="exhibition.id"
               class="border-l-4 border-primary-500 pl-4 py-2"
             >
@@ -140,12 +158,16 @@
           </div>
         </div>
 
-        <!-- ETL Status -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <!-- ETL Status - only available for OLTP/DW context -->
+        <div
+          v-if="isOltpSchema"
+          class="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+        >
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-800">ETL Status</h2>
-            <router-link 
-              to="/etl" 
+
+            <router-link
+              to="/etl"
               class="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               Manage
@@ -157,38 +179,62 @@
               <span class="text-sm text-gray-600">Last Sync</span>
               <span class="text-sm font-medium text-gray-900">{{ etlStatus.lastSync }}</span>
             </div>
+
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">Status</span>
-              <span 
+              <span
                 class="px-2 py-1 text-xs font-medium rounded-full"
                 :class="etlStatus.isHealthy ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
               >
                 {{ etlStatus.isHealthy ? 'Healthy' : 'Error' }}
               </span>
             </div>
+
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">Records Synced</span>
-              <span class="text-sm font-medium text-gray-900">{{ etlStatus.recordsSynced.toLocaleString() }}</span>
+              <span class="text-sm font-medium text-gray-900">
+                {{ etlStatus.recordsSynced.toLocaleString() }}
+              </span>
             </div>
           </div>
+        </div>
+
+        <!-- ETL placeholder for BDD schemas -->
+        <div
+          v-else
+          class="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-800">ETL Status</h2>
+            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+              Not available
+            </span>
+          </div>
+
+          <p class="text-sm text-gray-500 leading-relaxed">
+            ETL status is available only for the OLTP/DW context.
+            The selected schema is a BDD schema fragment/view.
+          </p>
         </div>
 
         <!-- System Notifications -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 class="text-lg font-semibold text-gray-800 mb-4">Notifications</h2>
-          
+
           <div class="space-y-3">
-            <div 
-              v-for="notification in notifications" 
+            <div
+              v-for="notification in visibleNotifications"
               :key="notification.id"
               class="flex items-start space-x-3 p-3 rounded-lg"
               :class="notification.bgClass"
             >
               <span class="text-lg">{{ notification.icon }}</span>
+
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium" :class="notification.textClass">
                   {{ notification.message }}
                 </p>
+
                 <p class="text-xs text-gray-400 mt-1">{{ notification.time }}</p>
               </div>
             </div>
@@ -203,10 +249,6 @@
 import { mapState, mapActions } from 'vuex';
 import KPICard from '@/components/reports/KPICard.vue';
 
-/**
- * Home Page Component
- * Dashboard with KPIs, recent items, and quick actions
- */
 export default {
   name: 'HomePage',
 
@@ -217,51 +259,67 @@ export default {
   data() {
     return {
       isLoading: true,
+
       kpiData: [
         { id: 1, label: 'Total Artworks', value: 0, icon: '🖼️', color: 'primary', trend: 0, format: 'number' },
         { id: 2, label: 'Active Exhibitions', value: 0, icon: '🎨', color: 'secondary', trend: 0, format: 'number' },
         { id: 3, label: 'Registered Visitors', value: 0, icon: '👥', color: 'info', trend: 0, format: 'number' },
         { id: 4, label: 'Insurance Coverage', value: 0, icon: '🛡️', color: 'success', trend: 0, format: 'currency' }
       ],
+
       quickActions: [
-        { route: '/artworks/new', icon: '➕', label: 'Add Artwork' },
-        { route: '/exhibitions/new', icon: '📅', label: 'New Exhibition' },
-        { route: '/reviews/new', icon: '⭐', label: 'New Review' },
-        { route: '/loans/new', icon: '📋', label: 'New Loan' },
-        { route: '/etl', icon: '🔄', label: 'Sync Data' },
-        { route: '/reports', icon: '📊', label: 'View Reports' }
+        { route: '/artworks/new', icon: '➕', label: 'Add Artwork', writeAction: true },
+        { route: '/exhibitions/new', icon: '📅', label: 'New Exhibition', writeAction: true },
+        { route: '/reviews/new', icon: '⭐', label: 'New Review', writeAction: true },
+        { route: '/loans/new', icon: '📋', label: 'New Loan', writeAction: true },
+        { route: '/etl', icon: '🔄', label: 'Sync Data', requiresOltp: true },
+        { route: '/reports', icon: '📊', label: 'View Reports', readAction: true }
       ],
+
       recentArtworks: [],
       upcomingExhibitions: [],
+
       etlStatus: {
         lastSync: 'Loading...',
         isHealthy: true,
         recordsSynced: 0
       },
+
       notifications: [
-        { 
-          id: 1, 
-          icon: '✅', 
-          message: 'ETL sync completed successfully', 
+        {
+          id: 1,
+          icon: '✅',
+          message: 'ETL sync completed successfully',
           time: '5 minutes ago',
           bgClass: 'bg-green-50',
-          textClass: 'text-green-800'
+          textClass: 'text-green-800',
+          requiresOltp: true
         },
-        { 
-          id: 2, 
-          icon: '⚠️', 
-          message: 'Artwork insurance expires in 30 days', 
+        {
+          id: 2,
+          icon: '⚠️',
+          message: 'Artwork insurance expires in 30 days',
           time: '1 hour ago',
           bgClass: 'bg-yellow-50',
           textClass: 'text-yellow-800'
         },
-        { 
-          id: 3, 
-          icon: 'ℹ️', 
-          message: 'New exhibition proposal submitted', 
+        {
+          id: 3,
+          icon: 'ℹ️',
+          message: 'New exhibition proposal submitted',
           time: '3 hours ago',
           bgClass: 'bg-blue-50',
-          textClass: 'text-blue-800'
+          textClass: 'text-blue-800',
+          writeRelated: true
+        },
+        {
+          id: 4,
+          icon: '🌐',
+          message: 'Global schema is read-only and aggregates data from AM and EU.',
+          time: 'Current session',
+          bgClass: 'bg-blue-50',
+          textClass: 'text-blue-800',
+          globalOnly: true
         }
       ]
     };
@@ -271,7 +329,57 @@ export default {
     ...mapState({
       artworks: state => state.artwork.artworks,
       exhibitions: state => state.exhibition.exhibitions
-    })
+    }),
+
+    currentSchema() {
+      return this.$store?.state?.dataSource?.source || 'OLTP';
+    },
+
+    isOltpSchema() {
+      return this.currentSchema === 'OLTP';
+    },
+
+    isGlobalSchema() {
+      return this.currentSchema === 'GLOBAL';
+    },
+
+    visibleQuickActions() {
+      return this.quickActions.filter(action => {
+        if (action.requiresOltp && !this.isOltpSchema) {
+          return false;
+        }
+
+        if (this.isGlobalSchema && action.writeAction) {
+          return false;
+        }
+
+        return true;
+      });
+    },
+
+    visibleNotifications() {
+      return this.notifications.filter(notification => {
+        if (notification.requiresOltp && !this.isOltpSchema) {
+          return false;
+        }
+
+        if (notification.globalOnly && !this.isGlobalSchema) {
+          return false;
+        }
+
+        if (this.isGlobalSchema && notification.writeRelated) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+  },
+
+  watch: {
+    currentSchema() {
+      this.loadDashboardData();
+    }
   },
 
   created() {
@@ -286,89 +394,160 @@ export default {
 
     async loadDashboardData() {
       this.isLoading = true;
-      
+
       try {
-        // Fetch real data from APIs
         const [artworksRes, exhibitionsRes, kpiRes] = await Promise.allSettled([
           this.$api.artworks?.getArtworks?.({ limit: 4 }) || Promise.resolve(null),
           this.$api.exhibitions?.getExhibitions?.({ limit: 3 }) || Promise.resolve(null),
           this.$api.reports?.getDashboardKPIs?.() || Promise.resolve(null)
         ]);
 
-        // Update KPIs from API
         if (kpiRes.status === 'fulfilled' && kpiRes.value?.data?.success) {
           const kpis = kpiRes.value.data.data;
+
           if (kpis.totalArtworks !== undefined) this.kpiData[0].value = kpis.totalArtworks;
           if (kpis.activeExhibitions !== undefined) this.kpiData[1].value = kpis.activeExhibitions;
           if (kpis.totalVisitors !== undefined) this.kpiData[2].value = kpis.totalVisitors;
           if (kpis.totalInsuranceCoverage !== undefined) this.kpiData[3].value = kpis.totalInsuranceCoverage;
         }
 
-        // Set recent artworks from API
         if (artworksRes.status === 'fulfilled' && artworksRes.value?.data?.success) {
           const responseData = artworksRes.value.data.data;
-          // Handle paginated response with 'items' array
-          const artworks = Array.isArray(responseData?.items) ? responseData.items : (Array.isArray(responseData) ? responseData : []);
+          const artworks = Array.isArray(responseData?.items)
+            ? responseData.items
+            : (Array.isArray(responseData) ? responseData : []);
+
           this.recentArtworks = artworks.slice(0, 4).map(a => ({
             id: a.id,
-            title: a.title || `Artwork #${a.id}`,
+            title: a.title || a.name || `Artwork #${a.id}`,
             artist: a.artistName || a.artist || '',
-            year: a.year || a.creationYear || '',
+            year: a.year || a.creationYear || a.yearCreated || '',
             status: a.status || 'On Display',
             imageUrl: a.imageUrl || ''
           }));
+        } else {
+          this.recentArtworks = [];
         }
 
-        // Set upcoming exhibitions from API
         if (exhibitionsRes.status === 'fulfilled' && exhibitionsRes.value?.data?.success) {
           const responseData = exhibitionsRes.value.data.data;
-          // Handle paginated response with 'items' array
-          const exhibitions = Array.isArray(responseData?.items) ? responseData.items : (Array.isArray(responseData) ? responseData : []);
+          const exhibitions = Array.isArray(responseData?.items)
+            ? responseData.items
+            : (Array.isArray(responseData) ? responseData : []);
+
           this.upcomingExhibitions = exhibitions.slice(0, 3).map(e => ({
             id: e.id,
-            title: e.title || e.exhibitionName,
+            title: e.title || e.exhibitionName || e.name || `Exhibition #${e.id}`,
             startDate: e.startDate,
             endDate: e.endDate
           }));
+        } else {
+          this.upcomingExhibitions = [];
         }
 
-        // Fetch ETL status
-        try {
-          const etlRes = await this.$api.etl?.getStatus?.();
-          if (etlRes?.data?.success) {
-            const status = etlRes.data.data;
-            this.etlStatus = {
-              lastSync: status.lastSync?.syncDate ? this.formatTimeAgo(new Date(status.lastSync.syncDate)) : 'Never',
-              isHealthy: status.status === 'idle' || status.status === 'completed' || status.lastSync?.status === 'Completed',
-              recordsSynced: status.lastSync?.recordsProcessed || status.stats?.totalRecords || 0
-            };
-          }
-        } catch (etlError) {
-          console.error('ETL status fetch failed:', etlError);
+        if (this.isOltpSchema) {
+          await this.loadEtlStatus();
+        } else {
           this.etlStatus = {
-            lastSync: 'Error',
-            isHealthy: false,
+            lastSync: 'Not available',
+            isHealthy: true,
             recordsSynced: 0
           };
         }
-
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+
+        if (!this.isOltpSchema) {
+          this.etlStatus = {
+            lastSync: 'Not available',
+            isHealthy: true,
+            recordsSynced: 0
+          };
+        }
       } finally {
         this.isLoading = false;
       }
     },
 
+    async loadEtlStatus() {
+      if (!this.isOltpSchema) {
+        this.etlStatus = {
+          lastSync: 'Not available',
+          isHealthy: true,
+          recordsSynced: 0
+        };
+        return;
+      }
+
+      try {
+        const etlRes = await this.$api.etl?.getStatus?.();
+
+        if (!etlRes?.data?.success) {
+          this.etlStatus = {
+            lastSync: 'Error',
+            isHealthy: false,
+            recordsSynced: 0
+          };
+          return;
+        }
+
+        const status = etlRes.data.data;
+        const lastSync = status.lastSync || null;
+        const syncDate = lastSync?.syncDate || lastSync?.timestamp || null;
+
+        this.etlStatus = {
+          lastSync: syncDate
+            ? this.formatTimeAgo(this.parseApiDate(syncDate))
+            : 'Never',
+
+          isHealthy:
+            status.status === 'idle' ||
+            status.status === 'completed' ||
+            lastSync?.status === 'Completed' ||
+            lastSync?.status === 'success',
+
+          recordsSynced: lastSync?.recordsProcessed ?? 0
+        };
+      } catch (etlError) {
+        console.error('ETL status fetch failed:', etlError);
+
+        this.etlStatus = {
+          lastSync: 'Error',
+          isHealthy: false,
+          recordsSynced: 0
+        };
+      }
+    },
+
+    parseApiDate(value) {
+      if (!value) return null;
+
+      if (value instanceof Date) {
+        return value;
+      }
+
+      const valueAsString = String(value);
+      const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(valueAsString);
+
+      return new Date(hasTimezone ? valueAsString : `${valueAsString}Z`);
+    },
+
     formatTimeAgo(date) {
+      if (!date || Number.isNaN(date.getTime())) {
+        return 'Never';
+      }
+
       const now = new Date();
-      const diff = now - date;
+      const diff = Math.max(0, now - date);
+
       const minutes = Math.floor(diff / (1000 * 60));
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      
+
       if (minutes < 1) return 'Just now';
       if (minutes < 60) return `${minutes} minutes ago`;
       if (hours < 24) return `${hours} hours ago`;
+
       return `${days} days ago`;
     },
 
@@ -378,6 +557,7 @@ export default {
 
     formatDate(dateString) {
       if (!dateString) return '';
+
       return new Date(dateString).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -392,6 +572,7 @@ export default {
         'On Loan': 'bg-blue-100 text-blue-700',
         'Under Restoration': 'bg-yellow-100 text-yellow-700'
       };
+
       return statusClasses[status] || 'bg-gray-100 text-gray-700';
     }
   }

@@ -28,9 +28,12 @@ public class LoansController : ControllerBase
     public async Task<ActionResult<ApiResponse<LoanResponseDto>>> GetById(int id)
     {
         var result = await _loanService.GetByIdAsync(id);
+
         if (result == null)
+        {
             return NotFound(ApiResponse<LoanResponseDto>.FailureResponse($"Loan with ID {id} not found"));
-        
+        }
+
         return Ok(ApiResponse<LoanResponseDto>.SuccessResponse(result));
     }
 
@@ -38,7 +41,10 @@ public class LoansController : ControllerBase
     public async Task<ActionResult<ApiResponse<LoanResponseDto>>> Create([FromBody] CreateLoanDto dto)
     {
         var result = await _loanService.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, 
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = result.Id },
             ApiResponse<LoanResponseDto>.SuccessResponse(result, "Loan created successfully"));
     }
 

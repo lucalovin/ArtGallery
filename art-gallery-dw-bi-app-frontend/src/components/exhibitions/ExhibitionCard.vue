@@ -2,25 +2,34 @@
   <!--
     ExhibitionCard.vue - Exhibition Display Card Component
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - View Details remains available
+    - Edit/Delete are hidden
   -->
-  <div 
+  <div
     class="exhibition-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-gray-200 cursor-pointer"
     @click="viewExhibition"
   >
     <!-- Exhibition Image/Banner -->
     <div class="relative h-48 overflow-hidden bg-gradient-to-br from-primary-400 to-secondary-500">
       <img
-        v-if="exhibition.imageUrl"
+        v-if="exhibition.imageUrl && !imageError"
         :src="exhibition.imageUrl"
         :alt="exhibition.title"
         class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
         loading="lazy"
         @error="handleImageError"
       />
+
       <div v-else class="w-full h-full flex items-center justify-center">
         <svg class="w-16 h-16 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+          />
         </svg>
       </div>
 
@@ -28,6 +37,13 @@
       <div class="absolute top-3 left-3">
         <span :class="statusBadgeClasses">
           {{ exhibitionStatus }}
+        </span>
+      </div>
+
+      <!-- Read-only Badge -->
+      <div v-if="isGlobalSource" class="absolute bottom-3 left-3">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+          Global View
         </span>
       </div>
 
@@ -52,7 +68,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </button>
+
           <button
+            v-if="!isGlobalSource"
             type="button"
             @click.stop="editExhibition"
             class="p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
@@ -62,7 +80,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
+
           <button
+            v-if="!isGlobalSource"
             type="button"
             @click.stop="confirmDelete"
             class="p-2 bg-white rounded-full shadow-lg hover:bg-red-100 transition-colors"
@@ -83,6 +103,14 @@
         {{ exhibition.title }}
       </h3>
 
+      <!-- Exhibitor -->
+      <div v-if="exhibition.exhibitorName" class="flex items-center text-sm text-gray-500 mb-2">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>{{ exhibition.exhibitorName }}</span>
+      </div>
+
       <!-- Dates -->
       <div class="flex items-center text-sm text-gray-500 mb-3">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +126,6 @@
 
       <!-- Stats Row -->
       <div class="flex items-center justify-between pt-3 border-t border-gray-100">
-        <!-- Artworks Count -->
         <div class="flex items-center text-sm">
           <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -106,7 +133,6 @@
           <span class="text-gray-600">{{ artworkCount }} artworks</span>
         </div>
 
-        <!-- Visitors Count (if ongoing/past) -->
         <div v-if="exhibition.visitorCount" class="flex items-center text-sm">
           <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -114,7 +140,6 @@
           <span class="text-gray-600">{{ exhibition.visitorCount }} visitors</span>
         </div>
 
-        <!-- Location -->
         <div v-if="exhibition.location" class="flex items-center text-sm">
           <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -134,9 +159,6 @@
 export default {
   name: 'ExhibitionCard',
 
-  /**
-   * Props
-   */
   props: {
     exhibition: {
       type: Object,
@@ -147,27 +169,27 @@ export default {
     }
   },
 
-  /**
-   * Emits
-   */
   emits: ['view', 'edit', 'delete'],
 
-  /**
-   * data()
-   */
   data() {
     return {
       imageError: false
     };
   },
 
-  /**
-   * Computed
-   */
   computed: {
-    /**
-     * Determine exhibition status based on dates
-     */
+    isGlobalSource() {
+      const storeSource = this.$store?.state?.dataSource?.source;
+      const localSource =
+        localStorage.getItem('dataSource') ||
+        localStorage.getItem('selectedDataSource') ||
+        localStorage.getItem('currentDataSource') ||
+        localStorage.getItem('artGalleryDataSource') ||
+        '';
+
+      return String(storeSource || localSource).toUpperCase() === 'GLOBAL';
+    },
+
     exhibitionStatus() {
       const now = new Date();
       const startDate = new Date(this.exhibition.startDate);
@@ -175,75 +197,72 @@ export default {
 
       if (now < startDate) {
         return 'Upcoming';
-      } else if (now > endDate) {
-        return 'Past';
-      } else {
-        return 'Ongoing';
       }
+
+      if (now > endDate) {
+        return 'Past';
+      }
+
+      return 'Ongoing';
     },
 
-    /**
-     * Status badge CSS classes
-     */
     statusBadgeClasses() {
       const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
-      
+
       const statusStyles = {
-        'Upcoming': 'bg-yellow-100 text-yellow-800',
-        'Ongoing': 'bg-green-100 text-green-800',
-        'Past': 'bg-gray-100 text-gray-800'
+        Upcoming: 'bg-yellow-100 text-yellow-800',
+        Ongoing: 'bg-green-100 text-green-800',
+        Past: 'bg-gray-100 text-gray-800'
       };
 
-      return `${base} ${statusStyles[this.exhibitionStatus] || statusStyles['Upcoming']}`;
+      return `${base} ${statusStyles[this.exhibitionStatus] || statusStyles.Upcoming}`;
     },
 
-    /**
-     * Format date range for display
-     */
     formattedDateRange() {
+      if (!this.exhibition.startDate || !this.exhibition.endDate) {
+        return 'Date not available';
+      }
+
       const options = { month: 'short', day: 'numeric', year: 'numeric' };
       const start = new Date(this.exhibition.startDate).toLocaleDateString('en-US', options);
       const end = new Date(this.exhibition.endDate).toLocaleDateString('en-US', options);
+
       return `${start} - ${end}`;
     },
 
-    /**
-     * Calculate days info
-     */
     daysInfo() {
+      if (!this.exhibition.startDate || !this.exhibition.endDate) {
+        return null;
+      }
+
       const now = new Date();
       const startDate = new Date(this.exhibition.startDate);
       const endDate = new Date(this.exhibition.endDate);
-      
+
       const diffToStart = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
       const diffToEnd = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
 
       if (this.exhibitionStatus === 'Upcoming') {
         return `Opens in ${diffToStart} days`;
-      } else if (this.exhibitionStatus === 'Ongoing') {
+      }
+
+      if (this.exhibitionStatus === 'Ongoing') {
         return `${diffToEnd} days left`;
       }
+
       return null;
     },
 
-    /**
-     * Get artwork count
-     */
     artworkCount() {
       if (Array.isArray(this.exhibition.artworks)) {
         return this.exhibition.artworks.length;
       }
+
       return this.exhibition.artworkCount || 0;
     }
   },
 
-  /**
-   * Methods
-   */
   methods: {
-    /**
-     * Navigate to exhibition detail view
-     */
     viewExhibition() {
       this.$emit('view', this.exhibition);
       this.$router.push({
@@ -252,29 +271,28 @@ export default {
       });
     },
 
-    /**
-     * Navigate to edit form
-     */
     editExhibition() {
+      if (this.isGlobalSource) {
+        return;
+      }
+
       this.$emit('edit', this.exhibition);
       this.$router.push({
-        name: 'exhibition-edit',
+        name: 'EditExhibition',
         params: { id: this.exhibition.id }
       });
     },
 
-    /**
-     * Confirm and emit delete action
-     */
     confirmDelete() {
+      if (this.isGlobalSource) {
+        return;
+      }
+
       if (confirm(`Are you sure you want to delete "${this.exhibition.title}"?`)) {
         this.$emit('delete', this.exhibition);
       }
     },
 
-    /**
-     * Handle image loading error
-     */
     handleImageError(event) {
       this.imageError = true;
       event.target.style.display = 'none';

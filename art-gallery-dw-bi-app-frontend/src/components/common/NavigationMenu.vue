@@ -2,24 +2,34 @@
   <!--
     NavigationMenu.vue - Main Navigation Component
     Art Gallery Management System
+
+    GLOBAL is read-only:
+    - hide Add Artwork
+    - hide Add Exhibition
+    - hide New Artwork / New Exhibition / New Review / New Loan
+    - if a dropdown has only one remaining child, render it as a direct link
   -->
   <header class="bg-white shadow-md sticky top-0 z-40">
     <nav class="container mx-auto px-4 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <!-- Logo and Brand -->
         <div class="flex items-center">
-          <router-link 
-            to="/" 
+          <router-link
+            to="/"
             class="flex items-center space-x-3"
             @click="closeMobileMenu"
           >
-            <!-- Gallery Icon -->
             <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
             </div>
+
             <span class="text-xl font-display font-bold text-gray-900 hidden sm:block">
               Art Gallery
             </span>
@@ -28,29 +38,31 @@
 
         <!-- Desktop Navigation Links -->
         <div class="hidden md:flex items-center space-x-1">
-          <!-- Main navigation items using v-for -->
-          <template v-for="item in navigationItems" :key="item.name">
-            <!-- Simple link without dropdown -->
+          <template v-for="item in visibleNavigationItems" :key="item.name">
             <router-link
               v-if="!item.children"
               :to="item.path"
               :class="[
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                isActiveRoute(item.path) 
-                  ? 'bg-primary-50 text-primary-700' 
+                isActiveRoute(item.path)
+                  ? 'bg-primary-50 text-primary-700'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               ]"
             >
               {{ item.name }}
             </router-link>
 
-            <!-- Dropdown menu -->
-            <div v-else class="relative" @mouseenter="openDropdown(item.name)" @mouseleave="closeDropdown">
+            <div
+              v-else
+              class="relative"
+              @mouseenter="openDropdown(item.name)"
+              @mouseleave="closeDropdown"
+            >
               <button
                 :class="[
                   'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1',
-                  isActiveParentRoute(item.children) 
-                    ? 'bg-primary-50 text-primary-700' 
+                  isActiveParentRoute(item.children)
+                    ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 ]"
               >
@@ -60,7 +72,6 @@
                 </svg>
               </button>
 
-              <!-- Dropdown content -->
               <transition name="dropdown">
                 <div
                   v-if="activeDropdown === item.name"
@@ -83,23 +94,25 @@
 
         <!-- Right side actions -->
         <div class="hidden md:flex items-center space-x-4">
-          <!-- OLTP data-source selector (OLTP / AM / EU / GLOBAL) -->
           <data-source-selector />
 
-          <!-- Search button -->
-          <button 
+          <button
             @click="toggleSearch"
             class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="Search"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </button>
 
-          <!-- Quick actions dropdown -->
-          <div class="relative" ref="quickActionsRef">
+          <!-- Quick actions hidden on GLOBAL -->
+          <div v-if="visibleQuickActions.length > 0" class="relative" ref="quickActionsRef">
             <button
               @click.stop="toggleQuickActions"
               class="btn-primary text-sm flex items-center space-x-2"
@@ -116,33 +129,14 @@
                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1"
                 @click.stop
               >
-                <router-link 
-                  to="/artworks/new" 
+                <router-link
+                  v-for="action in visibleQuickActions"
+                  :key="action.path"
+                  :to="action.path"
                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   @click="showQuickActions = false"
                 >
-                  New Artwork
-                </router-link>
-                <router-link 
-                  to="/exhibitions/new" 
-                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  @click="showQuickActions = false"
-                >
-                  New Exhibition
-                </router-link>
-                <router-link 
-                  to="/reviews/new" 
-                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  @click="showQuickActions = false"
-                >
-                  New Review
-                </router-link>
-                <router-link 
-                  to="/loans/new" 
-                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  @click="showQuickActions = false"
-                >
-                  New Loan
+                  {{ action.name }}
                 </router-link>
               </div>
             </transition>
@@ -156,17 +150,17 @@
           :aria-expanded="isMobileMenuOpen"
           aria-label="Toggle menu"
         >
-          <!-- Hamburger icon / X icon -->
           <svg v-if="!isMobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
+
           <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <!-- Search bar (expandable) -->
+      <!-- Search bar -->
       <transition name="slide-down">
         <div v-if="showSearch" class="py-4 border-t border-gray-200">
           <div class="relative">
@@ -179,10 +173,16 @@
               @keyup.enter="performSearch"
               @keyup.escape="closeSearch"
             />
+
             <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
+
             <button
               @click="closeSearch"
               class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
@@ -200,16 +200,14 @@
     <transition name="slide-down">
       <div v-if="isMobileMenuOpen" class="md:hidden bg-white border-t border-gray-200">
         <div class="px-4 py-3 space-y-1">
-          <!-- Mobile nav items -->
-          <template v-for="item in navigationItems" :key="item.name">
-            <!-- Simple link -->
+          <template v-for="item in visibleNavigationItems" :key="item.name">
             <router-link
               v-if="!item.children"
               :to="item.path"
               :class="[
                 'block px-4 py-3 rounded-lg text-base font-medium',
-                isActiveRoute(item.path) 
-                  ? 'bg-primary-50 text-primary-700' 
+                isActiveRoute(item.path)
+                  ? 'bg-primary-50 text-primary-700'
                   : 'text-gray-600 hover:bg-gray-100'
               ]"
               @click="closeMobileMenu"
@@ -217,29 +215,28 @@
               {{ item.name }}
             </router-link>
 
-            <!-- Expandable section -->
             <div v-else>
               <button
                 @click="toggleMobileSection(item.name)"
                 :class="[
                   'w-full flex items-center justify-between px-4 py-3 rounded-lg text-base font-medium',
-                  isActiveParentRoute(item.children) 
-                    ? 'bg-primary-50 text-primary-700' 
+                  isActiveParentRoute(item.children)
+                    ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:bg-gray-100'
                 ]"
               >
                 <span>{{ item.name }}</span>
-                <svg 
+
+                <svg
                   :class="['w-5 h-5 transition-transform', { 'rotate-180': expandedMobileSection === item.name }]"
-                  fill="none" 
-                  stroke="currentColor" 
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              <!-- Child links -->
               <transition name="expand">
                 <div v-if="expandedMobileSection === item.name" class="pl-4 mt-1 space-y-1">
                   <router-link
@@ -256,22 +253,27 @@
             </div>
           </template>
 
-          <!-- Mobile quick actions -->
-          <div class="pt-4 mt-4 border-t border-gray-200 space-y-2">
-            <router-link 
-              to="/artworks/new" 
-              class="block w-full text-center btn-primary"
+          <div
+            v-if="visibleMobileQuickActions.length > 0"
+            class="pt-4 mt-4 border-t border-gray-200 space-y-2"
+          >
+            <router-link
+              v-for="action in visibleMobileQuickActions"
+              :key="action.path"
+              :to="action.path"
+              class="block w-full text-center"
+              :class="action.class"
               @click="closeMobileMenu"
             >
-              Add New Artwork
+              {{ action.name }}
             </router-link>
-            <router-link 
-              to="/exhibitions/new" 
-              class="block w-full text-center btn-outline"
-              @click="closeMobileMenu"
-            >
-              Add New Exhibition
-            </router-link>
+          </div>
+
+          <div
+            v-if="isGlobalSchema"
+            class="pt-4 mt-4 border-t border-gray-200 text-xs text-gray-500 text-center"
+          >
+            GLOBAL is read-only. Add actions are available on AM or EU.
           </div>
         </div>
       </div>
@@ -280,58 +282,44 @@
 </template>
 
 <script>
-/**
- * NavigationMenu Component
- */
 import DataSourceSelector from './DataSourceSelector.vue';
 
 export default {
-  // Component name for debugging and recursive components
   name: 'NavigationMenu',
 
   components: {
     DataSourceSelector
   },
 
-  // Props received from parent (App.vue)
   props: {
-    /**
-     * Whether mobile menu is open (controlled by parent)
-     */
     isMobileMenuOpen: {
       type: Boolean,
       default: false
     }
   },
 
-  // Events emitted to parent
   emits: ['toggle-mobile-menu'],
 
-  /**
-   * data() - Reactive state
-   * Following Lab pattern: returns object with component state
-   */
   data() {
     return {
-      // Navigation items array - demonstrates v-for iteration
       navigationItems: [
         { name: 'Dashboard', path: '/' },
-        { 
-          name: 'Artworks', 
+        {
+          name: 'Artworks',
           children: [
             { name: 'All Artworks', path: '/artworks' },
-            { name: 'Add Artwork', path: '/artworks/new' }
+            { name: 'Add Artwork', path: '/artworks/new', writeAction: true }
           ]
         },
-        { 
-          name: 'Exhibitions', 
+        {
+          name: 'Exhibitions',
           children: [
             { name: 'All Exhibitions', path: '/exhibitions' },
-            { name: 'Add Exhibition', path: '/exhibitions/new' }
+            { name: 'Add Exhibition', path: '/exhibitions/new', writeAction: true }
           ]
         },
-        { 
-          name: 'Management', 
+        {
+          name: 'Management',
           children: [
             { name: 'Reviews', path: '/reviews' },
             { name: 'Visitors', path: '/visitors' },
@@ -340,183 +328,222 @@ export default {
             { name: 'Insurance', path: '/insurance' }
           ]
         },
-        { name: 'ETL Management', path: '/etl' },
+        { name: 'ETL Management', path: '/etl', requiresOltp: true },
         { name: 'Reports', path: '/reports' },
         { name: 'Analytics', path: '/analytics' },
         {
           name: 'BDD',
           children: [
             { name: 'Local Management (AM/EU)', path: '/bdd/local' },
-            { name: 'Global Unified View',     path: '/bdd/global' },
-            { name: 'BDD Demo (C3 & C4)',      path: '/bdd/demo' }
+            { name: 'Global Unified View', path: '/bdd/global' },
+            { name: 'BDD Demo (C3 & C4)', path: '/bdd/demo' }
           ]
         }
       ],
 
-      // Active dropdown menu (desktop)
+      quickActions: [
+        { name: 'New Artwork', path: '/artworks/new', writeAction: true },
+        { name: 'New Exhibition', path: '/exhibitions/new', writeAction: true },
+        { name: 'New Review', path: '/reviews/new', writeAction: true },
+        { name: 'New Loan', path: '/loans/new', writeAction: true }
+      ],
+
+      mobileQuickActions: [
+        { name: 'Add New Artwork', path: '/artworks/new', class: 'btn-primary', writeAction: true },
+        { name: 'Add New Exhibition', path: '/exhibitions/new', class: 'btn-outline', writeAction: true }
+      ],
+
       activeDropdown: null,
-
-      // Show quick actions menu
       showQuickActions: false,
-
-      // Show search bar
       showSearch: false,
-
-      // Search query - v-model binding example
       searchQuery: '',
-
-      // Expanded mobile section
       expandedMobileSection: null,
-
-      // Dropdown close timeout
       dropdownTimeout: null
     };
   },
 
-  /**
-   * computed - Derived reactive properties
-   * Automatically recalculate when dependencies change
-   */
   computed: {
-    /**
-     * Get current route path
-     */
     currentPath() {
       return this.$route?.path || '/';
+    },
+
+    currentSchema() {
+      return this.$store?.state?.dataSource?.source || 'OLTP';
+    },
+
+    isOltpSchema() {
+      return this.currentSchema === 'OLTP';
+    },
+
+    isGlobalSchema() {
+      return this.currentSchema === 'GLOBAL';
+    },
+
+    visibleNavigationItems() {
+      return this.navigationItems
+        .filter(item => {
+          if (item.requiresOltp) {
+            return this.isOltpSchema;
+          }
+
+          return true;
+        })
+        .map(item => {
+          if (!item.children) {
+            return item;
+          }
+
+          const visibleChildren = item.children.filter(child => {
+            if (this.isGlobalSchema && child.writeAction) {
+              return false;
+            }
+
+            return true;
+          });
+
+          if (visibleChildren.length === 1) {
+            return {
+              name: item.name,
+              path: visibleChildren[0].path
+            };
+          }
+
+          return {
+            ...item,
+            children: visibleChildren
+          };
+        })
+        .filter(item => !item.children || item.children.length > 0);
+    },
+
+    visibleQuickActions() {
+      if (this.isGlobalSchema) {
+        return [];
+      }
+
+      return this.quickActions;
+    },
+
+    visibleMobileQuickActions() {
+      if (this.isGlobalSchema) {
+        return [];
+      }
+
+      return this.mobileQuickActions;
     }
   },
 
-  /**
-   * watch - React to data changes
-   * Following Lab pattern for observing props/data
-   */
   watch: {
-    /**
-     * Watch route changes to close menus
-     */
     '$route'() {
       this.closeDropdown();
+      this.showQuickActions = false;
+    },
+
+    currentSchema() {
+      if (!this.isOltpSchema && this.currentPath.startsWith('/etl')) {
+        this.$router.push('/');
+      }
+
+      if (this.isGlobalSchema && this.isWriteRoute(this.currentPath)) {
+        this.$router.push(this.safeReadRouteFor(this.currentPath));
+      }
+
       this.showQuickActions = false;
     }
   },
 
-  /**
-   * methods - Component functions
-   * Event handlers and logic
-   */
   methods: {
-    /**
-     * Check if a route is active
-     * @param {string} path - Route path to check
-     * @returns {boolean}
-     */
+    isWriteRoute(path) {
+      return (
+        path === '/artworks/new' ||
+        path === '/exhibitions/new' ||
+        path === '/reviews/new' ||
+        path === '/loans/new' ||
+        path.includes('/edit')
+      );
+    },
+
+    safeReadRouteFor(path) {
+      if (path.startsWith('/artworks')) return '/artworks';
+      if (path.startsWith('/exhibitions')) return '/exhibitions';
+      if (path.startsWith('/reviews')) return '/reviews';
+      if (path.startsWith('/loans')) return '/loans';
+
+      return '/';
+    },
+
     isActiveRoute(path) {
       if (path === '/') {
         return this.currentPath === '/';
       }
+
       return this.currentPath.startsWith(path);
     },
 
-    /**
-     * Check if any child route is active
-     * @param {Array} children - Child routes array
-     * @returns {boolean}
-     */
     isActiveParentRoute(children) {
       return children.some(child => this.isActiveRoute(child.path));
     },
 
-    /**
-     * Toggle mobile menu - emits event to parent
-     * Demonstrates child-to-parent communication
-     */
     toggleMobileMenu() {
       this.$emit('toggle-mobile-menu');
     },
 
-    /**
-     * Close mobile menu
-     */
     closeMobileMenu() {
       if (this.isMobileMenuOpen) {
         this.$emit('toggle-mobile-menu');
       }
+
       this.expandedMobileSection = null;
     },
 
-    /**
-     * Open dropdown menu (desktop)
-     * @param {string} name - Dropdown name
-     */
     openDropdown(name) {
       if (this.dropdownTimeout) {
         clearTimeout(this.dropdownTimeout);
       }
+
       this.activeDropdown = name;
     },
 
-    /**
-     * Close dropdown with delay
-     */
     closeDropdown() {
       this.dropdownTimeout = setTimeout(() => {
         this.activeDropdown = null;
       }, 150);
     },
 
-    /**
-     * Toggle quick actions menu
-     */
     toggleQuickActions() {
       this.showQuickActions = !this.showQuickActions;
     },
 
-    /**
-     * Toggle search bar
-     */
     toggleSearch() {
       this.showSearch = !this.showSearch;
+
       if (this.showSearch) {
-        // Focus input after DOM update
         this.$nextTick(() => {
           this.$refs.searchInput?.focus();
         });
       }
     },
 
-    /**
-     * Close search bar
-     */
     closeSearch() {
       this.showSearch = false;
       this.searchQuery = '';
     },
 
-    /**
-     * Perform search - navigate to results
-     */
     performSearch() {
       if (this.searchQuery.trim()) {
         this.$router.push({
           path: '/artworks',
           query: { search: this.searchQuery }
         });
+
         this.closeSearch();
       }
     },
 
-    /**
-     * Toggle mobile section (accordion)
-     * @param {string} name - Section name
-     */
     toggleMobileSection(name) {
       this.expandedMobileSection = this.expandedMobileSection === name ? null : name;
     },
 
-    /**
-     * Handle click outside to close dropdowns
-     * @param {Event} event - Click event
-     */
     handleClickOutside(event) {
       if (!this.$el.contains(event.target)) {
         this.showQuickActions = false;
@@ -525,20 +552,13 @@ export default {
     }
   },
 
-  /**
-   * mounted() - DOM ready lifecycle hook
-   * Add global event listeners
-   */
   mounted() {
     document.addEventListener('click', this.handleClickOutside);
   },
 
-  /**
-   * beforeUnmount() - Cleanup lifecycle hook
-   * Remove global event listeners
-   */
   beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside);
+
     if (this.dropdownTimeout) {
       clearTimeout(this.dropdownTimeout);
     }
@@ -547,7 +567,6 @@ export default {
 </script>
 
 <style scoped>
-/* Dropdown transition */
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -559,7 +578,6 @@ export default {
   transform: translateY(-8px);
 }
 
-/* Slide down transition */
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.2s ease;
@@ -577,7 +595,6 @@ export default {
   max-height: 500px;
 }
 
-/* Expand transition for mobile accordion */
 .expand-enter-active,
 .expand-leave-active {
   transition: all 0.2s ease;
